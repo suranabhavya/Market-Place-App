@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/const/resource.dart';
+import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 
 LinearGradient kGradient = const LinearGradient(
   begin: Alignment.topLeft,
@@ -157,62 +159,95 @@ List<String> images = [
 //   }
 // ];
 
-// List<Products> products = [
-//   Products(
-//       id: 3,
-//       title: "Converse Chuck Taylor All Star",
-//       price: 60.0,
-//       description:
-//           "The classic Chuck Taylor All Star sneaker from Converse, featuring a timeless design and comfortable fit.",
-//       isFeatured: true,
-//       clothesType: "kids",
-//       ratings: 4.333333333333333,
-//       colors: ["black", "white", "red"],
-//       imageUrls: [
-//         "https://media.cnn.com/api/v1/images/stellar/prod/220210051008-04-lv-virgil-abloh.jpg?q=w_2000,c_fill/f_webp",
-//         "https://media.cnn.com/api/v1/images/stellar/prod/220210051008-04-lv-virgil-abloh.jpg?q=w_2000,c_fill/f_webp"
-//       ],
-//       sizes: ["7", "8", "9", "10", "11"],
-//       createdAt: DateTime.parse("2024-06-06T07:57:45Z"),
-//       category: 3,
-//       brand: 1),
-//   Products(
-//       id: 1,
-//       title: "LV Trainers",
-//       price: 798.88,
-//       description:
-//           "LV Trainers blend sleek style with athletic functionality, featuring bold logos, premium materials, and comfortable designs that elevate your everyday look with a touch of luxury.",
-//       isFeatured: true,
-//       clothesType: "women",
-//       ratings: 4.5,
-//       colors: ["white", "black", "red"],
-//       imageUrls: [
-//         "https://media.cnn.com/api/v1/images/stellar/prod/220210051008-04-lv-virgil-abloh.jpg?q=w_2000,c_fill/f_webp",
-//         "https://media.cnn.com/api/v1/images/stellar/prod/220210051008-04-lv-virgil-abloh.jpg?q=w_2000,c_fill/f_webp"
-//       ],
-//       sizes: ["7", "8", "9", "10", "11"],
-//       createdAt: DateTime.parse("2024-06-06T07:49:15Z"),
-//       category: 3,
-//       brand: 1),
-//   Products(
-//       id: 2,
-//       title: "Adidas Ultraboost",
-//       price: 180.0,
-//       description:
-//           "Experience the comfort and energy return of the Ultraboost, designed for running and everyday wear.",
-//       isFeatured: true,
-//       clothesType: "unisex",
-//       ratings: 5.0,
-//       colors: ["navy", "grey", "blue"],
-//       imageUrls: [
-//         "https://media.cnn.com/api/v1/images/stellar/prod/220210051008-04-lv-virgil-abloh.jpg?q=w_2000,c_fill/f_webp",
-//         "https://media.cnn.com/api/v1/images/stellar/prod/220210051008-04-lv-virgil-abloh.jpg?q=w_2000,c_fill/f_webp"
-//       ],
-//       sizes: ["7", "8", "9", "10", "11"],
-//       createdAt: DateTime.parse("2024-06-06T07:55:20Z"),
-//       category: 3,
-//       brand: 1)
-// ];
+List<PropertyListModel> properties = [
+  PropertyListModel(
+    id: "1",
+    title: "Cozy Studio Apartment",
+    address: "123 Main Street, City Center",
+    latitude: 40.7128,
+    longitude: -74.0060,
+    rent: 1500.00,
+    rentFrequency: "Monthly",
+    bedrooms: 1,
+    bathrooms: 1,
+    images: [
+      "https://imageio.forbes.com/specials-images/imageserve/64525acf1d511e01e8ee1aee/Airbnb-Rooms/1960x0.jpg?height=474&width=711&fit=bounds",
+      "https://a0.muscache.com/im/pictures/b59084da-fa5e-49b7-bb22-5534654377ca.jpg"
+    ],
+    createdAt: DateTime.parse("2024-01-01T10:00:00Z"),
+    updatedAt: DateTime.parse("2024-01-10T12:00:00Z"),
+    isActive: true,
+  ),
+  PropertyListModel(
+    id: "2",
+    title: "Spacious 2BHK Apartment",
+    address: "456 Elm Street, Uptown",
+    latitude: 37.7749,
+    longitude: -122.4194,
+    rent: 2200.00,
+    rentFrequency: "Monthly",
+    bedrooms: 2,
+    bathrooms: 2,
+    images: [
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQopNAigGHDCSfu_pIf1k3_iguagCjspB-hQB6QTFIx3p-szIlJCiN8n0Qh4zG2SvzSQfo&usqp=CAU",
+      "https://a0.muscache.com/im/pictures/be8420b1-ba98-440a-a83f-acfaffa3ca81.jpg"
+    ],
+    createdAt: DateTime.parse("2024-02-01T09:00:00Z"),
+    updatedAt: DateTime.parse("2024-02-05T18:00:00Z"),
+    isActive: true,
+  ),
+  PropertyListModel(
+    id: "3",
+    title: "Luxury Penthouse",
+    address: "789 Park Avenue, Downtown",
+    latitude: 34.0522,
+    longitude: -118.2437,
+    rent: 5000.00,
+    rentFrequency: "Monthly",
+    bedrooms: 3,
+    bathrooms: 3,
+    images: [
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQofYq41udw-qlDe47B8J3Oo_JxwC2XKPKSDfC1P8zFrfqEK1Pg2ckvWff2mdCsOrPplsI&usqp=CAU",
+      "https://images.unsplash.com/photo-1647996179012-66b87eba3d17?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fHJvb20lMjBmb3IlMjByZW50fGVufDB8fDB8fHww"
+    ],
+    createdAt: DateTime.parse("2024-03-01T14:00:00Z"),
+    updatedAt: DateTime.parse("2024-03-03T16:00:00Z"),
+    isActive: true,
+  ),
+  PropertyListModel(
+    id: "4",
+    title: "Shared Room in Downtown",
+    address: "321 Broadway, Downtown",
+    latitude: 42.3601,
+    longitude: -71.0589,
+    rent: 600.00,
+    rentFrequency: "Monthly",
+    bedrooms: 1,
+    bathrooms: 1,
+    images: ["https://images.unsplash.com/photo-1560185009-5bf9f2849488?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"],
+    createdAt: DateTime.parse("2024-04-01T08:00:00Z"),
+    updatedAt: DateTime.parse("2024-04-05T12:00:00Z"),
+    isActive: true,
+  ),
+  PropertyListModel(
+    id: "5",
+    title: "Family Home with Garden",
+    address: "789 Maple Lane, Suburbs",
+    latitude: 47.6062,
+    longitude: -122.3321,
+    rent: 2500.00,
+    rentFrequency: "Monthly",
+    bedrooms: 4,
+    bathrooms: 3,
+    images: [
+      "https://media.istockphoto.com/id/2104606940/photo/interior-photographs-of-a-luxurious-residential-home-den-study-dining-room-kitchen-living.jpg?b=1&s=612x612&w=0&k=20&c=hp4NDX8Nc2K96E67z5vFX3VwzlxPUFIqYTNP5V6GLTM=",
+      "https://media.istockphoto.com/id/1456467041/photo/beautiful-kitchen-in-new-farmhouse-style-luxury-home-with-island-pendant-lights-and-hardwood.jpg?s=612x612&w=0&k=20&c=wwlKjbAsf_xBveRuqMV2fCJ8cpED0CoXE4GdIUSxpW8="
+    ],
+    createdAt: DateTime.parse("2024-05-01T11:00:00Z"),
+    updatedAt: DateTime.parse("2024-05-03T13:00:00Z"),
+    isActive: true,
+  ),
+];
 
 String avatar =
     'https://firebasestorage.googleapis.com/v0/b/authenification-b4dc9.appspot.com/o/uploads%2Favatar.png?alt=media&token=7da81de9-a163-4296-86ac-3194c490ce15';

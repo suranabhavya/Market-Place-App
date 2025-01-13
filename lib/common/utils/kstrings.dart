@@ -1,4 +1,6 @@
 class AppText {
+  static const String kAppName = 'Marketplace App';
+  static const String kGetStarted = "Let's Get Started";
   static const String kCategory = 'Category';
   static const String kCategories = 'Categories';
   static const String kNotifications = 'Notifications';
@@ -9,8 +11,10 @@ class AppText {
   static const String kVerify = 'Verification Code';
   static const String kVerifyText = 'Please enter the code we just sent to email';
   static const String kSearch = 'Search';
+  static const String kSearchHint = 'Address, City, Pincode, Landmark';
+  static const String kSearchResults = 'Search Results';
 
-  static const String kProfilePic = 'https://d326fntlu7tb1e.cloudfront.net/uploads/0856609b-21e8-4e73-85cb-1f9a93de81f4-avatar.png';
+  static const String kProfilePic = 'https://www.perfocal.com/blog/content/images/2021/01/Perfocal_17-11-2019_TYWFAQ_100_standard-3.jpg';
   
   static const String kCollection = 'New Collection';
   static const String kPolicy = 'Privacy Policy';

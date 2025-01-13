@@ -23,8 +23,21 @@
 // import 'package:fashion/src/splashscreen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
+import 'package:marketplace_app/src/auth/views/login_screen.dart';
+import 'package:marketplace_app/src/auth/views/mobile_signup_screen.dart';
+import 'package:marketplace_app/src/auth/views/registration_screen.dart';
+import 'package:marketplace_app/src/categories/views/categories_screen.dart';
 import 'package:marketplace_app/src/entrypoint/views/entrypoint.dart';
-import 'package:marketplace_app/src/splashscreen/views/splashscreen_page.dart';
+import 'package:marketplace_app/src/notifications/views/notification_screen.dart';
+import 'package:marketplace_app/src/onboarding/views/onboarding_screen.dart';
+import 'package:marketplace_app/src/profile/views/orders_screen.dart';
+import 'package:marketplace_app/src/profile/views/policy_screen.dart';
+import 'package:marketplace_app/src/profile/views/shipping_address_screen.dart';
+import 'package:marketplace_app/src/properties/views/create_property_screen.dart';
+import 'package:marketplace_app/src/properties/views/property_screen.dart';
+import 'package:marketplace_app/src/search/views/search_screen.dart';
+import 'package:marketplace_app/src/splashscreen/views/splashscreen_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -39,48 +52,77 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (context, state) => const AppEntryPoint(),
+      builder: (context, state) => AppEntryPoint(),
     ),
-    // GoRoute(
-    //   path: '/onboarding',
-    //   builder: (context, state) => const OnBoardingScreen(),
-    // ),
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) => const OnBoardingScreen(),
+    ),
     // GoRoute(
     //   path: '/review',
     //   builder: (context, state) => const ReviewsPage(),
     // ),
-    // GoRoute(
-    //   path: '/policy',
-    //   builder: (context, state) => const PolicyPage(),
-    // ),
+    GoRoute(
+      path: '/policy',
+      builder: (context, state) => const PolicyPage(),
+    ),
     // GoRoute(
     //   path: '/verification',
     //   builder: (context, state) => const VerificationPage(),
     // ),
-    // GoRoute(
-    //   path: '/search',
-    //   builder: (context, state) => const SearchPage(),
-    // ),
+    GoRoute(
+      path: '/search',
+      builder: (context, state) => const SearchPage(),
+    ),
     // GoRoute(
     //   path: '/help',
     //   builder: (context, state) => const HelpCenterPage(),
     // ),
-    // GoRoute(
-    //   path: '/orders',
-    //   builder: (context, state) => const OrdersPage(),
-    // ),
+    GoRoute(
+      path: '/orders',
+      builder: (context, state) => const OrdersPage(),
+    ),
     // GoRoute(
     //   path: '/login',
     //   builder: (context, state) => const LoginPage(),
     // ),
+    
+    
+    // GoRoute(
+    //   path: '/login',
+    //   builder: (context, state) => const LoginPage(),
+    // ),
+
+    GoRoute(
+      path: '/login',
+      builder: (context, state) {
+        final String? prefilledEmail = state.extra != null ? (state.extra as Map<String, dynamic>)['email'] : null;
+        return LoginPage(prefilledEmail: prefilledEmail);
+      },
+    ),
+    GoRoute(
+      path: '/login/mobile',
+      builder: (context, state) => const MobileSignupPage(),
+    ),
+    GoRoute(
+      path: '/login/email',
+      builder: (context, state) => const EmailSignupPage(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) {
+        final String? prefilledEmail = state.extra != null ? (state.extra as Map<String, dynamic>)['email'] : null;
+        return RegistrationPage(prefilledEmail: prefilledEmail);
+      },
+    ),
     // GoRoute(
     //   path: '/register',
     //   builder: (context, state) => const RegistrationPage(),
     // ),
-    // GoRoute(
-    //   path: '/categories',
-    //   builder: (context, state) => const CategoriesPage(),
-    // ),
+    GoRoute(
+      path: '/categories',
+      builder: (context, state) => const CategoriesPage(),
+    ),
     //  GoRoute(
     //   path: '/category',
     //   builder: (context, state) => const CategoryPage(),
@@ -91,15 +133,15 @@ final GoRouter _router = GoRouter(
     //   builder: (context, state) => const AddAddress(),
     // ),
 
-    // GoRoute(
-    //   path: '/addresses',
-    //   builder: (context, state) => const AddressesListPage(),
-    // ),
+    GoRoute(
+      path: '/addresses',
+      builder: (context, state) => const ShippingAddress()
+    ),
 
-    //  GoRoute(
-    //   path: '/notifications',
-    //   builder: (context, state) => const NotificationPage(),
-    // ),
+     GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsPage(),
+    ),
 
     //  GoRoute(
     //   path: '/tracking',
@@ -121,13 +163,18 @@ final GoRouter _router = GoRouter(
     //   builder: (context, state) => const FailedPayment(),
     // ),
 
-    // GoRoute(
-    //   path: '/product/:id',
-    //   builder: (BuildContext context, GoRouterState state) {
-    //     final productId = state.pathParameters['id'];
-    //     return ProductPage(productId: productId.toString());
-    //   },
-    // ),
+    GoRoute(
+      path: '/property/create',
+      builder: (context, state) => const CreatePropertyPage(),
+    ),
+    
+    GoRoute(
+      path: '/property/:id',
+      builder: (BuildContext context, GoRouterState state) {
+        final propertyId = state.pathParameters['id'];
+        return PropertyPage(propertyId: propertyId.toString());
+      },
+    ),
   ],
 );
 

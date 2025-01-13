@@ -14,7 +14,7 @@ class TabWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 0),
-      width: divider?? ScreenUtil().screenWidth /5,
+      width: divider?? ScreenUtil().screenWidth /3,
       height: 18,
       child: Center(
           child: Text(

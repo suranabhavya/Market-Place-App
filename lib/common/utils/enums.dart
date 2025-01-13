@@ -1,10 +1,7 @@
 enum QueryType {
   all,
   popular,
-  unisex,
-  men,
-  women,
-  kids
+  nearby,
 }
 
 enum WishlistToggle {
