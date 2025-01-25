@@ -2,7 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
+import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
+import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
+import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -30,6 +35,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
   // List to store selected images
   final List<File> _images = [];
+
+  List<AutocompletePrediction>? placePredictions = [];
 
   // Dropdown values
   String listingType = 'rent';
@@ -70,6 +77,27 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     _bedroomsController.dispose();
     _bathroomsController.dispose();
     super.dispose();
+  }
+
+  Future<void> placeAutocomplete(String query) async {
+    Uri uri = Uri.https(
+      "maps.googleapis.com",
+      "maps/api/place/autocomplete/json",
+      {
+        "input": query,
+        "key": Environment.googleApiKey,
+      }
+    );
+    String? response = await PropertyNotifier().fetchLocation(uri);
+
+    if(response != null) {
+      PlaceAutocompleteResponse result = PlaceAutocompleteResponse.parseAutocompleteResult(response);
+      if(result.predictions != null) {
+        setState(() {
+          placePredictions = result.predictions;
+        });
+      }
+    }
   }
 
   @override
@@ -164,51 +192,74 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               const SizedBox(height: 16),
 
               // Address
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(labelText: "Address"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter an address";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Latitude and Longitude
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _latitudeController,
-                      decoration: const InputDecoration(labelText: "Latitude"),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Enter latitude";
-                        }
-                        return null;
-                      },
-                    ),
+                  TextFormField(
+                    controller: _addressController,
+                    onChanged: (value) {
+                      placeAutocomplete(value);
+                    },
+                    decoration: const InputDecoration(labelText: "Address"),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Please enter an address";
+                      }
+                      return null;
+                    },
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _longitudeController,
-                      decoration: const InputDecoration(labelText: "Longitude"),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Enter longitude";
-                        }
-                        return null;
-                      },
+                  const SizedBox(height: 16),
+
+                  // Place Predictions List with Fixed Height
+                  SizedBox(
+                    height: placePredictions != null && placePredictions!.isNotEmpty ? 200 : 0,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: placePredictions?.length ?? 0,
+                      itemBuilder: (context, index) => LocationListTile(
+                        press: () {
+                          _addressController.text = placePredictions![index].description!;
+                          setState(() {
+                            placePredictions = [];
+                          });
+                        },
+                        location: placePredictions![index].description!,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+
+              // TextFormField(
+              //   controller: _addressController,
+              //   onChanged: (value) {
+              //     placeAutocomplete(value);
+              //   },
+              //   decoration: const InputDecoration(labelText: "Address"),
+              //   validator: (value) {
+              //     if (value == null || value.isEmpty) {
+              //       return "Please enter an address";
+              //     }
+              //     return null;
+              //   },
+              // ),
+              // const SizedBox(height: 16),
+
+              // const Divider(
+              //   height: 4,
+              //   thickness: 4,
+              //   color: Kolors.kPrimaryLight,
+              // ),
+
+              // Expanded(
+              //   child: ListView.builder(
+              //     itemCount: placePredictions?.length,
+              //     itemBuilder: (context, index) => LocationListTile(
+              //       press: () {},
+              //       location: placePredictions![index].description!,
+              //     ),
+              //   ),
+              // ),
 
               // Rent
               TextFormField(
