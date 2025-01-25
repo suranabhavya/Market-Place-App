@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/src/auth/views/mobile_signup_screen.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
+import 'package:marketplace_app/src/home/services/location_service.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/home_header.dart';
 import 'package:marketplace_app/src/home/widgets/home_slider.dart';
@@ -28,6 +30,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     _tabController = TabController(length: homeTabs.length, vsync: this);
 
     _tabController.addListener(_handleSelection);
+    _getLocation();
     super.initState();
   }
 
@@ -47,6 +50,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     _tabController.removeListener(_handleSelection);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _getLocation() async {
+    await Geolocator.checkPermission();
+    await Geolocator.requestPermission();
+
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+    print(position);
+    // final locationService = LocationService();
+    // try {
+    //   final position = await locationService.getCurrentLocation();
+    //   if (!mounted) return;
+
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text(
+    //         "Location: Lat: ${position?.latitude}, Lng: ${position?.longitude}",
+    //       ),
+    //       duration: const Duration(seconds: 3),
+    //     ),
+    //   );
+    // } catch (e) {
+    //   if (!mounted) return;
+
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(
+    //       content: Text("Error: $e"),
+    //       duration: const Duration(seconds: 3),
+    //     ),
+    //   );
+    // }
   }
 
   @override
