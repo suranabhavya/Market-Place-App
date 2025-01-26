@@ -159,7 +159,9 @@ class PropertyDetailModel {
     List<dynamic> images;
     DateTime createdAt;
     DateTime updatedAt;
+    SubleaseDetails subleaseDetails;
     bool isActive;
+    List<dynamic> amenities;
     List<PropertyListModel>? userProperties;
 
     PropertyDetailModel({
@@ -182,7 +184,9 @@ class PropertyDetailModel {
         required this.images,
         required this.createdAt,
         required this.updatedAt,
+        required this.subleaseDetails,
         required this.isActive,
+        required this.amenities,
         this.userProperties,
     });
 
@@ -206,7 +210,9 @@ class PropertyDetailModel {
         images: List<dynamic>.from(json["images"].map((x) => x)),
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
+        subleaseDetails: SubleaseDetails.fromJson(json["sublease_details"]),
         isActive: json["is_active"],
+        amenities: List<dynamic>.from(json["amenities"].map((x) => x)),
         userProperties: json["user_properties"] == null ? [] : List<PropertyListModel>.from(json["user_properties"]!.map((x) => PropertyListModel.fromJson(x))),
     );
 
@@ -230,7 +236,38 @@ class PropertyDetailModel {
         "images": List<dynamic>.from(images.map((x) => x)),
         "created_at": createdAt.toIso8601String(),
         "updated_at": updatedAt.toIso8601String(),
+        "sublease_details": subleaseDetails.toJson(),
         "is_active": isActive,
+        "amenities": List<dynamic>.from(amenities.map((x) => x)),
         "user_properties": userProperties == null ? [] : List<dynamic>.from(userProperties!.map((x) => x.toJson())),
+    };
+}
+
+
+class SubleaseDetails {
+    DateTime availableFrom;
+    DateTime availableTo;
+    List<String> schoolsNearby;
+    bool sharedRoom;
+
+    SubleaseDetails({
+        required this.availableFrom,
+        required this.availableTo,
+        required this.schoolsNearby,
+        required this.sharedRoom,
+    });
+
+    factory SubleaseDetails.fromJson(Map<String, dynamic> json) => SubleaseDetails(
+        availableFrom: DateTime.parse(json["available_from"]),
+        availableTo: DateTime.parse(json["available_to"]),
+        schoolsNearby: List<String>.from(json["schools_nearby"].map((x) => x)),
+        sharedRoom: json["shared_room"],
+    );
+
+    Map<String, dynamic> toJson() => {
+        "available_from": "${availableFrom.year.toString().padLeft(4, '0')}-${availableFrom.month.toString().padLeft(2, '0')}-${availableFrom.day.toString().padLeft(2, '0')}",
+        "available_to": "${availableTo.year.toString().padLeft(4, '0')}-${availableTo.month.toString().padLeft(2, '0')}-${availableTo.day.toString().padLeft(2, '0')}",
+        "schools_nearby": List<dynamic>.from(schoolsNearby.map((x) => x)),
+        "shared_room": sharedRoom,
     };
 }

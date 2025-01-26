@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -32,6 +33,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   final TextEditingController _squareFootageController = TextEditingController();
   final TextEditingController _bedroomsController = TextEditingController();
   final TextEditingController _bathroomsController = TextEditingController();
+  final TextEditingController _availableFromController = TextEditingController();
+  final TextEditingController _availableToController = TextEditingController();
 
   // List to store selected images
   final List<File> _images = [];
@@ -43,6 +46,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   String rentFrequency = 'monthly';
   String propertyType = 'apartment';
   bool furnished = false;
+  DateTime? availableFrom;
+  DateTime? availableTo;
+  String? _pincode;
+  String? _city;
+  String? _state;
+  String? _country;
 
   // Method to pick an image
   Future<void> _pickImage(ImageSource source) async {
@@ -63,6 +72,27 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     setState(() {
       _images.removeAt(index);
     });
+  }
+
+  // Method to pick a date
+  Future<void> _selectDate(BuildContext context, TextEditingController controller, bool isFromDate) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isFromDate) {
+          availableFrom = picked;
+        } else {
+          availableTo = picked;
+        }
+        controller.text = "${picked.year}-${picked.month}-${picked.day}";
+      });
+    }
   }
 
   @override
@@ -99,6 +129,65 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       }
     }
   }
+
+  // Function to fetch place details (lat/lng) based on the place_id
+Future<void> fetchPlaceDetails(String placeId) async {
+  Uri uri = Uri.https(
+    "maps.googleapis.com",
+    "maps/api/place/details/json",
+    {
+      "place_id": placeId,
+      "key": Environment.googleApiKey,
+    },
+  );
+
+  String? response = await PropertyNotifier().fetchLocation(uri);
+
+  if (response != null) {
+    final data = jsonDecode(response);
+
+    if (data['status'] == 'OK') {
+      final location = data['result']['geometry']['location'];
+      double lat = location['lat'];
+      double lng = location['lng'];
+
+      // Extract address components
+      String? pincode;
+      String? city;
+      String? state;
+      String? country;
+
+      List<dynamic> addressComponents = data['result']['address_components'];
+      
+      for (var component in addressComponents) {
+        List types = component['types'];
+
+        if (types.contains('postal_code')) {
+          pincode = component['long_name'];
+        }
+        if (types.contains('locality')) {
+          city = component['long_name'];
+        }
+        if (types.contains('administrative_area_level_1')) {
+          state = component['long_name'];
+        }
+      }
+
+      setState(() {
+        _latitudeController.text = lat.toString();
+        _longitudeController.text = lng.toString();
+        _pincode = pincode;
+        _city = city;
+        _state = state;
+        _country = country;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to get location details: ${data['status']}")),
+      );
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -217,8 +306,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       shrinkWrap: true,
                       itemCount: placePredictions?.length ?? 0,
                       itemBuilder: (context, index) => LocationListTile(
-                        press: () {
+                        press: () async {
                           _addressController.text = placePredictions![index].description!;
+                          await fetchPlaceDetails(placePredictions![index].placeId!);
+
                           setState(() {
                             placePredictions = [];
                           });
@@ -260,6 +351,49 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               //     ),
               //   ),
               // ),
+
+              const SizedBox(height: 16),
+
+              // Available From Date Picker
+              TextFormField(
+                controller: _availableFromController,
+                decoration: InputDecoration(
+                  labelText: "Available From",
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () => _selectDate(context, _availableFromController, true),
+                  ),
+                ),
+                readOnly: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please select an available from date";
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Available To Date Picker
+              TextFormField(
+                controller: _availableToController,
+                decoration: InputDecoration(
+                  labelText: "Available To",
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () => _selectDate(context, _availableToController, false),
+                  ),
+                ),
+                readOnly: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Please select an available to date";
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 16),
 
               // Rent
               TextFormField(
@@ -379,6 +513,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       "title": _titleController.text,
                       "description": _descriptionController.text,
                       "address": _addressController.text,
+                      "pincode": _pincode,
+                      "city": _city,
+                      "state": _state,
+                      "country": _country,
                       "latitude": double.tryParse(_latitudeController.text) ?? 0.0,
                       "longitude": double.tryParse(_longitudeController.text) ?? 0.0,
                       "rent": double.tryParse(_rentController.text) ?? 0.0,
@@ -391,6 +529,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       // "images": _images,
                       "created_at": DateTime.now().toIso8601String(),
                       "updated_at": DateTime.now().toIso8601String(),
+                      "sublease_details": {
+                        "available_from": "${availableFrom?.year.toString().padLeft(4, '0')}-${availableFrom?.month.toString().padLeft(2, '0')}-${availableFrom?.day.toString().padLeft(2, '0')}",
+                        "available_to": "${availableTo?.year.toString().padLeft(4, '0')}-${availableTo?.month.toString().padLeft(2, '0')}-${availableTo?.day.toString().padLeft(2, '0')}",
+                        "schools_nearby": [],
+                        "shared_room": true
+                      },
                       "is_active": true,
                     };
 

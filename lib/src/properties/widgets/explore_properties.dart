@@ -44,7 +44,6 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
         properties.length,
         (i) {
           final property = properties[i];
-          print("rent is: ${property.rent}");
           return StaggeredTileWidget(
             onTap: () {
               if (accessToken == null) {

@@ -34,7 +34,6 @@ class WishlistWidget extends HookWidget {
         properties.length,
         (i) {
           final property = properties[i];
-          print("rent is: ${property.rent}");
           return StaggeredTileWidget(
             onTap: () {
               if (accessToken == null) {
