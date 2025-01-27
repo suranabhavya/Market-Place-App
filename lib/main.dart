@@ -8,6 +8,7 @@ import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:marketplace_app/src/auth/controllers/password_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
+import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
 import 'package:marketplace_app/src/onboarding/controllers/onboarding_notifier.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
@@ -32,6 +33,7 @@ void main() async {
       ChangeNotifierProvider(create: (_) => PropertyNotifier()),
       ChangeNotifierProvider(create: (_) => AuthNotifier()),
       ChangeNotifierProvider(create: (_) => SearchNotifier()),
+      ChangeNotifierProvider(create: (_) => FilterNotifier()),
       ChangeNotifierProvider(create: (_) => WishlistNotifier()),
     ],
     child: const MyApp(),

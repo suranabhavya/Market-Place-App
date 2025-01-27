@@ -10,11 +10,14 @@ import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/home_header.dart';
 import 'package:marketplace_app/src/home/widgets/home_slider.dart';
 import 'package:marketplace_app/src/home/widgets/home_tabs.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final List<PropertyListModel>? filteredProperties;
+
+  const HomePage({super.key, this.filteredProperties});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -111,7 +114,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
             height: 15.h,
           ),
 
-          const ExploreProperties(),
+          ExploreProperties(filteredProperties: widget.filteredProperties),
 
           SizedBox(
             height: 100.h,

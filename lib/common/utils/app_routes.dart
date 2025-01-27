@@ -29,11 +29,13 @@ import 'package:marketplace_app/src/auth/views/mobile_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/registration_screen.dart';
 import 'package:marketplace_app/src/categories/views/categories_screen.dart';
 import 'package:marketplace_app/src/entrypoint/views/entrypoint.dart';
+import 'package:marketplace_app/src/filter/views/filter_screen.dart';
 import 'package:marketplace_app/src/notifications/views/notification_screen.dart';
 import 'package:marketplace_app/src/onboarding/views/onboarding_screen.dart';
 import 'package:marketplace_app/src/profile/views/orders_screen.dart';
 import 'package:marketplace_app/src/profile/views/policy_screen.dart';
 import 'package:marketplace_app/src/profile/views/shipping_address_screen.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/views/create_property_screen.dart';
 import 'package:marketplace_app/src/properties/views/property_screen.dart';
 import 'package:marketplace_app/src/search/views/search_screen.dart';
@@ -52,7 +54,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (context, state) => AppEntryPoint(),
+      builder: (context, state) {
+        final filteredProperties = state.extra as List<PropertyListModel>?;
+        return AppEntryPoint(filteredProperties: filteredProperties);
+      },
     ),
     GoRoute(
       path: '/onboarding',
@@ -73,6 +78,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) => const SearchPage(),
+    ),
+    GoRoute(
+      path: '/filter',
+      builder: (context, state) => const FilterPage(),
     ),
     // GoRoute(
     //   path: '/help',

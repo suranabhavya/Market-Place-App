@@ -13,6 +13,7 @@ class AppText {
   static const String kSearch = 'Search';
   static const String kSearchHint = 'Address, City, Pincode, Landmark';
   static const String kSearchResults = 'Search Results';
+  static const String kFilter = 'Filters';
 
   static const String kProfilePic = 'https://www.perfocal.com/blog/content/images/2021/01/Perfocal_17-11-2019_TYWFAQ_100_standard-3.jpg';
   

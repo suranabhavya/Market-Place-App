@@ -6,14 +6,17 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/home/views/home_screen.dart';
 import 'package:marketplace_app/src/profile/views/profile_screen.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatelessWidget {
-  AppEntryPoint({super.key});
+  final List<PropertyListModel>? filteredProperties;
+  
+  AppEntryPoint({super.key, this.filteredProperties});
 
   List<Widget> pageList = [
-    const HomePage(),
+    // const HomePage(),
     const WishListPage(),
     // const CartPage(),
     const ProfilePage(),
@@ -26,7 +29,10 @@ class AppEntryPoint extends StatelessWidget {
         return Scaffold(
           body: Stack(
             children: [
-              pageList[tabIndexNotifier.index],
+              // pageList[tabIndexNotifier.index],
+              tabIndexNotifier.index == 0
+                  ? HomePage(filteredProperties: filteredProperties)
+                  : pageList[tabIndexNotifier.index - 1],
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Theme(

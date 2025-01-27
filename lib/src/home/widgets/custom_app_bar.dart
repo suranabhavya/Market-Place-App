@@ -17,65 +17,73 @@ class CustomAppBar extends StatelessWidget {
       elevation: 0,
       automaticallyImplyLeading: false,
       title: PreferredSize(
-        preferredSize: Size.fromHeight(55.h), 
-        child: GestureDetector(
-          onTap: () {
-            context.push('/search');
-          },
-          child: Padding(padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 8.h),
+        preferredSize: Size.fromHeight(55.h),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 2.h, vertical: 8.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Padding(
-                padding: EdgeInsets.only(left: 6.w),
-                child: Container(
-                  height: 40.h,
-                  width: ScreenUtil().screenWidth - 120,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 0.5,
-                      color: Kolors.kGrayLight,
+              GestureDetector(
+                onTap: () {
+                  context.push('/search');
+                },
+                child: Padding(
+                  padding: EdgeInsets.only(left: 6.w),
+                  child: Container(
+                    height: 40.h,
+                    width: ScreenUtil().screenWidth - 100,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        width: 0.5,
+                        color: Kolors.kGrayLight,
+                      ),
+                      borderRadius: BorderRadius.circular(24)
                     ),
-                    borderRadius: BorderRadius.circular(24)
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.h, vertical: 8.h),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Ionicons.search, 
-                          size: 20, 
-                          color: Kolors.kPrimaryLight
-                        ),
-                        
-                        SizedBox(
-                          width: 20.w,
-                        ),
-                        
-                        ReusableText(
-                          text: "Search Pin Code, City, Address", 
-                          style: appStyle(14, Kolors.kGray, FontWeight.w400)
-                        )
-                      ],
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.h, vertical: 8.h),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Ionicons.search, 
+                            size: 20, 
+                            color: Kolors.kPrimaryLight
+                          ),
+                          
+                          SizedBox(
+                            width: 20.w,
+                          ),
+                          
+                          ReusableText(
+                            text: "Search Pin Code, City, Address", 
+                            style: appStyle(14, Kolors.kGray, FontWeight.w400)
+                          )
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-              Container(
-                height: 40.h,
-                width: 40.w,
-                decoration: BoxDecoration(
-                  color: Kolors.kPrimary,
-                  borderRadius: BorderRadius.circular(24),
+              // Filter Button
+              GestureDetector(
+                onTap: () {
+                  context.push('/filter');
+                },
+                child: Container(
+                  height: 40.h,
+                  width: 40.w,
+                  decoration: BoxDecoration(
+                    color: Kolors.kPrimary,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(
+                    FontAwesome.sliders,
+                    color: Kolors.kWhite,
+                    size: 20,
+                  ),
                 ),
-                child: const Icon(
-                  FontAwesome.sliders,
-                  color: Kolors.kWhite,
-                  size: 20,
-                ),
-              )
+              ),
             ],
-          ),),
+          ),
         )
       ),
     );
