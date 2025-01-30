@@ -51,15 +51,19 @@ class AppText {
   static const String kAppTerms = 'Our comprehensive Terms & Conditions document serves as the foundation for using our fashion app. It outlines the legal framework governing your interaction with our platform and its services. This document details important aspects like user conduct, payment terms, intellectual property rights, limitations of liability, and dispute resolution procedures. By using our app, you agree to these terms.  Therefore, we strongly encourage you to take the time to review them thoroughly.  For your convenience, we have made the Terms & Conditions easily accessible within the app.  This ensures you have a clear understanding of your rights and responsibilities as a user promoting a smooth and enjoyable shopping experience for you. Our comprehensive Terms & Conditions document serves as the foundation for using our fashion app. It outlines the legal framework governing your interaction with our platform and its services. This document details important aspects like user conduct, payment terms, intellectual property rights, limitations of liability, and dispute resolution procedures. By using our app, you agree to these terms.  Therefore, we strongly encourage you to take the time to review them thoroughly.  For your convenience, we have made the Terms & Conditions easily accessible within the app.  This ensures you have a clear understanding of your rights and responsibilities as a user promoting a smooth and enjoyable shopping experience for you';
   static const String kAppCancelationPolicy = 'We understand that shopping plans can change, so we offer a flexible cancelation window for your orders. Briefly, you can cancel most unworn and unwashed items within [Number] days of receiving them for a full refund (refer to the policy for details). This allows you to shop with confidence, knowing you have options if something does not work out';
   static const String kWelcomeHeader =
-      'The Fashion App That \nMakes You Look You Best';
+      'The App That Helps You \nFind Your Homies!';
   static const String kWelcomeMessage =
-      "Welcome to fashion app! Discover trends, shop favorite styles, and elevate your wardrobe. Let's get started ";
+      "Welcome to HomiSwap – your one-stop solution for finding the perfect student accommodation, roommates, and sublets near your university. Let’s get you started! ";
        static const String kOnboardWishList =
       'Wishlist: Where Fashion \nDream Begin';
        static const String kOnboardWishListMessage =
       "Your Wishlist awaits! Curate your dream looks and save favorites for later. It's the first step to making style aspirations a reality";
        static const String kOnboardHome =
       "Welcome to the ultimate fashion destination! Discover trends, shop your favorite styles, and elevate your wardrobe. Let's get started on your stylish journey today";
+  static const String kOnboardingHeader1 = "Finding Accommodation \nMade Easy";
+  static const String kOnboardingMessage1 = "Struggling to find a place near your university? We make it easy to find, compare, and secure the perfect student accommodation hassle-free!";
+  static const String kOnboardingHeader2 = "Seamless Searching & Subletting";
+  static const String kOnboardingMessage2 = "Need a short-term stay or looking to sublet your apartment? Find verified listings and sublet with confidence, all in one place!";
 }
 
 // Your Wishlist awaits! Curate your dream looks and save favorites for later. It's the first step to making style aspirations a reality

@@ -24,23 +24,17 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
   void initState() {
     super.initState();
     if (widget.filteredProperties == null) {
-      context.read<PropertyNotifier>().fetchProperties();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<PropertyNotifier>().fetchProperties();
+      });
+      // context.read<PropertyNotifier>().fetchProperties();
     }
-    // context.read<PropertyNotifier>().fetchProperties();
   }
-
-  // Future<void> _loadProperties() async {
-  //   if (widget.filteredProperties == null) {
-  //     await context.read<PropertyNotifier>().fetchProperties();
-  //   }
-  //   // await context.read<PropertyNotifier>().fetchProperties();
-  // }
 
   @override
   Widget build(BuildContext context) {
     final propertyNotifier = context.watch<PropertyNotifier>();
     final properties = widget.filteredProperties ?? propertyNotifier.properties;
-    // final properties = propertyNotifier.properties;
     String? accessToken = Storage().getString('accessToken');
 
     if (properties.isEmpty) {
