@@ -31,7 +31,9 @@ class StaggeredTileWidget extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        context.read<PropertyNotifier>().setProperty(property);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<PropertyNotifier>().setProperty(property);
+        });
         context.push('/property/${property.id}');
       },
       child: Padding(

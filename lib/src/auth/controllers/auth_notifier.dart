@@ -39,7 +39,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/auth/token/login');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/token/login');
       print("data is just before calling url: $data");
       var response = await http.post(
         url,
@@ -70,7 +70,7 @@ class AuthNotifier with ChangeNotifier {
     setRLoading();
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/auth/users/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/');
       print("final data is: $data");
       var response = await  http.post(
         url,
@@ -100,7 +100,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/accounts/check-mobile/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/check-mobile/');
       var response = await http.post(
         url,
         headers: {
@@ -131,7 +131,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/accounts/check-email/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/check-email/');
       var response = await http.post(
         url,
         headers: {
@@ -162,7 +162,7 @@ class AuthNotifier with ChangeNotifier {
 
   void getuser(String accessToken, BuildContext ctx) async {
     try {
-      var url = Uri.parse('${Environment.appBaseUrl}/auth/users/me/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/me/');
       var response = await http.get(
         url,
         headers: {

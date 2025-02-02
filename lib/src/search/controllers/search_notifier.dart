@@ -48,7 +48,7 @@ class SearchNotifier with ChangeNotifier {
     setLoading(true);
     setSearchKey(searchKey);
 
-    Uri url = Uri.parse('${Environment.appBaseUrl}/api/properties/search/?q=$searchKey');
+    Uri url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/search/?q=$searchKey');
 
     try {
       var response = await http.get(url);

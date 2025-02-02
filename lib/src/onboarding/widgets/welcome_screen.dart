@@ -60,7 +60,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
 
                     SizedBox(
-                      width: ScreenUtil().screenWidth -100,
+                      width: ScreenUtil().screenWidth - 100,
                       child: Text(
                         AppText.kWelcomeMessage, 
                         textAlign: TextAlign.center,
@@ -85,7 +85,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
 
                     SizedBox(
-                      height: 20.h,
+                      height: 10.h,
                     ),
 
                     Row(

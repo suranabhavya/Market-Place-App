@@ -39,7 +39,7 @@ class PropertyNotifier extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      var url = Uri.parse('${Environment.appBaseUrl}/api/properties/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/');
       final response = await http.get(
         url,
         headers: {
@@ -56,7 +56,6 @@ class PropertyNotifier extends ChangeNotifier {
 
         // Notify listeners with the fetched data
         _properties = fetchedProperties;
-        print("properies are: $_properties");
         notifyListeners();
       } else {
         debugPrint("Error fetching properties: ${response.body}");
@@ -71,17 +70,23 @@ class PropertyNotifier extends ChangeNotifier {
   // Fetch a specific property detail by ID
   Future<void> fetchPropertyDetail(String propertyId) async {
     isLoading = true;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/$propertyId/');
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/properties/$propertyId/'),
+        url,
         headers: {"Content-Type": "application/json"},
       );
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         _selectedProperty = PropertyDetailModel.fromJson(jsonData);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       } else {
         debugPrint("Error fetching property details: ${response.body}");
       }
@@ -90,7 +95,9 @@ class PropertyNotifier extends ChangeNotifier {
     }
 
     isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Reset selected property
@@ -107,7 +114,7 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onError,
   }) async {
     print("hello");
-    const String apiUrl = "http://127.0.0.1:8000/api/properties/";
+    String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/';
 
     try {
       print("token last: $token");

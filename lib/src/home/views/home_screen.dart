@@ -60,7 +60,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     await Geolocator.requestPermission();
 
     Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
-    print(position);
     // final locationService = LocationService();
     // try {
     //   final position = await locationService.getCurrentLocation();

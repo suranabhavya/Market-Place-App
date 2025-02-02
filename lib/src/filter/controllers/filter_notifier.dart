@@ -44,7 +44,7 @@ class FilterNotifier extends ChangeNotifier {
 
       queryParams.removeWhere((key, value) => value == null);
 
-      final Uri url = Uri.parse(Environment.appBaseUrl).replace(
+      final Uri url = Uri.parse(Environment.iosAppBaseUrl).replace(
         path: '/api/properties/filter/',
         queryParameters: queryParams.map((key, value) => MapEntry(key, value.toString())),
       );

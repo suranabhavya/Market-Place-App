@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 
 class WishlistHookResult {
@@ -29,7 +30,7 @@ WishlistHookResult useFetchWishlist() {
       String? token = Storage().getString('accessToken');
       print("token is $token");
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/wishlist/'),
+        Uri.parse('${Environment.iosAppBaseUrl}/api/wishlist/'),
         headers: {
           "Authorization": "Token $token",
           "Content-Type": "application/json",

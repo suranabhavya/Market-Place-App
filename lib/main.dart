@@ -98,7 +98,8 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              Environment.appBaseUrl,
+              // Environment.androidAppBaseUrl,
+              Environment.iosAppBaseUrl,
             ),
             Text(
               '$_counter',

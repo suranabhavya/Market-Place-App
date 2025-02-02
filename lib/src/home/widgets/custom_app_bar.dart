@@ -50,13 +50,21 @@ class CustomAppBar extends StatelessWidget {
                           ),
                           
                           SizedBox(
-                            width: 20.w,
+                            width: 10.w,
                           ),
                           
-                          ReusableText(
-                            text: "Search Pin Code, City, Address", 
-                            style: appStyle(14, Kolors.kGray, FontWeight.w400)
-                          )
+                          Expanded(
+                            child: Text(
+                              "Search University, Pin Code, Address, City", 
+                              style: appStyle(14, Kolors.kGray, FontWeight.w400),
+                              maxLines: 1, // Ensures it doesn't wrap to the next line
+                              overflow: TextOverflow.ellipsis, // Shows "..."
+                            ),
+                          ),
+                          // ReusableText(
+                          //   text: "Search University, Pin Code, Address, City", 
+                          //   style: appStyle(14, Kolors.kGray, FontWeight.w400),
+                          // )
                         ],
                       ),
                     ),
