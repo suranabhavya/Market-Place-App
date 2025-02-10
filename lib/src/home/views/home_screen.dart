@@ -10,6 +10,7 @@ import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/home_header.dart';
 import 'package:marketplace_app/src/home/widgets/home_slider.dart';
 import 'package:marketplace_app/src/home/widgets/home_tabs.dart';
+import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:provider/provider.dart';
@@ -39,12 +40,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
   void _handleSelection() {
     final controller = Provider.of<HomeTabNotifier>(context, listen: false);
+    final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
 
     if(_tabController.indexIsChanging) {
       setState(() {
         _currentTabIndex = _tabController.index;
       });
-      controller.setIndex(homeTabs[_currentTabIndex]);
+      controller.setIndex(homeTabs[_currentTabIndex], propertyNotifier);
     }
   }
 
@@ -59,7 +61,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     await Geolocator.checkPermission();
     await Geolocator.requestPermission();
 
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high
+    );
+    
+    final homeTabNotifier = Provider.of<HomeTabNotifier>(context, listen: false);
+    homeTabNotifier.setUserLocation(position.latitude, position.longitude);
+
     // final locationService = LocationService();
     // try {
     //   final position = await locationService.getCurrentLocation();
@@ -143,6 +151,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
 List<String> homeTabs = [
   'All',
-  'Popular',
+  'School',
   'Nearby',
 ];

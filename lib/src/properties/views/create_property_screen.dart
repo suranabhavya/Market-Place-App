@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
@@ -14,6 +15,7 @@ import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
 import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
@@ -38,6 +40,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _unitController= TextEditingController();
   final TextEditingController _latitudeController = TextEditingController();
   final TextEditingController _longitudeController = TextEditingController();
   final TextEditingController _rentController = TextEditingController();
@@ -63,7 +66,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     "🚨 Smoke Detector": false,
     "🚗 Free Parking": false,
     "🐕 Pet-Friendly": false,
-    "🍽️ Restaurant Nearby": false,
+    "🍽️Restaurant Nearby": false,
     "🛒 Grocery Store Nearby": false,
   };
   // List to store selected images
@@ -88,6 +91,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   String? _city;
   String? _state;
   String? _country;
+  List<String> selectedSchools = [];
+  List<String> schoolOptions = [];
 
   // Method to pick an image
   Future<void> _pickImage(ImageSource source) async {
@@ -131,6 +136,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     _titleController.dispose();
     _descriptionController.dispose();
     _addressController.dispose();
+    _unitController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
     _rentController.dispose();
@@ -160,6 +166,30 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           placePredictions = result.predictions;
         });
       }
+    }
+  }
+
+  Future<void> _fetchNearbySchools(double lat, double lng) async {
+    String url = "${Environment.iosAppBaseUrl}/api/school/nearby/?lat=$lat&lng=$lng";
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        List<String> nearbySchools = data.map((school) => school.toString()).toList();
+
+        setState(() {
+          // Update school options and select them by default
+          // schoolOptions = data.map((school) => school.toString()).toList();
+          // selectedSchools = List.from(schoolOptions);
+          selectedSchools = schoolOptions.where((school) => nearbySchools.contains(school)).toList();
+        });
+      } else {
+        throw Exception("Failed to load nearby schools");
+      }
+    } catch (e) {
+      print("Error fetching nearby schools: $e");
     }
   }
 
@@ -217,11 +247,32 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           _state = state;
           _country = country;
         });
+
+        // **Fetch Nearby Schools After Address Selection**
+        _fetchNearbySchools(lat, lng);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed to get location details: ${data['status']}")),
         );
       }
+    }
+  }
+
+  Future<void> _fetchSchools() async {
+    String url = "${Environment.iosAppBaseUrl}/api/school/lite/";
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          schoolOptions = data.map((school) => school.toString()).toList();
+        });
+      } else {
+        throw Exception("Failed to load schools");
+      }
+    } catch (e) {
+      print("Error fetching schools: $e");
     }
   }
 
@@ -241,6 +292,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       return false;
     }
     return true;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSchools();
   }
 
   @override
@@ -426,7 +483,51 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 ),
               ),
 
-              // const SizedBox(height: 16),
+              const SizedBox(height: 16),
+              // Title
+              Text(
+                "Unit / Apartment #", 
+                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+              ),
+
+              const SizedBox(height: 8),
+
+              CustomTextField(
+                prefixIcon: const Icon(
+                  CupertinoIcons.building_2_fill,
+                  size: 20,
+                  color: Kolors.kGray,
+                ),
+                controller: _unitController,
+                maxLines: 1,
+                hintText: "Enter Unit / Apartment",
+                keyboardType: TextInputType.name,
+              ),
+
+              const SizedBox(height: 16),
+
+              const SizedBox(height: 16),
+              // Title
+              Text(
+                "Nearby Schools", 
+                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+              ),
+
+              const SizedBox(height: 8),
+
+              SearchableMultiSelectDropdown(
+                title: "Schools",
+                options: schoolOptions,
+                selectedValues: selectedSchools,
+                hintText: "Select Nearby Schools",
+                onSelectionChanged: (List<String> newSelection) {
+                  setState(() {
+                    selectedSchools = newSelection;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1278,6 +1379,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       "title": _titleController.text,
                       "description": _descriptionController.text,
                       "address": _addressController.text,
+                      "unit": _unitController.text,
                       "pincode": _pincode,
                       "city": _city,
                       "state": _state,
@@ -1301,7 +1403,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       },
                       if (lifestyleData.isNotEmpty) "lifestyle": lifestyleData,
                       if (preferencesData.isNotEmpty) "preference": preferencesData,
-                      "amenities": jsonEncode(selectedAmenities),
+                      "amenities": selectedAmenities,
                       "is_active": true,
                       "created_at": DateTime.now().toIso8601String(),
                       "updated_at": DateTime.now().toIso8601String(),

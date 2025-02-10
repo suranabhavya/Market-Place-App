@@ -60,89 +60,178 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
 
-      body: ListView(
-        children: [
-          SizedBox(
-            height: 160.h,
-          ),
-
-          Text(
-            "Lease Me",
-            textAlign: TextAlign.center,
-            style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
-          ),
-          
-          SizedBox(
-            height: 10.h,
-          ),
-
-          Text(
-            "Hi! Welcome back. You've been missed!",
-            textAlign: TextAlign.center,
-            style: appStyle(13, Kolors.kGray, FontWeight.normal),
-          ),
-
-          SizedBox(
-            height: 25.h,
-          ),
-
-          Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Column(
-            children: [
-              EmailTextField(
-                radius: 25,
-                focusNode: _passwordNode,
-                hintText: "Email",
-                controller: _emailController,
-                prefixIcon: const Icon(CupertinoIcons.mail, size: 20, color: Kolors.kGray,),
-                keyboardType: TextInputType.name,
-                onEditingComplete: () {
-                  FocusScope.of(context).requestFocus(_passwordNode);
-                },
-              ),
-
-              SizedBox(
-                height: 25.h,
-              ),
-
-              PasswordField(
-                controller: _passwordController,
-                focusNode: _passwordNode,
-                radius: 25,
-                hintText: "Password",
-              ),
-            
-              SizedBox(
-                height: 20.h,
-              ),
-
-              context.watch<AuthNotifier>().isLoading ?
-              const Center(
-                child: CircularProgressIndicator(
-                  backgroundColor: Kolors.kPrimary,
-                  valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "HomiSwap",
+                  textAlign: TextAlign.center,
+                  style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
                 ),
-              ) :
-              CustomButton(
-                onTap: () {
-                  LoginModel model = LoginModel(
-                    email: _emailController.text,
-                    password: _passwordController.text
-                  );
-                  String data = loginModelToJson(model);
-                  print("login data: $data");
+                
+                SizedBox(
+                  height: 10.h,
+                ),
 
-                  context.read<AuthNotifier>().loginFunc(data, context);
-                },
-                text: "L O G I N",
-                btnWidth: ScreenUtil().screenWidth,
-                btnHeight: 40,
-                radius: 20,
-              )
-            ],
-          ),)
-        ],
+                Text(
+                  "Hey Homie! Welcome back. You've been missed!",
+                  textAlign: TextAlign.center,
+                  style: appStyle(13, Kolors.kGray, FontWeight.normal),
+                ),
+
+                SizedBox(
+                  height: 25.h,
+                ),
+
+                Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  children: [
+                    EmailTextField(
+                      radius: 25,
+                      focusNode: _passwordNode,
+                      hintText: "Email",
+                      controller: _emailController,
+                      prefixIcon: const Icon(CupertinoIcons.mail, size: 20, color: Kolors.kGray,),
+                      keyboardType: TextInputType.name,
+                      onEditingComplete: () {
+                        FocusScope.of(context).requestFocus(_passwordNode);
+                      },
+                    ),
+
+                    SizedBox(
+                      height: 25.h,
+                    ),
+
+                    PasswordField(
+                      controller: _passwordController,
+                      focusNode: _passwordNode,
+                      radius: 25,
+                      hintText: "Password",
+                    ),
+                  
+                    SizedBox(
+                      height: 20.h,
+                    ),
+
+                    context.watch<AuthNotifier>().isLoading ?
+                    const Center(
+                      child: CircularProgressIndicator(
+                        backgroundColor: Kolors.kPrimary,
+                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+                      ),
+                    ) :
+                    CustomButton(
+                      onTap: () {
+                        LoginModel model = LoginModel(
+                          email: _emailController.text,
+                          password: _passwordController.text
+                        );
+                        String data = loginModelToJson(model);
+                        print("login data: $data");
+
+                        context.read<AuthNotifier>().loginFunc(data, context);
+                      },
+                      text: "L O G I N",
+                      btnWidth: ScreenUtil().screenWidth,
+                      btnHeight: 40,
+                      radius: 20,
+                    )
+                  ],
+                ),)
+              ],
+            ),
+          ),
+        ),
       ),
+
+      // body: ListView(
+      //   children: [
+      //     SizedBox(
+      //       height: 160.h,
+      //     ),
+
+      //     Text(
+      //       "HomiSwap",
+      //       textAlign: TextAlign.center,
+      //       style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
+      //     ),
+          
+      //     SizedBox(
+      //       height: 10.h,
+      //     ),
+
+      //     Text(
+      //       "Hey Homie! Welcome back. You've been missed!",
+      //       textAlign: TextAlign.center,
+      //       style: appStyle(13, Kolors.kGray, FontWeight.normal),
+      //     ),
+
+      //     SizedBox(
+      //       height: 25.h,
+      //     ),
+
+      //     Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
+      //     child: Column(
+      //       children: [
+      //         EmailTextField(
+      //           radius: 25,
+      //           focusNode: _passwordNode,
+      //           hintText: "Email",
+      //           controller: _emailController,
+      //           prefixIcon: const Icon(CupertinoIcons.mail, size: 20, color: Kolors.kGray,),
+      //           keyboardType: TextInputType.name,
+      //           onEditingComplete: () {
+      //             FocusScope.of(context).requestFocus(_passwordNode);
+      //           },
+      //         ),
+
+      //         SizedBox(
+      //           height: 25.h,
+      //         ),
+
+      //         PasswordField(
+      //           controller: _passwordController,
+      //           focusNode: _passwordNode,
+      //           radius: 25,
+      //           hintText: "Password",
+      //         ),
+            
+      //         SizedBox(
+      //           height: 20.h,
+      //         ),
+
+      //         context.watch<AuthNotifier>().isLoading ?
+      //         const Center(
+      //           child: CircularProgressIndicator(
+      //             backgroundColor: Kolors.kPrimary,
+      //             valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+      //           ),
+      //         ) :
+      //         CustomButton(
+      //           onTap: () {
+      //             LoginModel model = LoginModel(
+      //               email: _emailController.text,
+      //               password: _passwordController.text
+      //             );
+      //             String data = loginModelToJson(model);
+      //             print("login data: $data");
+
+      //             context.read<AuthNotifier>().loginFunc(data, context);
+      //           },
+      //           text: "L O G I N",
+      //           btnWidth: ScreenUtil().screenWidth,
+      //           btnHeight: 40,
+      //           radius: 20,
+      //         )
+      //       ],
+      //     ),)
+      //   ],
+      // ),
       bottomNavigationBar: SizedBox(
         height: 130.h,
         child: Center(

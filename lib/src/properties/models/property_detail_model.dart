@@ -14,6 +14,7 @@ class PropertyDetailModel {
     String title;
     String description;
     String address;
+    String unit;
     double latitude;
     double longitude;
     String pincode;
@@ -46,6 +47,7 @@ class PropertyDetailModel {
         required this.title,
         required this.description,
         required this.address,
+        required this.unit,
         required this.latitude,
         required this.longitude,
         required this.pincode,
@@ -79,6 +81,7 @@ class PropertyDetailModel {
         title: json["title"],
         description: json["description"],
         address: json["address"],
+        unit: json["unit"],
         latitude: json["latitude"]?.toDouble(),
         longitude: json["longitude"]?.toDouble(),
         pincode: json["pincode"],
@@ -112,6 +115,7 @@ class PropertyDetailModel {
         "title": title,
         "description": description,
         "address": address,
+        "unit": unit,
         "latitude": latitude,
         "longitude": longitude,
         "pincode": pincode,

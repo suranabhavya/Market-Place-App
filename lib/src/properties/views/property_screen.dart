@@ -362,6 +362,120 @@ class _PropertyPageState extends State<PropertyPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ReusableText(
+                    text: 'Nearby Schools',
+                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                  ),
+                  SizedBox(
+                    height: 10.h,
+                  ),
+                  Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: property.subleaseDetails.schoolsNearby.map<Widget>((amenity) {
+                      return Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300], // Background color
+                          borderRadius: BorderRadius.circular(20), // Circular shape
+                          border: Border.all(color: Kolors.kPrimary, width: 1),
+                        ),
+                        child: Text(
+                          amenity,
+                          style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Divider(
+                thickness: .5.h,
+              ),
+            )
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ReusableText(
+                    text: 'Amenities',
+                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                  ),
+                  SizedBox(
+                    height: 10.h,
+                  ),
+                  Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: property.amenities.map<Widget>((amenity) {
+                      return Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300], // Background color
+                          borderRadius: BorderRadius.circular(20), // Circular shape
+                          border: Border.all(color: Kolors.kPrimary, width: 1),
+                        ),
+                        child: Text(
+                          amenity,
+                          style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Divider(
+                thickness: .5.h,
+              ),
+            )
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ReusableText(
                     text: 'Posted By',
                     style: appStyle(18, Kolors.kGray, FontWeight.normal)
                   ),

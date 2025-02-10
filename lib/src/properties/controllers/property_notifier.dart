@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:http/http.dart' as http;
@@ -33,15 +34,45 @@ class PropertyNotifier extends ChangeNotifier {
   List<PropertyListModel> get properties => _properties;
   PropertyDetailModel? get selectedProperty => _selectedProperty;
   bool isLoading = false;
+  List<PropertyListModel> userProperties = [];
+
+  Future<List<PropertyListModel>> fetchUserProperties() async {
+    try {
+      String? accessToken = Storage().getString('accessToken');
+      if (accessToken == null) throw Exception("User not authenticated");
+
+      final response = await http.get(
+        Uri.parse("${Environment.iosAppBaseUrl}/api/properties/user/"),
+        headers: {
+          "Authorization": "Token $accessToken",
+          "Content-Type": "application/json"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        userProperties = data.map((json) => PropertyListModel.fromJson(json)).toList();
+        notifyListeners();
+        return userProperties;
+      } else {
+        throw Exception("Failed to fetch user properties");
+      }
+    } catch (e) {
+      throw Exception("Error: $e");
+    }
+  }
 
 
-  Future<void> fetchProperties() async {
+  Future<void> fetchProperties({double? lat, double? lng}) async {
     isLoading = true;
     notifyListeners();
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/');
+      String url = '${Environment.iosAppBaseUrl}/api/properties/';
+      if (lat != null && lng != null) {
+        url += "?lat=$lat&lng=$lng";
+      }
       final response = await http.get(
-        url,
+        Uri.parse(url),
         headers: {
           "Content-Type": "application/json",
         },

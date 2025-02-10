@@ -300,3 +300,11 @@ String avatar =
 //     );
 //   }
 // }
+
+
+const List<String> schoolOptions = [
+  'Boston University',
+  'Harvard University',
+  'Massachusetts Institute of Technology',
+  'Northeastern University'
+];

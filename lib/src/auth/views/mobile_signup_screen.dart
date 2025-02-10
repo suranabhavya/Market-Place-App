@@ -18,8 +18,45 @@ class MobileSignupPage extends StatefulWidget {
 }
 
 class _MobileSignupPageState extends State<MobileSignupPage> {
-  late final TextEditingController _phoneController = TextEditingController();
-  late final FocusNode _phoneFocusNode = FocusNode();
+  final TextEditingController _phoneController = TextEditingController();
+  final FocusNode _phoneFocusNode = FocusNode();
+  AuthNotifier? _authNotifier;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Store the provider reference when dependencies change
+    _authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+  }
+
+  Future<void> _generateOtp(BuildContext context) async {
+    if (!mounted) return;
+    
+    String mobileNumber = _phoneController.text.trim();
+
+    if (mobileNumber.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter your mobile number"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    MobileModel model = MobileModel(mobile_number: mobileNumber);
+    String data = mobileModelToJson(model);
+
+    final success = await _authNotifier?.generateOTP(data);
+    
+    if (!mounted) return;
+    
+    if (success == true) {
+      context.push('/login/mobile/otp', extra: {"mobileNumber": mobileNumber});
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to generate OTP. Try again."), backgroundColor: Colors.red),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -35,11 +72,11 @@ class _MobileSignupPageState extends State<MobileSignupPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: AppBackButton(
-           onTap: () {
+          onTap: () {
             context.go('/home');
-           },
+          },
         ),
-        title: Text(
+        title: const Text(
           'Log in or sign up',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
@@ -50,72 +87,68 @@ class _MobileSignupPageState extends State<MobileSignupPage> {
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: ListView(
           children: [
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Country/Region Dropdown
                 DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: '+1',
-                    items: [
+                    items: const [
                       DropdownMenuItem(value: '+1', child: Text('United States (+1)')),
-                      DropdownMenuItem(value: '+91', child: Text('India (+91)')),
-                      // Add more options as needed
                     ],
                     onChanged: (value) {
                       // Handle country code change
                     },
-                    isExpanded: true, // Make the dropdown take full width
+                    isExpanded: true,
                   ),
                 ),
-                SizedBox(height: 10), // Add spacing between dropdown and TextField
+                const SizedBox(height: 10),
 
-                // Phone Number TextField
                 TextField(
                   controller: _phoneController,
                   focusNode: _phoneFocusNode,
                   keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: "Phone number",
                     border: OutlineInputBorder(),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 20),
-            context.watch<AuthNotifier>().isLoading ?
-            const Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Kolors.kPrimary,
-                valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
-              ),
-            ) :
-            CustomButton(
-              onTap: () {
-                MobileModel model = MobileModel(
-                  mobile: _phoneController.text,
-                );
-                String data = mobileModelToJson(model);
-                context.read<AuthNotifier>().checkMobile(data, context);
+            const SizedBox(height: 20),
+
+            Consumer<AuthNotifier>(
+              builder: (context, authNotifier, child) {
+                return authNotifier.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          backgroundColor: Kolors.kPrimary,
+                          valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+                        ),
+                      )
+                    : CustomButton(
+                        onTap: () => _generateOtp(context),
+                        text: "C O N T I N U E",
+                        btnWidth: ScreenUtil().screenWidth,
+                        btnHeight: 50,
+                        radius: 25,
+                      );
               },
-              text: "C O N T I N U E",
-              btnWidth: ScreenUtil().screenWidth,
-              btnHeight: 50,
-              radius: 25,
             ),
-            SizedBox(height: 20),
-            Row(
+
+            const SizedBox(height: 20),
+            const Row(
               children: [
                 Expanded(child: Divider(thickness: 1)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text("or"),
                 ),
                 Expanded(child: Divider(thickness: 1)),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildSocialButton(
               icon: Icons.email,
               text: "Continue with email",
@@ -150,16 +183,20 @@ class _MobileSignupPageState extends State<MobileSignupPage> {
     );
   }
 
-  Widget _buildSocialButton({required IconData icon, required String text, required VoidCallback onTap}) {
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 24, color: Kolors.kPrimary,),
-        label: Text(text, ),
+        icon: Icon(icon, size: 24, color: Kolors.kPrimary),
+        label: Text(text),
         style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.symmetric(vertical: 14),
-          textStyle: TextStyle(fontSize: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          textStyle: const TextStyle(fontSize: 16),
         ),
       ),
     );

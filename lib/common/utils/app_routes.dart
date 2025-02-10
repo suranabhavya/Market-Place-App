@@ -23,8 +23,10 @@
 // import 'package:fashion/src/splashscreen/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/src/auth/models/profile_model.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/login_screen.dart';
+import 'package:marketplace_app/src/auth/views/mobile_otp_screen.dart';
 import 'package:marketplace_app/src/auth/views/mobile_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/registration_screen.dart';
 import 'package:marketplace_app/src/categories/views/categories_screen.dart';
@@ -32,9 +34,13 @@ import 'package:marketplace_app/src/entrypoint/views/entrypoint.dart';
 import 'package:marketplace_app/src/filter/views/filter_screen.dart';
 import 'package:marketplace_app/src/notifications/views/notification_screen.dart';
 import 'package:marketplace_app/src/onboarding/views/onboarding_screen.dart';
+import 'package:marketplace_app/src/profile/views/account_screen.dart';
 import 'package:marketplace_app/src/profile/views/orders_screen.dart';
 import 'package:marketplace_app/src/profile/views/policy_screen.dart';
 import 'package:marketplace_app/src/profile/views/shipping_address_screen.dart';
+import 'package:marketplace_app/src/profile/views/update_email_screen.dart';
+import 'package:marketplace_app/src/profile/views/update_password_screen.dart';
+import 'package:marketplace_app/src/profile/views/verify_school_email_screen.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/views/create_property_screen.dart';
 import 'package:marketplace_app/src/properties/views/property_screen.dart';
@@ -88,8 +94,20 @@ final GoRouter _router = GoRouter(
     //   builder: (context, state) => const HelpCenterPage(),
     // ),
     GoRoute(
-      path: '/orders',
-      builder: (context, state) => const OrdersPage(),
+      path: '/account',
+      builder: (context, state) => const AccountPage(),
+    ),
+    GoRoute(
+      path: '/update-email',
+      builder: (context, state) => const UpdateEmailPage(),
+    ),
+    GoRoute(
+      path: '/update-password',
+      builder: (context, state) => const UpdatePasswordPage(),
+    ),
+    GoRoute(
+      path: '/profile/verify-school-email',
+      builder: (context, state) => const VerifySchoolEmailPage(),
     ),
     // GoRoute(
     //   path: '/login',
@@ -114,6 +132,13 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const MobileSignupPage(),
     ),
     GoRoute(
+      path: '/login/mobile/otp',
+      builder: (context, state) {
+        final String mobileNumber = state.extra != null ? (state.extra as Map<String, dynamic>)['mobileNumber'] : null;
+        return MobileOtpPage(mobileNumber: mobileNumber);
+      },
+    ),
+    GoRoute(
       path: '/login/email',
       builder: (context, state) => const EmailSignupPage(),
     ),
@@ -124,6 +149,10 @@ final GoRouter _router = GoRouter(
         return RegistrationPage(prefilledEmail: prefilledEmail);
       },
     ),
+    // GoRoute(
+    //   path: '/register/mobile',
+    //   builder: (context, state) => const RegisterMobilePage(),
+    // ),
     // GoRoute(
     //   path: '/register',
     //   builder: (context, state) => const RegistrationPage(),

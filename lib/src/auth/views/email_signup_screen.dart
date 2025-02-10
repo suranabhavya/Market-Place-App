@@ -89,25 +89,25 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
               btnHeight: 50,
               radius: 25,
             ),
-            SizedBox(height: 20),
-            Row(
+            SizedBox(height: 20.h),
+            const Row(
               children: [
                 Expanded(child: Divider(thickness: 1)),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text("or"),
                 ),
                 Expanded(child: Divider(thickness: 1)),
               ],
             ),
-            SizedBox(height: 20),
-            _buildSocialButton(
-              icon: Icons.phone,
-              text: "Continue with Phone",
-              onTap: () {
-                context.push('/login');
-              },
-            ),
+            SizedBox(height: 20.h),
+            // _buildSocialButton(
+            //   icon: Icons.phone,
+            //   text: "Continue with Phone",
+            //   onTap: () {
+            //     context.push('/login/mobile');
+            //   },
+            // ),
             _buildSocialButton(
               icon: MaterialCommunityIcons.apple,
               text: "Continue with Apple",

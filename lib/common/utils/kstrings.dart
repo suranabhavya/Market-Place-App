@@ -22,6 +22,7 @@ class AppText {
   static const String kPolicy = 'Privacy Policy';
   static const String kCancelation = 'Cancelation Policy';
   static const String kTerms = 'Terms & Conditions';
+  static const String kAccount = 'My Account';
   static const String kHomeBtn = 'Shop Now';
   static const String kViewAll = 'See All';
   static const String kFlash = 'Flash Sales';

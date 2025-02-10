@@ -98,7 +98,7 @@ class WelcomeScreen extends StatelessWidget {
                         TextButton(
                           onPressed: () {
                             // navigate to login page
-                            context.go('/login/mobile');
+                            context.go('/login/email');
                           },
                           child: const Text(
                             "Sign In",
