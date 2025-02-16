@@ -10,6 +10,8 @@ class ProfileModel {
     String username;
     String? profile_photo;
     String? mobile_number;
+    String? school_email;
+    bool school_email_verified;
 
     ProfileModel({
         required this.email,
@@ -17,6 +19,8 @@ class ProfileModel {
         required this.username,
         this.profile_photo,
         this.mobile_number,
+        required this.school_email,
+        required this.school_email_verified,
     });
 
     factory ProfileModel.fromJson(Map<String, dynamic> json) => ProfileModel(
@@ -27,6 +31,8 @@ class ProfileModel {
             ? extractImagePath(json["profile_photo"])
             : null,
         mobile_number: json["mobile_number"],
+        school_email: json["school_email"],
+        school_email_verified: json["school_email_verified"] ?? false,
     );
 
     Map<String, dynamic> toJson() => {
@@ -35,6 +41,8 @@ class ProfileModel {
         "username": username,
         "profile_photo": profile_photo,
         "mobile_number": mobile_number,
+        "school_email": school_email,
+        "school_email_verified": school_email_verified,
     };
 
 

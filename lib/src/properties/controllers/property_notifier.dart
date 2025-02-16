@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
@@ -144,32 +146,57 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onSuccess,
     required VoidCallback onError,
   }) async {
-    print("hello");
     String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/';
 
     try {
       print("token last: $token");
       print("data last: $propertyData");
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {
-          "Authorization": "Token $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(propertyData),
-      );
+      var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
+      request.headers['Authorization'] = 'Token $token';
+
+      List<String>? imagePaths = propertyData['images'] as List<String>?;
+
+      // Append text fields as form-data
+      propertyData.forEach((key, value) {
+        if(key == 'amenities') {
+          for(String name in value) {
+            print(name);
+          }
+        }
+        if (key != 'images' && value != null) {  // Exclude 'images' field
+          if (value is List || value is Map) {
+            request.fields[key] = jsonEncode(value); // Convert List/Map to JSON String
+          } else {
+            request.fields[key] = value.toString();
+          }
+        }
+      });
+
+      // Attach image files
+      if (imagePaths != null && imagePaths.isNotEmpty) {
+        for (var imagePath in imagePaths) {
+          File imageFile = File(imagePath);
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'images', // Backend expects images as 'images' field
+              imageFile.path,
+              filename: path.basename(imageFile.path),
+            ),
+          );
+        }
+      }
+
+      var response = await request.send();
+      var responseData = await http.Response.fromStream(response);
 
       if (response.statusCode == 201) {
-        print("bye");
-        // Parse the response to get the created property
-        print("response is ${response.body}");
-        final data = jsonDecode(response.body);
-        property = PropertyListModel.fromJson(data); // Assuming Properties model has a fromJson method
-        print("property is: $property");
+        final data = jsonDecode(responseData.body);
+        property = PropertyListModel.fromJson(data);
+        print("Property created successfully: $property");
         notifyListeners();
-        onSuccess(); // Callback on successful creation
+        onSuccess();
       } else {
-        debugPrint("Error creating property: ${response.body}");
+        debugPrint("Error creating property: ${responseData.body}");
         onError(); // Callback on error
       }
     } catch (e) {

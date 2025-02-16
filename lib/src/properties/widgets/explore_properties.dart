@@ -60,7 +60,6 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
               }
             },
             property: property,
-            i: i,
           );
         },
       ),

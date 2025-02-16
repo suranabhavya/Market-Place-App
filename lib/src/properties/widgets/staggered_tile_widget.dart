@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
@@ -15,26 +17,55 @@ import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart'
 import 'package:provider/provider.dart';
 
 
-class StaggeredTileWidget extends StatelessWidget {
+class StaggeredTileWidget extends StatefulWidget {
   const StaggeredTileWidget(
-    {super.key, required this.i, required this.property, this.onTap}
+    {super.key, required this.property, this.onTap}
   );
 
-  final int i;
+  // final int i;
   final PropertyListModel property;
   final void Function()? onTap;
 
   @override
+  State<StaggeredTileWidget> createState() => _StaggeredTileWidgetState();
+}
+
+class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
+
+  late PageController _pageController;
+  late Timer _timer;
+  int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+
+    // Auto-slide every 2 seconds
+    _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+      if (widget.property.images.isNotEmpty) {
+        if (_currentPage < widget.property.images.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+  
+  @override
   Widget build(BuildContext context) {
-    // String? accessToken = Storage().getString('accessToken');
-
-
     return GestureDetector(
       onTap: () {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.read<PropertyNotifier>().setProperty(property);
+          context.read<PropertyNotifier>().setProperty(widget.property);
         });
-        context.push('/property/${property.id}');
+        context.push('/property/${widget.property.id}');
       },
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 10.h),
@@ -51,33 +82,67 @@ class StaggeredTileWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    property.images.isNotEmpty 
-                    ? CachedNetworkImage(
+                    SizedBox(
                       height: 220.h,
                       width: double.infinity,
-                      fit: BoxFit.cover,
-                      imageUrl: property.images.isNotEmpty 
-                        ? property.images[0] 
-                        : 'https://static.thenounproject.com/png/944120-200.png',
-                    ) : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(height: 16.h),
-                          const Icon(
-                            Icons.image_not_supported,
-                            size: 120,
-                            color: Kolors.kGray,
+                      child: widget.property.images.isNotEmpty
+                        ? PageView.builder(
+                            controller: _pageController,
+                            itemCount: widget.property.images.length,
+                            itemBuilder: (context, index) {
+                              return CachedNetworkImage(
+                                imageUrl: widget.property.images[index],
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) =>
+                                    const Center(child: CircularProgressIndicator()),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.broken_image, size: 100, color: Kolors.kGray),
+                              );
+                            },
+                          )
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(height: 16.h),
+                                const Icon(
+                                  Icons.image_not_supported,
+                                  size: 120,
+                                  color: Kolors.kGray,
+                                ),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  "No images available",
+                                  style: appStyle(14.sp, Kolors.kGray, FontWeight.w400),
+                                ),
+                                SizedBox(height: 16.h),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            "No images available",
-                            style: appStyle(14.sp, Kolors.kGray, FontWeight.w400),
-                          ),
-                          SizedBox(height: 16.h),
-                        ],
-                      ),
                     ),
+
+                    if (widget.property.images.length > 1)
+                      Positioned(
+                        bottom: 10.h,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            widget.property.images.length,
+                            (index) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              height: 6,
+                              width: _currentPage == index ? 14 : 6,
+                              decoration: BoxDecoration(
+                                color: _currentPage == index ? Kolors.kPrimary : Kolors.kGray,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
 
                     Positioned(
                       right: 10.h,
@@ -85,12 +150,12 @@ class StaggeredTileWidget extends StatelessWidget {
                       child: Consumer<WishlistNotifier>(
                         builder: (context, wishlistNotifier, child) {
                           return GestureDetector(
-                            onTap: onTap,
+                            onTap: widget.onTap,
                             child: CircleAvatar(
                               backgroundColor: Kolors.kSecondaryLight,
                               child: Icon(
                                 AntDesign.heart,
-                                color: wishlistNotifier.wishlist.contains(property.id)? Kolors.kRed : Kolors.kGray,
+                                color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
                               ),
                             ),
                           );
@@ -108,7 +173,7 @@ class StaggeredTileWidget extends StatelessWidget {
                   children: [
                     // Title
                     Text(
-                      property.title,
+                      widget.property.title,
                       style: appStyle(16.sp, Kolors.kDark, FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -120,7 +185,7 @@ class StaggeredTileWidget extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            property.address,
+                            widget.property.address,
                             style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -139,7 +204,7 @@ class StaggeredTileWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '\$${property.rent}/${property.rentFrequency}',
+                          '\$${widget.property.rent}/${widget.property.rentFrequency}',
                           style: appStyle(15.sp, Kolors.kDark, FontWeight.w500),
                         ),
                         Row(
@@ -151,7 +216,7 @@ class StaggeredTileWidget extends StatelessWidget {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              '${property.bedrooms}BR',
+                              '${widget.property.bedrooms}BR',
                               style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
                             ),
                             SizedBox(width: 8.w),
@@ -162,7 +227,7 @@ class StaggeredTileWidget extends StatelessWidget {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              '${property.bathrooms}BA',
+                              '${widget.property.bathrooms}BA',
                               style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
                             ),
                           ],
@@ -177,183 +242,5 @@ class StaggeredTileWidget extends StatelessWidget {
         ),
       ),
     );
-    
-    // return GestureDetector(
-    //   onTap: () {},
-    //   child: Card(
-    //     margin: EdgeInsets.symmetric(vertical: 2.h),
-    //     shape: RoundedRectangleBorder(
-    //       borderRadius: BorderRadius.circular(12),
-    //     ),
-    //     child: Column(
-    //       crossAxisAlignment: CrossAxisAlignment.start,
-    //       children: [
-    //         // Property Image
-    //         ClipRRect(
-    //           borderRadius: BorderRadius.circular(12),
-    //           child: Stack(
-    //             children: [
-    //               CachedNetworkImage(
-    //                 height: 200.h,
-    //                 width: double.infinity,
-    //                 fit: BoxFit.cover,
-    //                 imageUrl: property.images[0],
-    //               ),
-    //               // Wishlist Icon
-    //               Positioned(
-    //                 right: 10.h,
-    //                 top: 10.h,
-    //                 child: CircleAvatar(
-    //                   radius: 14.h,
-    //                   backgroundColor: Kolors.kSecondaryLight.withOpacity(0.8),
-    //                   child: const Icon(
-    //                     AntDesign.heart,
-    //                     color: Kolors.kRed,
-    //                     size: 18,
-    //                   ),
-    //                 ),
-    //               ),
-    //             ],
-    //           ),
-    //         ),
-    //         Property Details
-    //         Padding(
-    //           padding: EdgeInsets.symmetric(horizontal: 2.h),
-    //           child: Column(
-    //             crossAxisAlignment: CrossAxisAlignment.start,
-    //             children: [
-    //               // Title
-    //               Text(
-    //                 property.title,
-    //                 style: appStyle(16.sp, Kolors.kDark, FontWeight.w600),
-    //                 overflow: TextOverflow.ellipsis,
-    //                 maxLines: 1,
-    //               ),
-    //               SizedBox(height: 4.h),
-    //               // Location and Rent
-    //               Row(
-    //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //                 children: [
-    //                   Expanded(
-    //                     child: Text(
-    //                       property.description,
-    //                       style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                       overflow: TextOverflow.ellipsis,
-    //                       maxLines: 1,
-    //                     ),
-    //                   ),
-    //                   SizedBox(width: 8.w),
-    //                   Text(
-    //                     '\$${property.rent.toStringAsFixed(0)}/${property.rentFrequency}',
-    //                     style: appStyle(15.sp, Kolors.kDark, FontWeight.w500),
-    //                   ),
-    //                 ],
-    //               ),
-    //               SizedBox(height: 8.h),
-    //               // Bedrooms and Bathrooms
-    //               Row(
-    //                 children: [
-    //                   Icon(
-    //                     Icons.bed,
-    //                     size: 16.sp,
-    //                     color: Kolors.kGray,
-    //                   ),
-    //                   SizedBox(width: 4.w),
-    //                   Text(
-    //                     '${property.bedrooms}BR',
-    //                     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                   ),
-    //                   SizedBox(width: 16.w),
-    //                   Icon(
-    //                     Icons.bathtub,
-    //                     size: 16.sp,
-    //                     color: Kolors.kGray,
-    //                   ),
-    //                   SizedBox(width: 4.w),
-    //                   Text(
-    //                     '${property.bathrooms}BA',
-    //                     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                   ),
-    //                 ],
-    //               ),
-    //             ],
-    //           ),
-    //         ),
-    //       ],
-    //     ),
-    //   ),
-    // );
-   
-   
-    // return GestureDetector(
-    //   onTap: () {
-
-    //   },
-    //   child: ClipRRect(
-    //     borderRadius: BorderRadius.circular(12),
-    //     child: Container(
-    //       color: Kolors.kOffWhite,
-    //       child: Column(
-    //         crossAxisAlignment: CrossAxisAlignment.start,
-    //         children: [
-    //           Container(
-    //             // height: i % 2 == 0 ? 163.h : 180.h,
-    //             height: 180.h,
-    //             color: Kolors.kPrimary,
-    //             child: Stack(
-    //               children: [
-    //                 CachedNetworkImage(
-    //                   // height: i % 2 == 0 ? 163.h : 180.h,
-    //                   height: 400.h,
-    //                   fit: BoxFit.cover,
-    //                   imageUrl: property.images[0],
-    //                 ),
-
-    //                 Positioned(
-    //                   right: 10.h,
-    //                   top: 10.h,
-    //                   child: CircleAvatar(
-    //                     radius: 14.h,
-    //                     backgroundColor: Kolors.kSecondaryLight.withOpacity(0.8),
-    //                     child: const Icon(
-    //                       AntDesign.heart,
-    //                       color: Kolors.kRed,
-    //                       size: 18
-    //                     ),
-    //                   ),
-    //                 )
-    //               ],
-    //             ),
-    //           ),
-
-    //           Padding(
-    //             padding: EdgeInsets.symmetric(horizontal: 2.h),
-    //             child: Row(
-    //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //               children: [
-    //                 SizedBox(
-    //                   width: MediaQuery.of(context).size.width * 0.3,
-    //                   child: Text(
-    //                     property.title,
-    //                     overflow: TextOverflow.ellipsis,
-    //                     style: appStyle(13, Kolors.kDark, FontWeight.w600)
-    //                   ),
-    //                 ),
-    //               ],
-    //             ),
-    //           ),
-
-    //           Padding(
-    //             padding: EdgeInsets.symmetric(horizontal: 2.w),
-    //             child: ReusableText(
-    //               text: '\$${property.rent.toStringAsFixed(2)}/${property.rentFrequency}',
-    //               style: appStyle(17, Kolors.kDark, FontWeight.w500)
-    //             ),
-    //           )
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
   }
 }

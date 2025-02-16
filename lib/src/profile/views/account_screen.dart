@@ -120,7 +120,7 @@ class _AccountPageState extends State<AccountPage> {
             ListTile(
               visualDensity: VisualDensity.compact,
               title: Text(
-                "Username / Email",
+                "Primary Email",
                 style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
               ),
               subtitle: Text(
@@ -157,6 +157,29 @@ class _AccountPageState extends State<AccountPage> {
               ),
               onTap: () {
                 context.push('/update-password');
+              },
+            ),
+            Divider(
+              color: Kolors.kGrayLight,
+              thickness: 2.h,
+            ),
+            ListTile(
+              visualDensity: VisualDensity.compact,
+              title: Text(
+                "School Email",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+              ),
+              subtitle: Text(
+                user.school_email?.isNotEmpty == true ? user.school_email! : "-",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+              ),
+              trailing: const Icon(
+                AntDesign.rightcircle,
+                color: Kolors.kPrimary,
+                size: 22
+              ),
+              onTap: () {
+                context.push('/profile/verify-school-email');
               },
             ),
             Divider(

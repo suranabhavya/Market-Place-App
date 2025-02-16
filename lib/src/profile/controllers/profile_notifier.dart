@@ -13,7 +13,6 @@ class ProfileNotifier with ChangeNotifier {
   ProfileModel? _user;
 
   bool get isUpdating => _isUpdating;
-
   ProfileModel? get user => _user;
 
   void setUpdating(bool value) {
@@ -168,6 +167,8 @@ class ProfileNotifier with ChangeNotifier {
       request.headers['Authorization'] = 'Token $token';
       request.headers['Content-Type'] = 'multipart/form-data';
 
+      print("photo is: ${pickedFile.path}");
+
       request.files.add(
         await http.MultipartFile.fromPath(
           'profile_photo',
@@ -193,6 +194,69 @@ class ProfileNotifier with ChangeNotifier {
     } catch (e) {
       setUpdating(false);
       print("Error updating profile photo: $e");
+      return false;
+    }
+  }
+
+
+  Future<bool> sendSchoolEmailOtp(String email) async {
+    final String url = '${Environment.iosAppBaseUrl}/accounts/generate-school-email-otp/';
+    final String? token = Storage().getString('accessToken');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({"school_email": email}),
+      );
+
+      if (response.statusCode == 200) {
+        print("OTP Sent Successfully");
+        return true;
+      }
+
+      print("Failed to send OTP: ${response.body}");
+      return false;
+    } catch (e) {
+      print("Error sending OTP: $e");
+      return false;
+    }
+  }
+
+
+  Future<bool> verifySchoolEmailOtp(String email, String otp) async {
+    final String url = '${Environment.iosAppBaseUrl}/accounts/verify-school-email-otp/';
+    final String? token = Storage().getString('accessToken');
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          "school_email": email,
+          "otp": otp,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("School Email Verified Successfully");
+        return true;
+      }
+
+      print("Failed to verify school email: ${response.body}");
+      return false;
+    } catch (e) {
+      print("Error verifying school email: $e");
       return false;
     }
   }

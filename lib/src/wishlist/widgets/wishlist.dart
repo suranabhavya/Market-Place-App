@@ -46,7 +46,6 @@ class WishlistWidget extends HookWidget {
               }
             },
             property: property,
-            i: i,
           );
         },
       ),

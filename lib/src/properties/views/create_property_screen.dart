@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
@@ -66,7 +67,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     "🚨 Smoke Detector": false,
     "🚗 Free Parking": false,
     "🐕 Pet-Friendly": false,
-    "🍽️Restaurant Nearby": false,
+    "🍽️ Restaurant Nearby": false,
     "🛒 Grocery Store Nearby": false,
   };
   // List to store selected images
@@ -81,10 +82,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   String smoking = '';
   String partying = '';
   String dietary = '';
+  String nationality = '';
   String genderPreference = '';
   String smokingPreference = '';
   String partyingPreference = '';
   String dietaryPreference = '';
+  String nationalityPreference = '';
   bool furnished = false;
   bool _hideAddress = false;
   String? _pincode;
@@ -831,6 +834,32 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 16),
 
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Square Footage Area",
+                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  CustomTextField(
+                    controller: _squareFootageController,
+                    maxLines: 1,
+                    hintText: "Area of the Room / Apartment in Sqft",
+                    keyboardType: TextInputType.number,
+                    prefixIcon: const Icon(
+                      MaterialCommunityIcons.ruler,
+                      size: 20,
+                      color: Kolors.kGray
+                    ),
+                  ),
+                ]
+              ),
+
+              const SizedBox(height: 16),
+
               Row(
                 children: [
                   Expanded(
@@ -1118,6 +1147,63 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 ),
               ),
 
+              const SizedBox(height: 8),
+
+              Text(
+                "Nationality",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+              ),
+
+              const SizedBox(height: 8),
+
+              DropdownButtonFormField<String>(
+                value: nationality,
+                items: [
+                  DropdownMenuItem(
+                    value: '',
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Prefer not to say",
+                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                        ),
+                        SizedBox(width: 8.w),
+                        const Icon(Icons.groups_3_sharp , color: Colors.black, size: 16)
+                      ],
+                    )
+                  ),
+                  const DropdownMenuItem(value: 'indian', child: Text("Indian")),
+                  const DropdownMenuItem(value: 'korean', child: Text("Korean")),
+                  const DropdownMenuItem(value: 'chinese', child: Text("Chinese")),
+                  const DropdownMenuItem(value: 'american', child: Text("American")),
+                  const DropdownMenuItem(value: 'others', child: Text("Others")),
+                  const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
+                ],
+                style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                onChanged: (value) {
+                  setState(() {
+                    nationality = value!;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade400),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade400),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 16),
 
               Divider(
@@ -1349,6 +1435,63 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 ),
               ),
 
+              const SizedBox(height: 8),
+
+              Text(
+                "Nationality Preference",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+              ),
+
+              const SizedBox(height: 8),
+
+              DropdownButtonFormField<String>(
+                value: nationalityPreference,
+                items: [
+                  DropdownMenuItem(
+                    value: '', 
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Doesn't Matter",
+                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                        ),
+                        SizedBox(width: 8.w),
+                        const Icon(Icons.groups_3_sharp , color: Colors.black, size: 16)
+                      ],
+                    )
+                  ),
+                  const DropdownMenuItem(value: 'indian', child: Text("Indian")),
+                  const DropdownMenuItem(value: 'korean', child: Text("Korean")),
+                  const DropdownMenuItem(value: 'chinese', child: Text("Chinese")),
+                  const DropdownMenuItem(value: 'american', child: Text("American")),
+                  const DropdownMenuItem(value: 'others', child: Text("Others")),
+                  const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
+                ],
+                style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                onChanged: (value) {
+                  setState(() {
+                    nationalityPreference = value!;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade400),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade400),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 32),
 
               // Submit Button
@@ -1356,26 +1499,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 onTap: () async {
                   if (_validateForm()) {
                     String? accessToken = Storage().getString('accessToken');
-                    List<String> selectedAmenities = amenities.entries
-                      .where((entry) => entry.value) // Get only selected items (true)
-                      .map((entry) => entry.key.replaceAll(RegExp(r'^\p{So}\s*', unicode: true), '')) // Remove emoji from key
-                      .toList();
-                    final lifestyleData = {
-                      if (smoking != '') 'smoking': smoking,
-                      if (partying != '') 'partying': partying,
-                      if (dietary != '') 'dietary': dietary,
-                    };
-
-                    final preferencesData = {
-                      if (genderPreference != '') 'gender_preference': genderPreference,
-                      if (smokingPreference != '') 'smoking_preference': smokingPreference,
-                      if (partyingPreference != '') 'partying_preference': partyingPreference,
-                      if (dietaryPreference != '') 'dietary_preference': dietaryPreference,
-                    };
-
-                    print(selectedAmenities);
                     final propertyData = {
-                      // "images": _images,
+                      "images": _images.map((image) => image.path).toList(),
                       "title": _titleController.text,
                       "description": _descriptionController.text,
                       "address": _addressController.text,
@@ -1392,18 +1517,30 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       "rent": double.tryParse(_rentController.text) ?? 0.0,
                       "rent_frequency": rentFrequency,
                       "furnished": furnished,
+                      "square_footage": int.tryParse(_squareFootageController.text) ?? 0,
                       "bedrooms": int.tryParse(_bedroomsController.text) ?? 0,
                       "bathrooms": int.tryParse(_bathroomsController.text) ?? 0,
-                      "square_footage": int.tryParse(_squareFootageController.text) ?? 0,
+                      "amenities": amenities.entries
+                        .where((e) => e.value)
+                        .map((e) => e.key.replaceAll(RegExp(r'^\p{So}\s*', unicode: true), '').trim())
+                        .toList(),
                       "sublease_details": {
                         "available_from": _availableFromController.text,
                         "available_to": _availableTillController.text,
-                        "schools_nearby": [],
-                        "shared_room": true
+                        "schools_nearby": selectedSchools,
+                        "shared_room": true,
                       },
-                      if (lifestyleData.isNotEmpty) "lifestyle": lifestyleData,
-                      if (preferencesData.isNotEmpty) "preference": preferencesData,
-                      "amenities": selectedAmenities,
+                      "lifestyle": {
+                        if (smoking.isNotEmpty) "smoking": smoking,
+                        if (partying.isNotEmpty) "partying": partying,
+                        if (dietary.isNotEmpty) "dietary": dietary,
+                      },
+                      "preference": {
+                        if (genderPreference.isNotEmpty) "gender_preference": genderPreference,
+                        if (smokingPreference.isNotEmpty) "smoking_preference": smokingPreference,
+                        if (partyingPreference.isNotEmpty) "partying_preference": partyingPreference,
+                        if (dietaryPreference.isNotEmpty) "dietary_preference": dietaryPreference,
+                      },
                       "is_active": true,
                       "created_at": DateTime.now().toIso8601String(),
                       "updated_at": DateTime.now().toIso8601String(),

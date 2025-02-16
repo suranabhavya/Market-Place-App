@@ -108,7 +108,6 @@ class _SearchPageState extends State<SearchPage> {
                           }
                         },
                         property: property,
-                        i: i,
                       );
                     },
                   ),
