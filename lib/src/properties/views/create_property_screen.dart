@@ -1555,7 +1555,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text("Property created successfully!")),
                           );
-                          Navigator.pop(context); // Navigate back after success
+                          context.pop(); // Navigate back after success
+                          context.read<PropertyNotifier>().fetchProperties();
                         },
                         onError: () {
                           ScaffoldMessenger.of(context).showSnackBar(

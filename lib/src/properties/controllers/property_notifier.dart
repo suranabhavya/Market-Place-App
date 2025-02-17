@@ -89,7 +89,10 @@ class PropertyNotifier extends ChangeNotifier {
 
         // Notify listeners with the fetched data
         _properties = fetchedProperties;
-        notifyListeners();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       } else {
         debugPrint("Error fetching properties: ${response.body}");
       }
@@ -97,7 +100,9 @@ class PropertyNotifier extends ChangeNotifier {
       debugPrint("Exception: $e");
     }
     isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();  // Notify UI after the widget tree is fully built
+    });
   }
 
   // Fetch a specific property detail by ID
@@ -158,14 +163,10 @@ class PropertyNotifier extends ChangeNotifier {
 
       // Append text fields as form-data
       propertyData.forEach((key, value) {
-        if(key == 'amenities') {
-          for(String name in value) {
-            print(name);
-          }
-        }
-        if (key != 'images' && value != null) {  // Exclude 'images' field
+        if (key != 'images' && value != null) {
+          print("key is $key and value is: $value");
           if (value is List || value is Map) {
-            request.fields[key] = jsonEncode(value); // Convert List/Map to JSON String
+            request.fields[key] = jsonEncode(value);
           } else {
             request.fields[key] = value.toString();
           }
@@ -191,8 +192,8 @@ class PropertyNotifier extends ChangeNotifier {
 
       if (response.statusCode == 201) {
         final data = jsonDecode(responseData.body);
-        property = PropertyListModel.fromJson(data);
-        print("Property created successfully: $property");
+        PropertyListModel newProperty = PropertyListModel.fromJson(data);
+        _properties.insert(0, newProperty);
         notifyListeners();
         onSuccess();
       } else {

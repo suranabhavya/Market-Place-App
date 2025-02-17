@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/src/auth/views/mobile_signup_screen.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
 import 'package:marketplace_app/src/home/services/location_service.dart';
@@ -31,11 +33,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
   @override
   void initState() {
+     super.initState();
     _tabController = TabController(length: homeTabs.length, vsync: this);
-
     _tabController.addListener(_handleSelection);
     _getLocation();
-    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PropertyNotifier>().fetchProperties();
+    });
   }
 
   void _handleSelection() {
@@ -95,6 +100,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
   @override
   Widget build(BuildContext context) {
+    String? accessToken = Storage().getString('accessToken');
+    
     return Scaffold(
       appBar: const PreferredSize(
         preferredSize: Size.fromHeight(70),
@@ -136,8 +143,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
           //   context.push('/property/${property.id}');
           // },
           onPressed: () {
-            print("Floating Action Button Pressed");
-            context.push("/property/create");
+            if (accessToken == null) {
+              loginBottomSheet(context);
+            } else {
+              context.push("/property/create");
+            }
           },
           backgroundColor: Kolors.kPrimary,
           shape: const CircleBorder(),
