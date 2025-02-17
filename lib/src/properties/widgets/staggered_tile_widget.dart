@@ -43,8 +43,8 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
 
     // Auto-slide every 2 seconds
     _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-      if (widget.property.images.isNotEmpty) {
-        if (_currentPage < widget.property.images.length - 1) {
+      if (widget.property.images!.isNotEmpty) {
+        if (_currentPage < widget.property.images!.length - 1) {
           _currentPage++;
         } else {
           _currentPage = 0;
@@ -85,13 +85,13 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                     SizedBox(
                       height: 220.h,
                       width: double.infinity,
-                      child: widget.property.images.isNotEmpty
+                      child: widget.property.images!.isNotEmpty
                         ? PageView.builder(
                             controller: _pageController,
-                            itemCount: widget.property.images.length,
+                            itemCount: widget.property.images?.length,
                             itemBuilder: (context, index) {
                               return CachedNetworkImage(
-                                imageUrl: widget.property.images[index],
+                                imageUrl: widget.property.images![index],
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) =>
                                     const Center(child: CircularProgressIndicator()),
@@ -121,7 +121,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           ),
                     ),
 
-                    if (widget.property.images.length > 1)
+                    if (widget.property.images!.length > 1)
                       Positioned(
                         bottom: 10.h,
                         left: 0,
@@ -129,7 +129,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(
-                            widget.property.images.length,
+                            widget.property.images!.length,
                             (index) => AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -209,28 +209,56 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                         ),
                         Row(
                           children: [
-                            Icon(
-                              Icons.bed,
-                              size: 16.sp,
-                              color: Kolors.kGray,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              '${widget.property.bedrooms}BR',
-                              style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                            ),
-                            SizedBox(width: 8.w),
-                            Icon(
-                              Icons.bathtub,
-                              size: 16.sp,
-                              color: Kolors.kGray,
-                            ),
-                            SizedBox(width: 4.w),
-                            Text(
-                              '${widget.property.bathrooms}BA',
-                              style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                            ),
+                            if (widget.property.bedrooms != null) ...[
+                              Icon(
+                                Icons.bed,
+                                size: 16.sp,
+                                color: Kolors.kGray,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '${widget.property.bedrooms}BR',
+                                style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
+                              ),
+                            ],
+                            if (widget.property.bedrooms != null && widget.property.bathrooms != null)
+                              SizedBox(width: 8.w), // Add spacing if both exist
+                            if (widget.property.bathrooms != null) ...[
+                              Icon(
+                                Icons.bathtub,
+                                size: 16.sp,
+                                color: Kolors.kGray,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '${widget.property.bathrooms}BA',
+                                style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
+                              ),
+                            ],
                           ],
+                          // children: [
+                          //   Icon(
+                          //     Icons.bed,
+                          //     size: 16.sp,
+                          //     color: Kolors.kGray,
+                          //   ),
+                          //   SizedBox(width: 4.w),
+                          //   Text(
+                          //     '${widget.property.bedrooms}BR',
+                          //     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
+                          //   ),
+                          //   SizedBox(width: 8.w),
+                          //   Icon(
+                          //     Icons.bathtub,
+                          //     size: 16.sp,
+                          //     color: Kolors.kGray,
+                          //   ),
+                          //   SizedBox(width: 4.w),
+                          //   Text(
+                          //     '${widget.property.bathrooms}BA',
+                          //     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
+                          //   ),
+                          // ],
                         ),
                       ],
                     ),

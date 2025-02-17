@@ -285,12 +285,23 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       return false;
     }
 
-    DateTime? availableFrom = _availableFromController.text.isNotEmpty ? DateTime.parse(_availableFromController.text) : null;
-    DateTime? availableTo = _availableTillController.text.isNotEmpty ? DateTime.parse(_availableTillController.text) : null;
+    DateTime? availableFrom = _availableFromController.text.isNotEmpty
+      ? DateTime.parse(_availableFromController.text)
+      : null;
+    DateTime? availableTo = _availableTillController.text.isNotEmpty
+      ? DateTime.parse(_availableTillController.text)
+      : null;
 
-    if (availableFrom != null && availableTo != null && availableTo.isBefore(availableFrom)) {
+    if (availableFrom == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Available Till date must be after Available From date!")),
+        const SnackBar(content: Text("Available From is required.")),
+      );
+      return false;
+    }
+
+    if (availableTo != null && availableTo.isBefore(availableFrom)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Available Till must be after Available From!")),
       );
       return false;
     }
@@ -301,6 +312,22 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   void initState() {
     super.initState();
     _fetchSchools();
+  }
+
+  // Helper function to add red asterisk to required fields
+  Widget requiredLabel(String text) {
+    return RichText(
+      text: TextSpan(
+        text: text,
+        style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+        children: const [
+          TextSpan(
+            text: " *",
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -389,27 +416,27 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               ),
               const SizedBox(height: 16),
               // Title
-              Text(
-                "Title", 
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-              ),
+              requiredLabel("Title"),
 
               const SizedBox(height: 8),
-
+              
               CustomTextField(
                 controller: _titleController,
                 maxLines: 2,
                 hintText: "Enter Title",
                 keyboardType: TextInputType.name,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Title is required.";
+                  }
+                  return null;
+                },
               ),
 
               const SizedBox(height: 16),
 
               // Description
-              Text(
-                "Description",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
+              requiredLabel("Description"),
               
               const SizedBox(height: 8),
 
@@ -418,14 +445,17 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 maxLines: 6,
                 hintText: "Enter Description",
                 keyboardType: TextInputType.name,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return "Description is required.";
+                  }
+                  return null;
+                },
               ),
 
               const SizedBox(height: 16),
 
-              Text(
-                "Address",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
+              requiredLabel("Address"),
 
               const SizedBox(height: 8),
 
@@ -451,6 +481,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       keyboardType: TextInputType.name,
                       onChanged: (value) {
                         placeAutocomplete(value);
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Address is required.";
+                        }
+                        return null;
                       },
                     ),
                     const SizedBox(height: 16),
@@ -554,28 +590,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   ),
                 ],
               ),
-
-              // SwitchListTile(
-              //   title: Text(
-              //     "Hide Address",
-              //     style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-              //   ),
-              //   value: _hideAddress,
-              //   onChanged: (bool value) {
-              //     setState(() {
-              //       _hideAddress = value;
-              //     });
-              //   },
-              //   activeColor: Kolors.kPrimary,
-              //   inactiveThumbColor: Colors.grey,
-              // ),
-
               const SizedBox(height: 16),
 
-              Text(
-                "Property Type",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
+              requiredLabel("Property Type"),
 
               const SizedBox(height: 8),
 
@@ -611,11 +628,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               ),
 
               const SizedBox(height: 16),
-
-              Text(
-                "Listing Type",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
+              requiredLabel("Listing Type"),
 
               const SizedBox(height: 8),
 
@@ -658,32 +671,29 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Available From",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                        ),
+                        requiredLabel("Available From"),
 
                         const SizedBox(height: 8),
 
-                        InkWell(
+                        TextFormField(
+                          controller: _availableFromController,
+                          readOnly: true,
                           onTap: () => _selectDate(context, _availableFromController),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade400),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Available From is required.";
+                            }
+                            return null;
+                          },
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _availableFromController.text.isEmpty ? "Select Date" : _availableFromController.text,
-                                  style: TextStyle(fontSize: 14, color: _availableFromController.text.isEmpty ? Colors.grey : Colors.black),
-                                ),
-                                const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
-                              ],
-                            ),
+                            suffixIcon: const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                            hintText: "Select Date",
+                            hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
                           ),
                         ),
                       ]
@@ -701,25 +711,29 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
                         const SizedBox(height: 8),
 
-                        InkWell(
+                        TextFormField(
+                          controller: _availableTillController,
+                          readOnly: true,
                           onTap: () => _selectDate(context, _availableTillController),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade400),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              DateTime availableFrom = DateTime.parse(_availableFromController.text);
+                              DateTime availableTill = DateTime.parse(value);
+                              if (availableTill.isBefore(availableFrom)) {
+                                return "Available Till must be after Available From.";
+                              }
+                            }
+                            return null;
+                          },
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _availableTillController.text.isEmpty ? "Select Date" : _availableTillController.text,
-                                  style: TextStyle(fontSize: 14, color: _availableTillController.text.isEmpty ? Colors.grey : Colors.black),
-                                ),
-                                const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
-                              ],
-                            ),
+                            suffixIcon: const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
+                            hintText: "Select Date",
+                            hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
                           ),
                         ),
                       ]
@@ -737,10 +751,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Rent",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                        ),
+                        requiredLabel("Rent"),
 
                         const SizedBox(height: 8),
 
@@ -754,6 +765,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                             size: 20,
                             color: Kolors.kGray
                           ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return "Rent is required.";
+                            }
+                            return null;
+                          },
                         ),
                       ]
                     ),
@@ -763,10 +780,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Rent Frequency",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                        ),
+                        requiredLabel("Rent Frequency"),
 
                         const SizedBox(height: 8),
 
@@ -1499,48 +1513,56 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 onTap: () async {
                   if (_validateForm()) {
                     String? accessToken = Storage().getString('accessToken');
+
+                    // Process amenities
+                    List<String> selectedAmenities = amenities.entries
+                        .where((e) => e.value)
+                        .map((e) => e.key.replaceAll(RegExp(r'^\p{So}\s*', unicode: true), '').trim())
+                        .toList();
+
+                    // Process lifestyle
+                    Map<String, String> lifestyleData = {};
+                    if (smoking.isNotEmpty) lifestyleData["smoking"] = smoking;
+                    if (partying.isNotEmpty) lifestyleData["partying"] = partying;
+                    if (dietary.isNotEmpty) lifestyleData["dietary"] = dietary;
+
+                    // Process preference
+                    Map<String, String> preferenceData = {};
+                    if (genderPreference.isNotEmpty) preferenceData["gender_preference"] = genderPreference;
+                    if (smokingPreference.isNotEmpty) preferenceData["smoking_preference"] = smokingPreference;
+                    if (partyingPreference.isNotEmpty) preferenceData["partying_preference"] = partyingPreference;
+                    if (dietaryPreference.isNotEmpty) preferenceData["dietary_preference"] = dietaryPreference;
+
                     final propertyData = {
                       "images": _images.map((image) => image.path).toList(),
                       "title": _titleController.text,
                       "description": _descriptionController.text,
                       "address": _addressController.text,
-                      "unit": _unitController.text,
-                      "pincode": _pincode,
-                      "city": _city,
-                      "state": _state,
-                      "country": _country,
-                      "latitude": double.tryParse(_latitudeController.text) ?? 0.0,
-                      "longitude": double.tryParse(_longitudeController.text) ?? 0.0,
+                      if (_unitController.text.isNotEmpty) "unit": _unitController.text,
+                      if (_pincode != null) "pincode": _pincode,
+                      if (_city != null) "city": _city,
+                      if (_state != null) "state": _state,
+                      if (_country != null) "country": _country,
+                      if (_latitudeController.text.isNotEmpty) "latitude": double.tryParse(_latitudeController.text),
+                      if (_longitudeController.text.isNotEmpty) "longitude": double.tryParse(_longitudeController.text),
                       "hide_address": _hideAddress,
                       "property_type": propertyType,
                       "listing_type": listingType,
-                      "rent": double.tryParse(_rentController.text) ?? 0.0,
+                      "rent": double.tryParse(_rentController.text),
                       "rent_frequency": rentFrequency,
                       "furnished": furnished,
-                      "square_footage": int.tryParse(_squareFootageController.text) ?? 0,
-                      "bedrooms": int.tryParse(_bedroomsController.text) ?? 0,
-                      "bathrooms": int.tryParse(_bathroomsController.text) ?? 0,
-                      "amenities": amenities.entries
-                        .where((e) => e.value)
-                        .map((e) => e.key.replaceAll(RegExp(r'^\p{So}\s*', unicode: true), '').trim())
-                        .toList(),
+                      if (_squareFootageController.text.isNotEmpty) "square_footage": int.tryParse(_squareFootageController.text),
+                      if (_bedroomsController.text.isNotEmpty) "bedrooms": int.tryParse(_bedroomsController.text),
+                      if (_bathroomsController.text.isNotEmpty) "bathrooms": int.tryParse(_bathroomsController.text),
                       "sublease_details": {
                         "available_from": _availableFromController.text,
-                        "available_to": _availableTillController.text,
-                        "schools_nearby": selectedSchools,
+                        if (_availableTillController.text.isNotEmpty) "available_to": _availableTillController.text,
+                        if (selectedSchools.isNotEmpty) "schools_nearby": selectedSchools,
                         "shared_room": true,
                       },
-                      "lifestyle": {
-                        if (smoking.isNotEmpty) "smoking": smoking,
-                        if (partying.isNotEmpty) "partying": partying,
-                        if (dietary.isNotEmpty) "dietary": dietary,
-                      },
-                      "preference": {
-                        if (genderPreference.isNotEmpty) "gender_preference": genderPreference,
-                        if (smokingPreference.isNotEmpty) "smoking_preference": smokingPreference,
-                        if (partyingPreference.isNotEmpty) "partying_preference": partyingPreference,
-                        if (dietaryPreference.isNotEmpty) "dietary_preference": dietaryPreference,
-                      },
+                      if (selectedAmenities.isNotEmpty) "amenities": selectedAmenities,
+                      if (lifestyleData.isNotEmpty) "lifestyle": lifestyleData,
+                      if (preferenceData.isNotEmpty) "preference": preferenceData,
                       "is_active": true,
                       "created_at": DateTime.now().toIso8601String(),
                       "updated_at": DateTime.now().toIso8601String(),

@@ -265,26 +265,26 @@ class PropertyDetailModel {
   String title;
   String description;
   String address;
-  String unit;
-  double latitude;
-  double longitude;
-  String pincode;
-  String city;
-  String state;
-  String country;
+  String? unit;
+  double? latitude;
+  double? longitude;
+  String? pincode;
+  String? city;
+  String? state;
+  String? country;
   double rent;
   String rentFrequency;
   String propertyType;
   bool furnished;
-  int bedrooms;
-  int bathrooms;
-  int squareFootage;
-  List<String> images;
+  int? bedrooms;
+  int? bathrooms;
+  int? squareFootage;
+  List<String>? images;
   DateTime createdAt;
   DateTime updatedAt;
   SubleaseDetails subleaseDetails;
   bool isActive;
-  List<String> amenities;
+  List<String>? amenities;
   bool hideAddress;
   Lifestyle? lifestyle;
   Preference? preference;
@@ -298,26 +298,26 @@ class PropertyDetailModel {
     required this.title,
     required this.description,
     required this.address,
-    required this.unit,
-    required this.latitude,
-    required this.longitude,
-    required this.pincode,
-    required this.city,
-    required this.state,
-    required this.country,
+    this.unit,
+    this.latitude,
+    this.longitude,
+    this.pincode,
+    this.city,
+    this.state,
+    this.country,
     required this.rent,
     required this.rentFrequency,
     required this.propertyType,
     required this.furnished,
-    required this.bedrooms,
-    required this.bathrooms,
-    required this.squareFootage,
-    required this.images,
+    this.bedrooms,
+    this.bathrooms,
+    this.squareFootage,
+    this.images,
     required this.createdAt,
     required this.updatedAt,
     required this.subleaseDetails,
     required this.isActive,
-    required this.amenities,
+    this.amenities,
     required this.hideAddress,
     this.lifestyle,
     this.preference,
@@ -344,9 +344,12 @@ class PropertyDetailModel {
         rentFrequency: json["rent_frequency"] ?? "",
         propertyType: json["property_type"] ?? "",
         furnished: json["furnished"] ?? false,
-        bedrooms: json["bedrooms"] ?? 0,
-        bathrooms: json["bathrooms"] ?? 0,
-        squareFootage: json["square_footage"] ?? 0,
+        // bedrooms: json["bedrooms"] ?? 0,
+        // bathrooms: json["bathrooms"] ?? 0,
+        // squareFootage: json["square_footage"] ?? 0,
+        bedrooms: json["bedrooms"],
+        bathrooms: json["bathrooms"],
+        squareFootage: json["square_footage"],
         images: json["images"] != null
             ? List<String>.from(json["images"].map((x) => extractImageUrl(x)))
             : [],
@@ -425,35 +428,39 @@ class PropertyDetailModel {
 
 class SubleaseDetails {
   DateTime availableFrom;
-  DateTime availableTo;
-  List<String> schoolsNearby;
-  bool sharedRoom;
+  DateTime? availableTo;
+  List<String>? schoolsNearby;
+  bool? sharedRoom;
 
   SubleaseDetails({
     required this.availableFrom,
-    required this.availableTo,
-    required this.schoolsNearby,
-    required this.sharedRoom,
+    this.availableTo,
+    this.schoolsNearby,
+    this.sharedRoom,
   });
 
   factory SubleaseDetails.fromJson(Map<String, dynamic> json) =>
       SubleaseDetails(
         availableFrom: DateTime.parse(json["available_from"]),
-        availableTo: DateTime.parse(json["available_to"]),
-        schoolsNearby:
-            List<String>.from(json["schools_nearby"].map((x) => x)),
-        sharedRoom: json["shared_room"],
+        availableTo: json["available_to"] != null ? DateTime.parse(json["available_to"]) : null,
+        schoolsNearby: json["schools_nearby"] != null
+            ? List<String>.from(json["schools_nearby"].map((x) => x))
+            : null,
+        sharedRoom: json["shared_room"] ?? false,
       );
 
   Map<String, dynamic> toJson() => {
         "available_from":
             "${availableFrom.year.toString().padLeft(4, '0')}-${availableFrom.month.toString().padLeft(2, '0')}-${availableFrom.day.toString().padLeft(2, '0')}",
-        "available_to":
-            "${availableTo.year.toString().padLeft(4, '0')}-${availableTo.month.toString().padLeft(2, '0')}-${availableTo.day.toString().padLeft(2, '0')}",
-        "schools_nearby": List<dynamic>.from(schoolsNearby.map((x) => x)),
-        "shared_room": sharedRoom,
+        "available_to": availableTo != null
+            ? "${availableTo!.year.toString().padLeft(4, '0')}-${availableTo!.month.toString().padLeft(2, '0')}-${availableTo!.day.toString().padLeft(2, '0')}"
+            : null,
+        "schools_nearby": schoolsNearby != null
+            ? List<dynamic>.from(schoolsNearby!.map((x) => x))
+            : null,
+        "shared_room": sharedRoom ?? false,
       };
-}
+  }
 
 class Lifestyle {
   String? smoking;

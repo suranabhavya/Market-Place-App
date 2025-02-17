@@ -82,12 +82,12 @@ class PropertyListModel {
   String title;
   double rent;
   String rentFrequency;
-  int bedrooms;
-  int bathrooms;
+  int? bedrooms;
+  int? bathrooms;
   String address;
-  double latitude;
-  double longitude;
-  List<String> images;
+  double? latitude;
+  double? longitude;
+  List<String>? images;
   DateTime createdAt;
   DateTime updatedAt;
   bool isActive;
@@ -97,12 +97,12 @@ class PropertyListModel {
     required this.title,
     required this.rent,
     required this.rentFrequency,
-    required this.bedrooms,
-    required this.bathrooms,
+    this.bedrooms,
+    this.bathrooms,
     required this.address,
-    required this.latitude,
-    required this.longitude,
-    required this.images,
+    this.latitude,
+    this.longitude,
+    this.images,
     required this.createdAt,
     required this.updatedAt,
     required this.isActive,
@@ -111,7 +111,7 @@ class PropertyListModel {
   factory PropertyListModel.fromJson(Map<String, dynamic> json) => PropertyListModel(
         id: json["id"],
         title: json["title"],
-        rent: json["rent"]?.toDouble(),
+        rent: json["rent"]?.toDouble() ?? 0.0,
         rentFrequency: json["rent_frequency"],
         bedrooms: json["bedrooms"],
         bathrooms: json["bathrooms"],
@@ -120,7 +120,7 @@ class PropertyListModel {
         longitude: json["longitude"]?.toDouble(),
         images: json["images"] != null
             ? List<String>.from(json["images"].map((x) => x.toString()))
-            : [],
+            : null,
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
         isActive: json["is_active"],
@@ -131,12 +131,12 @@ class PropertyListModel {
         "title": title,
         "rent": rent,
         "rent_frequency": rentFrequency,
-        "bedrooms": bedrooms,
-        "bathrooms": bathrooms,
+        if (bedrooms != null) "bedrooms": bedrooms,
+        if (bathrooms != null) "bathrooms": bathrooms,
         "address": address,
-        "latitude": latitude,
-        "longitude": longitude,
-        "images": List<String>.from(images.map((x) => x)),
+        if (latitude != null) "latitude": latitude,
+        if (longitude != null) "longitude": longitude,
+        if (images != null) "images": List<String>.from(images!),
         "created_at": createdAt.toIso8601String(),
         "updated_at": updatedAt.toIso8601String(),
         "is_active": isActive,

@@ -54,13 +54,14 @@ class _PropertyPageState extends State<PropertyPage> {
     return months[month - 1];
   }
 
-  String getAvailableDuration(DateTime availableFrom, DateTime availableTo) {
-    final duration = availableTo.difference(availableFrom).inDays;
-
-    // Format the dates as Month & Day
+  String getAvailableDuration(DateTime availableFrom, DateTime? availableTo) {
     String fromDate = "${availableFrom.day} ${_getMonthName(availableFrom.month)}";
-    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)}";
 
+    if (availableTo == null) {
+      return fromDate; // Return only the from date if availableTo is null
+    }
+
+    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)}";
     return "$fromDate - $toDate";
   }
 
@@ -122,18 +123,18 @@ class _PropertyPageState extends State<PropertyPage> {
               centerTitle: false,
               background: SizedBox(
                 height: 415.h,
-                child: property.images.isNotEmpty
+                child: property.images!.isNotEmpty
                 ? ImageSlideshow(
                   indicatorColor: Kolors.kPrimaryLight,
                   onPageChanged: (p) {},
                   autoPlayInterval: 15000,
-                  isLoop: property.images.length > 1 ? true : false,
-                  children: List.generate(property.images.length, (i) {
+                  isLoop: property.images!.length > 1 ? true : false,
+                  children: List.generate(property.images!.length, (i) {
                     return CachedNetworkImage(
                       placeholder: placeholder,
                       errorWidget: errorWidget,
                       height: 350.h,
-                      imageUrl: property.images[i],
+                      imageUrl: property.images![i],
                       fit: BoxFit.cover,
                     );
                   }),
@@ -371,7 +372,7 @@ class _PropertyPageState extends State<PropertyPage> {
                   Wrap(
                     spacing: 8.w,
                     runSpacing: 8.h,
-                    children: property.subleaseDetails.schoolsNearby.map<Widget>((amenity) {
+                    children: property.subleaseDetails.schoolsNearby!.map<Widget>((amenity) {
                       return Container(
                         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                         decoration: BoxDecoration(
@@ -428,7 +429,7 @@ class _PropertyPageState extends State<PropertyPage> {
                   Wrap(
                     spacing: 8.w,
                     runSpacing: 8.h,
-                    children: property.amenities.map<Widget>((amenity) {
+                    children: property.amenities!.map<Widget>((amenity) {
                       return Container(
                         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                         decoration: BoxDecoration(
