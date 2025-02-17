@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/app_routes.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -14,9 +16,13 @@ import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/main.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:marketplace_app/src/auth/models/profile_model.dart';
+import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/login_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
+import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/profile/widgets/tile_widget.dart';
+import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:provider/provider.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -28,7 +34,7 @@ class ProfilePage extends StatelessWidget {
     String? accessToken = Storage().getString('accessToken');
 
     if(accessToken == null) {
-      return const LoginPage();
+      return const EmailSignupPage();
     }
 
     return Scaffold(
@@ -43,12 +49,15 @@ class ProfilePage extends StatelessWidget {
                     height: 30.h,
                   ),
 
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 35,
-                    backgroundColor: Kolors.kOffWhite,
-                    backgroundImage: NetworkImage(
-                      AppText.kProfilePic
-                    ),
+                    backgroundColor: Colors.grey,
+                    backgroundImage: user?.profile_photo != null && user!.profile_photo!.isNotEmpty
+                        ? NetworkImage(user.profile_photo!)
+                        : null,
+                    child: user?.profile_photo == null || user!.profile_photo!.isEmpty
+                        ? const Icon(Icons.person, size: 50, color: Colors.white)
+                        : null,
                   ),
 
                   SizedBox(
@@ -71,7 +80,7 @@ class ProfilePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ReusableText(
-                      text: user.username,
+                      text: user.first_name,
                       style: appStyle(14, Kolors.kDark, FontWeight.w600)
                     ),
                   )
@@ -89,8 +98,40 @@ class ProfilePage extends StatelessWidget {
                     ProfileTileWidget(
                       title: 'My Account',
                       leading: CupertinoIcons.profile_circled,
-                      onTap: () {
-                        context.push('/orders');
+                      onTap: () async {
+                        final result = await context.push('/account', extra: user);
+                        if (result == true) {
+                          Provider.of<ProfileNotifier>(context, listen: false).fetchUserData();
+                        }
+                      },
+                    ),
+
+                    ProfileTileWidget(
+                      title: 'Verify School Email',
+                      leading: Icons.check_circle,
+                      onTap: () async {
+                        final result = await context.push('/profile/verify-school-email', extra: user);
+                        if (result == true) {
+                          Provider.of<ProfileNotifier>(context, listen: false).fetchUserData();
+                        }
+                      },
+                    ),
+
+                    ProfileTileWidget(
+                      title: 'My Listings',
+                      leading: CupertinoIcons.building_2_fill,
+                       onTap: () async {
+                        try {
+                          final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
+                          List<PropertyListModel> userProperties = await propertyNotifier.fetchUserProperties();
+
+                          // Push to home screen with user's properties
+                          context.go('/home', extra: userProperties);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Failed to load user properties: $e")),
+                          );
+                        }
                       },
                     ),
 

@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/widgets/app_style.dart';
 
 class LocationListTile extends StatelessWidget {
   const LocationListTile({
@@ -19,18 +21,16 @@ class LocationListTile extends StatelessWidget {
         ListTile(
           onTap: press,
           horizontalTitleGap: 0,
-          leading: SvgPicture.asset("assets/icons/location_pin.svg"),
           title: Text(
             location,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            style: appStyle(12, Kolors.kDark, FontWeight.normal)
           ),
         ),
-        const Divider(
-          height: 2,
-          thickness: 2,
-          color: Kolors.kPrimary,
-        ),
+        // const Divider(
+        //   height: 2,
+        //   thickness: 2,
+        //   color: Kolors.kPrimary,
+        // ),
       ],
     );
   }

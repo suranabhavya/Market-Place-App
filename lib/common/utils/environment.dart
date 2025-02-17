@@ -13,9 +13,13 @@ class Environment {
   static String get apiKey {
     return dotenv.env['API_KEY'] ?? 'API_KEY not found';
   }
+  
+  static String get iosAppBaseUrl {
+    return dotenv.env['IOS_API_BASE_URL'] ?? 'IOS_API_BASE_URL not found';
+  }
 
-  static String get appBaseUrl {
-    return dotenv.env['API_BASE_URL'] ?? 'API_BASE_URL not found';
+  static String get androidAppBaseUrl {
+    return dotenv.env['ANDROID_API_BASE_URL'] ?? 'ANDROID_API_BASE_URL not found';
   }
 
   static String get googleApiKey {

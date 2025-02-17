@@ -4,6 +4,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/login_screen.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:marketplace_app/src/wishlist/widgets/wishlist.dart';
@@ -16,7 +17,7 @@ class WishListPage extends StatelessWidget {
     String? accessToken = Storage().getString('accessToken');
 
     if(accessToken == null) {
-      return const LoginPage();
+      return const EmailSignupPage();
     }
     
     return Scaffold(

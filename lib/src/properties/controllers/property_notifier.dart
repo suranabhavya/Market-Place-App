@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:http/http.dart' as http;
@@ -33,15 +36,45 @@ class PropertyNotifier extends ChangeNotifier {
   List<PropertyListModel> get properties => _properties;
   PropertyDetailModel? get selectedProperty => _selectedProperty;
   bool isLoading = false;
+  List<PropertyListModel> userProperties = [];
+
+  Future<List<PropertyListModel>> fetchUserProperties() async {
+    try {
+      String? accessToken = Storage().getString('accessToken');
+      if (accessToken == null) throw Exception("User not authenticated");
+
+      final response = await http.get(
+        Uri.parse("${Environment.iosAppBaseUrl}/api/properties/user/"),
+        headers: {
+          "Authorization": "Token $accessToken",
+          "Content-Type": "application/json"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        userProperties = data.map((json) => PropertyListModel.fromJson(json)).toList();
+        notifyListeners();
+        return userProperties;
+      } else {
+        throw Exception("Failed to fetch user properties");
+      }
+    } catch (e) {
+      throw Exception("Error: $e");
+    }
+  }
 
 
-  Future<void> fetchProperties() async {
+  Future<void> fetchProperties({double? lat, double? lng}) async {
     isLoading = true;
     notifyListeners();
     try {
-      var url = Uri.parse('${Environment.appBaseUrl}/api/properties/');
+      String url = '${Environment.iosAppBaseUrl}/api/properties/';
+      if (lat != null && lng != null) {
+        url += "?lat=$lat&lng=$lng";
+      }
       final response = await http.get(
-        url,
+        Uri.parse(url),
         headers: {
           "Content-Type": "application/json",
         },
@@ -56,8 +89,10 @@ class PropertyNotifier extends ChangeNotifier {
 
         // Notify listeners with the fetched data
         _properties = fetchedProperties;
-        print("properies are: $_properties");
-        notifyListeners();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       } else {
         debugPrint("Error fetching properties: ${response.body}");
       }
@@ -65,23 +100,31 @@ class PropertyNotifier extends ChangeNotifier {
       debugPrint("Exception: $e");
     }
     isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();  // Notify UI after the widget tree is fully built
+    });
   }
 
   // Fetch a specific property detail by ID
   Future<void> fetchPropertyDetail(String propertyId) async {
     isLoading = true;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/$propertyId/');
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/properties/$propertyId/'),
+        url,
         headers: {"Content-Type": "application/json"},
       );
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         _selectedProperty = PropertyDetailModel.fromJson(jsonData);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       } else {
         debugPrint("Error fetching property details: ${response.body}");
       }
@@ -90,7 +133,9 @@ class PropertyNotifier extends ChangeNotifier {
     }
 
     isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Reset selected property
@@ -106,32 +151,53 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onSuccess,
     required VoidCallback onError,
   }) async {
-    print("hello");
-    const String apiUrl = "http://127.0.0.1:8000/api/properties/";
+    String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/';
 
     try {
       print("token last: $token");
       print("data last: $propertyData");
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {
-          "Authorization": "Token $token",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(propertyData),
-      );
+      var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
+      request.headers['Authorization'] = 'Token $token';
+
+      List<String>? imagePaths = propertyData['images'] as List<String>?;
+
+      // Append text fields as form-data
+      propertyData.forEach((key, value) {
+        if (key != 'images' && value != null) {
+          print("key is $key and value is: $value");
+          if (value is List || value is Map) {
+            request.fields[key] = jsonEncode(value);
+          } else {
+            request.fields[key] = value.toString();
+          }
+        }
+      });
+
+      // Attach image files
+      if (imagePaths != null && imagePaths.isNotEmpty) {
+        for (var imagePath in imagePaths) {
+          File imageFile = File(imagePath);
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'images', // Backend expects images as 'images' field
+              imageFile.path,
+              filename: path.basename(imageFile.path),
+            ),
+          );
+        }
+      }
+
+      var response = await request.send();
+      var responseData = await http.Response.fromStream(response);
 
       if (response.statusCode == 201) {
-        print("bye");
-        // Parse the response to get the created property
-        print("response is ${response.body}");
-        final data = jsonDecode(response.body);
-        property = PropertyListModel.fromJson(data); // Assuming Properties model has a fromJson method
-        print("property is: $property");
+        final data = jsonDecode(responseData.body);
+        PropertyListModel newProperty = PropertyListModel.fromJson(data);
+        _properties.insert(0, newProperty);
         notifyListeners();
-        onSuccess(); // Callback on successful creation
+        onSuccess();
       } else {
-        debugPrint("Error creating property: ${response.body}");
+        debugPrint("Error creating property: ${responseData.body}");
         onError(); // Callback on error
       }
     } catch (e) {

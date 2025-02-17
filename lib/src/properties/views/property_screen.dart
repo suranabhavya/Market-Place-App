@@ -34,6 +34,36 @@ class _PropertyPageState extends State<PropertyPage> {
     context.read<PropertyNotifier>().fetchPropertyDetail(widget.propertyId);
   }
 
+  String getDaysAgo(DateTime createdAt) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt).inDays;
+
+    if (difference == 0) {
+      return 'Listed today';
+    } else {
+      return 'Listed $difference days ago';
+    }
+  }
+
+  // Helper function to get month name
+  String _getMonthName(int month) {
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    return months[month - 1];
+  }
+
+  String getAvailableDuration(DateTime availableFrom, DateTime availableTo) {
+    final duration = availableTo.difference(availableFrom).inDays;
+
+    // Format the dates as Month & Day
+    String fromDate = "${availableFrom.day} ${_getMonthName(availableFrom.month)}";
+    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)}";
+
+    return "$fromDate - $toDate";
+  }
+
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString(('accessToken'));
@@ -185,7 +215,7 @@ class _PropertyPageState extends State<PropertyPage> {
                   ),
                   SizedBox(width: 4.w),
                   Text(
-                    '${property.bedrooms} Sqft',
+                    '${property.squareFootage} Sqft',
                     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
                   ),
                 ],
@@ -195,7 +225,7 @@ class _PropertyPageState extends State<PropertyPage> {
         
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 8.h,
+              height: 16.h,
             ),
           ),
 
@@ -244,8 +274,7 @@ class _PropertyPageState extends State<PropertyPage> {
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        // TODO: Change this to get this from created_at of property listing
-                        'Listed 1 day ago',
+                        getDaysAgo(property.createdAt),
                         style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
                       ),
                     ],
@@ -259,8 +288,7 @@ class _PropertyPageState extends State<PropertyPage> {
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        // TODO: Change this to get this from available move-in date
-                        'Jan 1 Move-In',
+                        getAvailableDuration(property.subleaseDetails.availableFrom, property.subleaseDetails.availableTo),
                         style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
                       ),
                     ],
@@ -292,7 +320,7 @@ class _PropertyPageState extends State<PropertyPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ReusableText(
-                    text: 'Description',
+                    text: property.title,
                     style: appStyle(18, Kolors.kGray, FontWeight.normal)
                   ),
                   SizedBox(
@@ -300,6 +328,120 @@ class _PropertyPageState extends State<PropertyPage> {
                   ),
                   ExpandableText(
                     text: property.description
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Divider(
+                thickness: .5.h,
+              ),
+            )
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ReusableText(
+                    text: 'Nearby Schools',
+                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                  ),
+                  SizedBox(
+                    height: 10.h,
+                  ),
+                  Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: property.subleaseDetails.schoolsNearby.map<Widget>((amenity) {
+                      return Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300], // Background color
+                          borderRadius: BorderRadius.circular(20), // Circular shape
+                          border: Border.all(color: Kolors.kPrimary, width: 1),
+                        ),
+                        child: Text(
+                          amenity,
+                          style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Divider(
+                thickness: .5.h,
+              ),
+            )
+          ),
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 10.h,
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ReusableText(
+                    text: 'Amenities',
+                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                  ),
+                  SizedBox(
+                    height: 10.h,
+                  ),
+                  Wrap(
+                    spacing: 8.w,
+                    runSpacing: 8.h,
+                    children: property.amenities.map<Widget>((amenity) {
+                      return Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300], // Background color
+                          borderRadius: BorderRadius.circular(20), // Circular shape
+                          border: Border.all(color: Kolors.kPrimary, width: 1),
+                        ),
+                        child: Text(
+                          amenity,
+                          style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
@@ -352,11 +494,10 @@ class _PropertyPageState extends State<PropertyPage> {
                           ),
                         ),
                         SizedBox(width: 24.w),
-                        // ReusableText(
-                        //   // TODO: Name the owner of the property
-                        //   text: propertyNotifier.property!.username,
-                        //   style: appStyle(18, Kolors.kGray, FontWeight.normal)
-                        // ),
+                        ReusableText(
+                          text: property.username,
+                          style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                        ),
                       ],
                     ),
                   ),

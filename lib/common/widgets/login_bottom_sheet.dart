@@ -47,7 +47,7 @@ Future<dynamic> loginBottomSheet(BuildContext context) {
               child: CustomButton(
                 text: "Proceed to Login",
                 onTap: () {
-                  context.go("/login");
+                  context.go("/login/email");
                 },
                 btnHeight: 35.h,
                 radius: 16,

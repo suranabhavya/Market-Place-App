@@ -19,77 +19,188 @@ class WelcomeScreen extends StatelessWidget {
         color: Kolors.kWhite,
         width: ScreenUtil().screenWidth,
         height: ScreenUtil().screenHeight,
-        child: Column(
+        child: Stack(
           children: [
-            SizedBox(
-              height: 100.h,
-            ),
-            Image.asset(R.ASSETS_IMAGES_GETSTARTED_PNG),
-
-            SizedBox(
-              height: 30.h,
-            ),
-
-            Text(
-              AppText.kWelcomeHeader,
-              textAlign: TextAlign.center,
-              style: appStyle(24, Kolors.kPrimary, FontWeight.bold),
-            ),
-
-            SizedBox(
-              height: 20.h,
-            ),
-
-            SizedBox(
-              width: ScreenUtil().screenWidth -100,
-              child: Text(
-                AppText.kWelcomeMessage, 
-                textAlign: TextAlign.center,
-                style: appStyle(11, Kolors.kGray, FontWeight.normal),
+            Positioned.fill(
+              child: Image.asset(
+                R.ASSETS_IMAGES_GETSTARTED_PNG,
+                fit: BoxFit.cover,
               ),
             ),
-
-            SizedBox(
-              height: 20.h,
-            ),
-
-            CustomButton(
-              text: AppText.kGetStarted,
-              btnHeight: 35,
-              radius: 20,
-              btnWidth: ScreenUtil().screenWidth - 100,
-              onTap: () {
-                // TODO - uncomment the boolean storage when te app is ready
-                // Storage().setBool('firstOpen', true);
-                context.go('/home');
-              },
-            ),
-
-            SizedBox(
-              height: 20.h,
-            ),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ReusableText(
-                  text: "Already have an Account",
-                  style: appStyle(12, Kolors.kDark, FontWeight.normal)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                width: double.infinity,
+                height: 360.h,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
+                  ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    // navigate to login page
-                    context.go('/login/mobile');
-                  },
-                  child: const Text(
-                    "Sign In",
-                    style: TextStyle(fontSize: 12, color: Colors.blue),
-                  )
-                )
-              ],
-            )
-          ]
-        ),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 20.h,
+                    ),
+
+                    Text(
+                      AppText.kWelcomeHeader,
+                      textAlign: TextAlign.center,
+                      style: appStyle(24, Kolors.kPrimary, FontWeight.bold),
+                    ),
+
+                    SizedBox(
+                      height: 20.h,
+                    ),
+
+                    SizedBox(
+                      width: ScreenUtil().screenWidth - 100,
+                      child: Text(
+                        AppText.kWelcomeMessage, 
+                        textAlign: TextAlign.center,
+                        style: appStyle(11, Kolors.kGray, FontWeight.normal),
+                      ),
+                    ),
+
+                    SizedBox(
+                      height: 30.h,
+                    ),
+
+                    CustomButton(
+                      text: AppText.kGetStarted,
+                      btnHeight: 35,
+                      radius: 20,
+                      btnWidth: ScreenUtil().screenWidth - 100,
+                      onTap: () {
+                        // TODO - uncomment the boolean storage when te app is ready
+                        // Storage().setBool('firstOpen', true);
+                        context.go('/home');
+                      },
+                    ),
+
+                    SizedBox(
+                      height: 10.h,
+                    ),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ReusableText(
+                          text: "Already have an Account",
+                          style: appStyle(12, Kolors.kDark, FontWeight.normal)
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            // navigate to login page
+                            context.go('/login/email');
+                          },
+                          child: const Text(
+                            "Sign In",
+                            style: TextStyle(fontSize: 12, color: Colors.blue),
+                          )
+                        )
+                      ],
+                    )
+
+
+                    // Text(
+                    //   "Wishlist: Where Fashion Dreams Begin",
+                    //   textAlign: TextAlign.center,
+                    //   style: appStyle(18, Kolors.kPrimary, FontWeight.bold),
+                    // ),
+                    // SizedBox(
+                    //   height: 20.h,
+                    // ),
+                    // Text(
+                    //   "Wishlist: Where Fashion Dreams Begin",
+                    //   textAlign: TextAlign.center,
+                    //   style: appStyle(18, Kolors.kPrimary, FontWeight.bold),
+                    // ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        )
+
+
+        // child: Column(
+        //   children: [
+        //     SizedBox(
+        //       height: 100.h,
+        //     ),
+        //     Image.asset(R.ASSETS_IMAGES_GETSTARTED_PNG),
+
+        //     SizedBox(
+        //       height: 30.h,
+        //     ),
+
+        //     Text(
+        //       AppText.kWelcomeHeader,
+        //       textAlign: TextAlign.center,
+        //       style: appStyle(24, Kolors.kPrimary, FontWeight.bold),
+        //     ),
+
+        //     SizedBox(
+        //       height: 20.h,
+        //     ),
+
+        //     SizedBox(
+        //       width: ScreenUtil().screenWidth -100,
+        //       child: Text(
+        //         AppText.kWelcomeMessage, 
+        //         textAlign: TextAlign.center,
+        //         style: appStyle(11, Kolors.kGray, FontWeight.normal),
+        //       ),
+        //     ),
+
+        //     SizedBox(
+        //       height: 20.h,
+        //     ),
+
+        //     CustomButton(
+        //       text: AppText.kGetStarted,
+        //       btnHeight: 35,
+        //       radius: 20,
+        //       btnWidth: ScreenUtil().screenWidth - 100,
+        //       onTap: () {
+        //         // TODO - uncomment the boolean storage when te app is ready
+        //         // Storage().setBool('firstOpen', true);
+        //         context.go('/home');
+        //       },
+        //     ),
+
+        //     SizedBox(
+        //       height: 20.h,
+        //     ),
+
+        //     Row(
+        //       mainAxisAlignment: MainAxisAlignment.center,
+        //       children: [
+        //         ReusableText(
+        //           text: "Already have an Account",
+        //           style: appStyle(12, Kolors.kDark, FontWeight.normal)
+        //         ),
+        //         TextButton(
+        //           onPressed: () {
+        //             // navigate to login page
+        //             context.go('/login/mobile');
+        //           },
+        //           child: const Text(
+        //             "Sign In",
+        //             style: TextStyle(fontSize: 12, color: Colors.blue),
+        //           )
+        //         )
+        //       ],
+        //     )
+        //   ]
+        // ),
       )
     );
   }

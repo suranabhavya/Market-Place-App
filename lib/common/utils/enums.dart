@@ -1,6 +1,6 @@
 enum QueryType {
   all,
-  popular,
+  school,
   nearby,
 }
 

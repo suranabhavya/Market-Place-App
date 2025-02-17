@@ -24,7 +24,7 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   
   late final TextEditingController _emailController;
-  late final TextEditingController _usernameController = TextEditingController();
+  late final TextEditingController _firstNameController = TextEditingController();
   late final TextEditingController _passwordController = TextEditingController();
   late final TextEditingController _confirmPasswordController = TextEditingController();
   
@@ -41,7 +41,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   
   @override
   void dispose() {
-    _usernameController.dispose();
+    _firstNameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _passwordNode.dispose();
@@ -59,122 +59,321 @@ class _RegistrationPageState extends State<RegistrationPage> {
         leading: const AppBackButton(),
       ),
 
-      body: ListView(
-        children: [
-          SizedBox(
-            height: 160.h,
-          ),
-
-          Text(
-            "Lease Me",
-            textAlign: TextAlign.center,
-            style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
-          ),
+      // body: ListView(
+      //   children: [
+      //     SizedBox(
+      //       height: 90.h,
+      //     ),
+      //     Text(
+      //       "HomiSwap",
+      //       textAlign: TextAlign.center,
+      //       style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
+      //     ),
           
-          SizedBox(
-            height: 10.h,
-          ),
-
-          Text(
-            "Hi! Welcome back. You've been missed!",
-            textAlign: TextAlign.center,
-            style: appStyle(13, Kolors.kGray, FontWeight.normal),
-          ),
-
-          SizedBox(
-            height: 25.h,
-          ),
-
-          Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Column(
-            children: [
-              EmailTextField(
-                radius: 25,
-                hintText: "Username",
-                controller: _usernameController,
-                prefixIcon: const Icon(
-                  CupertinoIcons.profile_circled,
-                  size: 20,
-                  color: Kolors.kGray
-                ),
-                keyboardType: TextInputType.name,
-                onEditingComplete: () {
-                  FocusScope.of(context).requestFocus(_passwordNode);
-                },
-              ),
-
-              SizedBox(
-                height: 25.h,
-              ),
-
-              EmailTextField(
-                radius: 25,
-                focusNode: _passwordNode,
-                hintText: "Email",
-                controller: _emailController,
-                prefixIcon: const Icon(
-                  CupertinoIcons.mail,
-                  size: 20,
-                  color: Kolors.kGray
-                ),
-                keyboardType: TextInputType.emailAddress,
-                onEditingComplete: () {
-                  FocusScope.of(context).requestFocus(_passwordNode);
-                },
-              ),
-
-              SizedBox(
-                height: 25.h,
-              ),
-
-              PasswordField(
-                controller: _passwordController,
-                focusNode: _passwordNode,
-                radius: 25,
-                hintText: "Password",
-              ),
+      //     SizedBox(
+      //       height: 10.h,
+      //     ),
+      
+      //     Text(
+      //       "Hey Homie! Let’s get you set up and rolling!",
+      //       textAlign: TextAlign.center,
+      //       style: appStyle(13, Kolors.kGray, FontWeight.normal),
+      //     ),
+      
+      //     SizedBox(
+      //       height: 25.h,
+      //     ),
+      
+      //     Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
+      //     child: Column(
+      //       children: [
+      //         EmailTextField(
+      //           radius: 25,
+      //           hintText: "First Name",
+      //           controller: _firstnameController,
+      //           prefixIcon: const Icon(
+      //             CupertinoIcons.profile_circled,
+      //             size: 20,
+      //             color: Kolors.kGray
+      //           ),
+      //           keyboardType: TextInputType.name,
+      //           onEditingComplete: () {
+      //             FocusScope.of(context).requestFocus(_passwordNode);
+      //           },
+      //         ),
+      
+      //         SizedBox(
+      //           height: 25.h,
+      //         ),
+      
+      //         EmailTextField(
+      //           radius: 25,
+      //           hintText: "Last Name",
+      //           controller: _lastnameController,
+      //           prefixIcon: const Icon(
+      //             CupertinoIcons.profile_circled,
+      //             size: 20,
+      //             color: Kolors.kGray
+      //           ),
+      //           keyboardType: TextInputType.name,
+      //           onEditingComplete: () {
+      //             FocusScope.of(context).requestFocus(_passwordNode);
+      //           },
+      //         ),
+      
+      //         SizedBox(
+      //           height: 25.h,
+      //         ),
+          
+      //         EmailTextField(
+      //           radius: 25,
+      //           hintText: "Username",
+      //           controller: _usernameController,
+      //           prefixIcon: const Icon(
+      //             CupertinoIcons.profile_circled,
+      //             size: 20,
+      //             color: Kolors.kGray
+      //           ),
+      //           keyboardType: TextInputType.name,
+      //           onEditingComplete: () {
+      //             FocusScope.of(context).requestFocus(_passwordNode);
+      //           },
+      //         ),
+      
+      //         SizedBox(
+      //           height: 25.h,
+      //         ),
+      
+      //         EmailTextField(
+      //           radius: 25,
+      //           focusNode: _passwordNode,
+      //           hintText: "Email",
+      //           controller: _emailController,
+      //           prefixIcon: const Icon(
+      //             CupertinoIcons.mail,
+      //             size: 20,
+      //             color: Kolors.kGray
+      //           ),
+      //           keyboardType: TextInputType.emailAddress,
+      //           onEditingComplete: () {
+      //             FocusScope.of(context).requestFocus(_passwordNode);
+      //           },
+      //         ),
+      
+      //         SizedBox(
+      //           height: 25.h,
+      //         ),
+      
+      //         PasswordField(
+      //           controller: _passwordController,
+      //           focusNode: _passwordNode,
+      //           radius: 25,
+      //           hintText: "Password",
+      //         ),
             
-              SizedBox(
-                height: 20.h,
-              ),
-
-              PasswordField(
-                controller: _confirmPasswordController,
-                focusNode: _confirmPasswordNode,
-                radius: 25,
-                hintText: "Confirm Password",
-              ),
+      //         SizedBox(
+      //           height: 25.h,
+      //         ),
+      
+      //         PasswordField(
+      //           controller: _confirmPasswordController,
+      //           focusNode: _confirmPasswordNode,
+      //           radius: 25,
+      //           hintText: "Confirm Password",
+      //         ),
               
-              SizedBox(height: 20.h),
+      //         SizedBox(height: 25.h),
+      
+      //         context.watch<AuthNotifier>().isRLoading ?
+      //         const Center(
+      //           child: CircularProgressIndicator(
+      //             backgroundColor: Kolors.kPrimary,
+      //             valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+      //           ),
+      //         ) :
+      //         CustomButton(
+      //           onTap: () {
+      //             RegistrationModel model = RegistrationModel(
+      //               email: _emailController.text,
+      //               username: _usernameController.text,
+      //               firstName: _firstnameController.text,
+      //               lastName: _lastnameController.text,
+      //               password: _passwordController.text,
+      //               re_password: _confirmPasswordController.text
+      //             );
+      
+      //             String data = registrationModelToJson(model);
+      
+      //             context.read<AuthNotifier>().registrationFunc(data, context);
+      //           },
+      //           text: "S I G N U P",
+      //           btnWidth: ScreenUtil().screenWidth,
+      //           btnHeight: 40,
+      //           radius: 20,
+      //         )
+      //       ],
+      //     ),)
+      //   ],
+      // ),
 
-              context.watch<AuthNotifier>().isRLoading ?
-              const Center(
-                child: CircularProgressIndicator(
-                  backgroundColor: Kolors.kPrimary,
-                  valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "HomiSwap",
+                  textAlign: TextAlign.center,
+                  style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
                 ),
-              ) :
-              CustomButton(
-                onTap: () {
-                  RegistrationModel model = RegistrationModel(
-                    email: _emailController.text,
-                    username: _usernameController.text,
-                    password: _passwordController.text,
-                    re_password: _confirmPasswordController.text
-                  );
+                
+                SizedBox(
+                  height: 10.h,
+                ),
+            
+                Text(
+                  "Hey Homie! Let’s get you set up and rolling!",
+                  textAlign: TextAlign.center,
+                  style: appStyle(13, Kolors.kGray, FontWeight.normal),
+                ),
+            
+                SizedBox(
+                  height: 25.h,
+                ),
+            
+                Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  children: [
+                    EmailTextField(
+                      radius: 25,
+                      focusNode: _passwordNode,
+                      hintText: "Email",
+                      controller: _emailController,
+                      prefixIcon: const Icon(
+                        CupertinoIcons.mail,
+                        size: 20,
+                        color: Kolors.kGray
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      onEditingComplete: () {
+                        FocusScope.of(context).requestFocus(_passwordNode);
+                      },
+                    ),
+            
+                    SizedBox(
+                      height: 25.h,
+                    ),
 
-                  String data = registrationModelToJson(model);
+                    EmailTextField(
+                      radius: 25,
+                      hintText: "Full Name",
+                      controller: _firstNameController,
+                      prefixIcon: const Icon(
+                        CupertinoIcons.profile_circled,
+                        size: 20,
+                        color: Kolors.kGray
+                      ),
+                      keyboardType: TextInputType.name,
+                      onEditingComplete: () {
+                        FocusScope.of(context).requestFocus(_passwordNode);
+                      },
+                    ),
+            
+                    // EmailTextField(
+                    //   radius: 25,
+                    //   hintText: "Last Name",
+                    //   controller: _lastnameController,
+                    //   prefixIcon: const Icon(
+                    //     CupertinoIcons.profile_circled,
+                    //     size: 20,
+                    //     color: Kolors.kGray
+                    //   ),
+                    //   keyboardType: TextInputType.name,
+                    //   onEditingComplete: () {
+                    //     FocusScope.of(context).requestFocus(_passwordNode);
+                    //   },
+                    // ),
+            
+                    // SizedBox(
+                    //   height: 25.h,
+                    // ),
 
-                  context.read<AuthNotifier>().registrationFunc(data, context);
-                },
-                text: "S I G N U P",
-                btnWidth: ScreenUtil().screenWidth,
-                btnHeight: 40,
-                radius: 20,
-              )
-            ],
-          ),)
-        ],
+                    // EmailTextField(
+                    //   radius: 25,
+                    //   hintText: "Username",
+                    //   controller: _usernameController,
+                    //   prefixIcon: const Icon(
+                    //     CupertinoIcons.profile_circled,
+                    //     size: 20,
+                    //     color: Kolors.kGray
+                    //   ),
+                    //   keyboardType: TextInputType.name,
+                    //   onEditingComplete: () {
+                    //     FocusScope.of(context).requestFocus(_passwordNode);
+                    //   },
+                    // ),
+            
+                    SizedBox(
+                      height: 25.h,
+                    ),
+            
+                    PasswordField(
+                      controller: _passwordController,
+                      focusNode: _passwordNode,
+                      radius: 25,
+                      hintText: "Password",
+                    ),
+                  
+                    SizedBox(
+                      height: 25.h,
+                    ),
+            
+                    PasswordField(
+                      controller: _confirmPasswordController,
+                      focusNode: _confirmPasswordNode,
+                      radius: 25,
+                      hintText: "Confirm Password",
+                    ),
+                    
+                    SizedBox(height: 25.h),
+            
+                    context.watch<AuthNotifier>().isRLoading ?
+                    const Center(
+                      child: CircularProgressIndicator(
+                        backgroundColor: Kolors.kPrimary,
+                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+                      ),
+                    ) :
+                    CustomButton(
+                      onTap: () {
+                        RegistrationModel model = RegistrationModel(
+                          email: _emailController.text,
+                          first_name: _firstNameController.text,
+                          username: _emailController.text,
+                          password: _passwordController.text,
+                          re_password: _confirmPasswordController.text
+                        );
+            
+                        String data = registrationModelToJson(model);
+
+                        print("data is: $data");
+            
+                        context.read<AuthNotifier>().registrationFunc(data, context);
+                      },
+                      text: "S I G N U P",
+                      btnWidth: ScreenUtil().screenWidth,
+                      btnHeight: 40,
+                      radius: 20,
+                    )
+                  ],
+                ),)
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

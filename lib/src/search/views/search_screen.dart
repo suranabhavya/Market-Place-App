@@ -96,7 +96,6 @@ class _SearchPageState extends State<SearchPage> {
                     searchNotifier.results.length,
                     (i) {
                       final property = searchNotifier.results[i];
-                      print("rent is: ${property.rent}");
                       return StaggeredTileWidget(
                         onTap: () {
                           if (accessToken == null) {
@@ -109,7 +108,6 @@ class _SearchPageState extends State<SearchPage> {
                           }
                         },
                         property: property,
-                        i: i,
                       );
                     },
                   ),

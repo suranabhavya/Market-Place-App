@@ -5,12 +5,15 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/const/constants.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
 
 class ExploreProperties extends StatefulWidget {
-  const ExploreProperties({super.key});
+  final List<PropertyListModel>? filteredProperties;
+
+  const ExploreProperties({super.key, this.filteredProperties});
 
   @override
   State<ExploreProperties> createState() => _ExplorePropertiesState();
@@ -20,17 +23,18 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
   @override
   void initState() {
     super.initState();
-    context.read<PropertyNotifier>().fetchProperties();
-  }
-
-  Future<void> _loadProperties() async {
-    await context.read<PropertyNotifier>().fetchProperties();
+    if (widget.filteredProperties == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<PropertyNotifier>().fetchProperties();
+      });
+      // context.read<PropertyNotifier>().fetchProperties();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final propertyNotifier = context.watch<PropertyNotifier>();
-    final properties = propertyNotifier.properties;
+    final properties = widget.filteredProperties ?? propertyNotifier.properties;
     String? accessToken = Storage().getString('accessToken');
 
     if (properties.isEmpty) {
@@ -44,7 +48,6 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
         properties.length,
         (i) {
           final property = properties[i];
-          print("rent is: ${property.rent}");
           return StaggeredTileWidget(
             onTap: () {
               if (accessToken == null) {
@@ -57,7 +60,6 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
               }
             },
             property: property,
-            i: i,
           );
         },
       ),

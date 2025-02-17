@@ -17,7 +17,7 @@ class WishlistNotifier with ChangeNotifier {
     final accessToken = Storage().getString('accessToken');
   
     try {
-      Uri url = Uri.parse('${Environment.appBaseUrl}/api/wishlist/toggle/?id=$id');
+      Uri url = Uri.parse('${Environment.iosAppBaseUrl}/api/wishlist/toggle/?id=$id');
 
       final response = await http.get(
         url,

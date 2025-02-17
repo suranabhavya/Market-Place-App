@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/src/auth/views/mobile_signup_screen.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
 import 'package:marketplace_app/src/home/services/location_service.dart';
@@ -10,11 +12,15 @@ import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/home_header.dart';
 import 'package:marketplace_app/src/home/widgets/home_slider.dart';
 import 'package:marketplace_app/src/home/widgets/home_tabs.dart';
+import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final List<PropertyListModel>? filteredProperties;
+
+  const HomePage({super.key, this.filteredProperties});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -27,21 +33,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
   @override
   void initState() {
+     super.initState();
     _tabController = TabController(length: homeTabs.length, vsync: this);
-
     _tabController.addListener(_handleSelection);
     _getLocation();
-    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PropertyNotifier>().fetchProperties();
+    });
   }
 
   void _handleSelection() {
     final controller = Provider.of<HomeTabNotifier>(context, listen: false);
+    final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
 
     if(_tabController.indexIsChanging) {
       setState(() {
         _currentTabIndex = _tabController.index;
       });
-      controller.setIndex(homeTabs[_currentTabIndex]);
+      controller.setIndex(homeTabs[_currentTabIndex], propertyNotifier);
     }
   }
 
@@ -56,8 +66,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     await Geolocator.checkPermission();
     await Geolocator.requestPermission();
 
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
-    print(position);
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high
+    );
+    
+    final homeTabNotifier = Provider.of<HomeTabNotifier>(context, listen: false);
+    homeTabNotifier.setUserLocation(position.latitude, position.longitude);
+
     // final locationService = LocationService();
     // try {
     //   final position = await locationService.getCurrentLocation();
@@ -85,6 +100,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
   @override
   Widget build(BuildContext context) {
+    String? accessToken = Storage().getString('accessToken');
+    
     return Scaffold(
       appBar: const PreferredSize(
         preferredSize: Size.fromHeight(70),
@@ -111,7 +128,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
             height: 15.h,
           ),
 
-          const ExploreProperties(),
+          ExploreProperties(filteredProperties: widget.filteredProperties),
 
           SizedBox(
             height: 100.h,
@@ -126,8 +143,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
           //   context.push('/property/${property.id}');
           // },
           onPressed: () {
-            print("Floating Action Button Pressed");
-            context.push("/property/create");
+            if (accessToken == null) {
+              loginBottomSheet(context);
+            } else {
+              context.push("/property/create");
+            }
           },
           backgroundColor: Kolors.kPrimary,
           shape: const CircleBorder(),
@@ -141,6 +161,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
 
 List<String> homeTabs = [
   'All',
-  'Popular',
+  'School',
   'Nearby',
 ];

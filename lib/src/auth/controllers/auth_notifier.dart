@@ -12,6 +12,7 @@ import 'package:marketplace_app/common/widgets/error_modal.dart';
 import 'package:marketplace_app/src/auth/models/auth_token_model.dart';
 import 'package:marketplace_app/src/auth/models/check_email_model.dart';
 import 'package:marketplace_app/src/auth/models/check_mobile_model.dart';
+import 'package:marketplace_app/src/auth/models/generate_otp_model.dart';
 import 'package:marketplace_app/src/auth/models/profile_model.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:provider/provider.dart';
@@ -39,7 +40,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/auth/token/login');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/token/login');
       print("data is just before calling url: $data");
       var response = await http.post(
         url,
@@ -60,6 +61,10 @@ class AuthNotifier with ChangeNotifier {
         setLoading(false);
         // ctx.go('/home');
       }
+      else {
+        setLoading(false);
+        showErrorPopup(ctx, AppText.kErrorLogin, null, null);
+      }
     } catch(e) {
       setLoading(false);
       showErrorPopup(ctx, AppText.kErrorLogin, null, null);
@@ -70,7 +75,7 @@ class AuthNotifier with ChangeNotifier {
     setRLoading();
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/auth/users/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/');
       print("final data is: $data");
       var response = await  http.post(
         url,
@@ -85,22 +90,21 @@ class AuthNotifier with ChangeNotifier {
         setRLoading();
         ctx.go('/login', extra: {'email': jsonDecode(data)['email']});
       } else if(response.statusCode == 400) {
-        setRLoading();
         var data = jsonDecode(response.body);
-        showErrorPopup(ctx, data['password'][0], null, null
-        );
+        showErrorPopup(ctx, data['password'][0], null, null);
+        setRLoading();
       }
     } catch(e) {
-      setRLoading();
       showErrorPopup(ctx, AppText.kErrorLogin, null, null);
+      setRLoading();
     }
   }
 
-  void checkMobile(String data, BuildContext ctx) async{
+  Future<bool> generateOTP(String data) async {
     setLoading(true);
 
-    try{
-      var url = Uri.parse('${Environment.appBaseUrl}/accounts/check-mobile/');
+    try {
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/generate-otp/');
       var response = await http.post(
         url,
         headers: {
@@ -109,21 +113,19 @@ class AuthNotifier with ChangeNotifier {
         body: data
       );
 
-      if(response.statusCode == 200) {
-        // String accessToken = accessTokenModelFromJson(response.body).authToken;
-        String message = checkMobileModelFromJson(response.body).message;
-
-        print('message is: $message');
-        // Storage().setString('accessToken', accessToken);
-        
-        // getuser(accessToken, ctx);
-        
-        setLoading(false);
-        // ctx.go('/home');
-      }
-    } catch(e) {
       setLoading(false);
-      showErrorPopup(ctx, AppText.kErrorLogin, null, null);
+
+      if (response.statusCode == 200) {
+        print('OTP Sent: ${response.body}');
+        return true;  // Return true on success
+      } else {
+        print('Failed to generate OTP: ${response.body}');
+        return false; // Return false on failure
+      }
+    } catch (e) {
+      setLoading(false);
+      print("Error generating OTP: $e");
+      return false; // Return false if there's an exception
     }
   }
 
@@ -131,7 +133,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.appBaseUrl}/accounts/check-email/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/check-email/');
       var response = await http.post(
         url,
         headers: {
@@ -162,7 +164,7 @@ class AuthNotifier with ChangeNotifier {
 
   void getuser(String accessToken, BuildContext ctx) async {
     try {
-      var url = Uri.parse('${Environment.appBaseUrl}/auth/users/me/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/me/');
       var response = await http.get(
         url,
         headers: {
@@ -172,6 +174,7 @@ class AuthNotifier with ChangeNotifier {
       );
 
       if(response.statusCode == 200) {
+        print("response body: ${response.body}");
         Storage().setString(accessToken, response.body);
         ctx.read<TabIndexNotifier>().setIndex(0);
         ctx.go('/home');
@@ -189,9 +192,71 @@ class AuthNotifier with ChangeNotifier {
     if(accessToken != null) {
       var data = Storage().getString(accessToken);
       if(data != null) {
+        print("data is: $data");
         return profileModelFromJson(data);
       }
     }
     return null;
+  }
+
+  Future<bool> verifyOTP(String mobileNumber, String otp) async {
+    setLoading(true);
+
+    try {
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/token/login/');
+      var response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "mobile_number": mobileNumber,
+          "otp": otp,
+        }),
+      );
+
+      setLoading(false);
+
+      if (response.statusCode == 200) {
+        String accessToken = jsonDecode(response.body)['auth_token'];
+        Storage().setString('accessToken', accessToken);
+        // getuser(accessToken, ctx);
+        return true;
+      } else {
+        print("Failed to verify OTP: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      setLoading(false);
+      print("Error verifying OTP: $e");
+      return false;
+    }
+  }
+
+  Future<bool> checkMobile(String mobileNumber) async {
+    setLoading(true);
+
+    try {
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/check-mobile/');
+      var response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({"mobile_number": mobileNumber}),
+      );
+
+      setLoading(false);
+
+      if (response.statusCode == 200) {
+        String message = jsonDecode(response.body)['message'];
+        return message == "Mobile Number exists";
+      } else {
+        print("Failed to check mobile number: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      setLoading(false);
+      print("Error checking mobile number: $e");
+      return false;
+    }
   }
 }
