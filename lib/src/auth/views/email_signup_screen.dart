@@ -29,6 +29,21 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     super.dispose();
   }
 
+  // Email validation function
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return "Email cannot be empty";
+    }
+    // Basic email regex validation
+    String emailPattern =
+        r'^[a-zA-Z0-9.a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+';
+    RegExp regex = RegExp(emailPattern);
+    if (!regex.hasMatch(value)) {
+      return "Enter a valid email";
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,6 +92,16 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
             ) :
             CustomButton(
               onTap: () {
+                String? validationError = _validateEmail(_emailController.text);
+                if (validationError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(validationError),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
                 EmailModel model = EmailModel(
                   email: _emailController.text,
                 );

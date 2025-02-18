@@ -175,54 +175,43 @@ class _PropertyPageState extends State<PropertyPage> {
             )
           ),
 
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 8.h,
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.bed,
-                    size: 16.sp,
-                    color: Kolors.kGray,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${property.bedrooms}BR',
-                    style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                  ),
-                  SizedBox(width: 8.w),
-                  Icon(
-                    Icons.bathtub,
-                    size: 16.sp,
-                    color: Kolors.kGray,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${property.bathrooms}BA',
-                    style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                  ),
-                  SizedBox(width: 8.w),
-                  Icon(
-                    // TODO: Need to change this icon to FontAwesome Icon
-                    MaterialCommunityIcons.ruler,
-                    size: 16.sp,
-                    color: Kolors.kGray,
-                  ),
-                  SizedBox(width: 4.w),
-                  Text(
-                    '${property.squareFootage} Sqft',
-                    style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                  ),
-                ],
+          // Bedrooms, Bathrooms, Square Footage (Shown only if not null)
+          if (property.bedrooms != null || property.bathrooms != null || property.squareFootage != null)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 8.h,
               ),
             ),
-          ),
+            
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Row(
+                  children: [
+                    if (property.bedrooms != null) ...[
+                      Icon(Icons.bed, size: 16.sp, color: Kolors.kGray),
+                      SizedBox(width: 4.w),
+                      Text('${property.bedrooms}BR',
+                          style: appStyle(13.sp, Kolors.kGray, FontWeight.w400)),
+                      SizedBox(width: 8.w),
+                    ],
+                    if (property.bathrooms != null) ...[
+                      Icon(Icons.bathtub, size: 16.sp, color: Kolors.kGray),
+                      SizedBox(width: 4.w),
+                      Text('${property.bathrooms}BA',
+                          style: appStyle(13.sp, Kolors.kGray, FontWeight.w400)),
+                      SizedBox(width: 8.w),
+                    ],
+                    if (property.squareFootage != null) ...[
+                      Icon(MaterialCommunityIcons.ruler, size: 16.sp, color: Kolors.kGray),
+                      SizedBox(width: 4.w),
+                      Text('${property.squareFootage} Sqft',
+                          style: appStyle(13.sp, Kolors.kGray, FontWeight.w400)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
         
           SliverToBoxAdapter(
             child: SizedBox(
@@ -356,41 +345,42 @@ class _PropertyPageState extends State<PropertyPage> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ReusableText(
-                    text: 'Nearby Schools',
-                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
-                  ),
-                  SizedBox(
-                    height: 10.h,
-                  ),
-                  Wrap(
-                    spacing: 8.w,
-                    runSpacing: 8.h,
-                    children: property.subleaseDetails.schoolsNearby!.map<Widget>((amenity) {
-                      return Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300], // Background color
-                          borderRadius: BorderRadius.circular(20), // Circular shape
-                          border: Border.all(color: Kolors.kPrimary, width: 1),
-                        ),
-                        child: Text(
-                          amenity,
-                          style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
+          if (property.subleaseDetails.schoolsNearby != null && property.subleaseDetails.schoolsNearby!.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ReusableText(
+                      text: 'Nearby Schools',
+                      style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                    ),
+                    SizedBox(
+                      height: 10.h,
+                    ),
+                    Wrap(
+                      spacing: 8.w,
+                      runSpacing: 8.h,
+                      children: property.subleaseDetails.schoolsNearby!.map<Widget>((amenity) {
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300], // Background color
+                            borderRadius: BorderRadius.circular(20), // Circular shape
+                            border: Border.all(color: Kolors.kPrimary, width: 1),
+                          ),
+                          child: Text(
+                            amenity,
+                            style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
           SliverToBoxAdapter(
             child: SizedBox(
@@ -413,56 +403,51 @@ class _PropertyPageState extends State<PropertyPage> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ReusableText(
-                    text: 'Amenities',
-                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
-                  ),
-                  SizedBox(
-                    height: 10.h,
-                  ),
-                  Wrap(
-                    spacing: 8.w,
-                    runSpacing: 8.h,
-                    children: property.amenities!.map<Widget>((amenity) {
-                      return Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300], // Background color
-                          borderRadius: BorderRadius.circular(20), // Circular shape
-                          border: Border.all(color: Kolors.kPrimary, width: 1),
-                        ),
-                        child: Text(
-                          amenity,
-                          style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
+          if (property.amenities != null && property.amenities!.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ReusableText(
+                      text: 'Amenities',
+                      style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                    ),
+                    SizedBox(
+                      height: 10.h,
+                    ),
+                    Wrap(
+                      spacing: 8.w,
+                      runSpacing: 8.h,
+                      children: property.amenities!.map<Widget>((amenity) {
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300], // Background color
+                            borderRadius: BorderRadius.circular(20), // Circular shape
+                            border: Border.all(color: Kolors.kPrimary, width: 1),
+                          ),
+                          child: Text(
+                            amenity,
+                            style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    SizedBox(
+                      height: 10.h,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      child: Divider(
+                        thickness: .5.h,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 10.h,
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Divider(
-                thickness: .5.h,
-              ),
-            )
-          ),
 
           SliverToBoxAdapter(
             child: SizedBox(
@@ -496,7 +481,7 @@ class _PropertyPageState extends State<PropertyPage> {
                         ),
                         SizedBox(width: 24.w),
                         ReusableText(
-                          text: property.username,
+                          text: property.name,
                           style: appStyle(18, Kolors.kGray, FontWeight.normal)
                         ),
                       ],
@@ -553,370 +538,13 @@ class _PropertyPageState extends State<PropertyPage> {
         price: property.rent.toString(),
       ),
     );
-
-    // return Consumer<PropertyNotifier>(
-    //   builder: (context, propertyNotifier, child) {
-    //     if (propertyNotifier.property == null) {
-    //     return Scaffold(
-    //       appBar: AppBar(
-    //         title: const Text("Property Details"),
-    //       ),
-    //       body: const Center(
-    //         child: Text("No property selected."),
-    //       ),
-    //     );
-    //   }
-    //     return Scaffold(
-    //       body: CustomScrollView(
-    //         slivers: [
-    //           SliverAppBar(
-    //             backgroundColor: Colors.white,
-    //             expandedHeight: 280.h,
-    //             collapsedHeight: 65.h,
-    //             floating: false,
-    //             pinned: true,
-    //             leading: const AppBackButton(),
-    //             actions: [
-    //               Padding(
-    //                 padding: const EdgeInsets.only(right: 16.0),
-    //                 child: GestureDetector(
-    //                   onTap: () {},
-    //                   child: CircleAvatar(
-    //                     radius: 14.h,
-    //                     backgroundColor: Kolors.kSecondaryLight.withOpacity(0.8),
-    //                     child: const Icon(
-    //                       AntDesign.heart,
-    //                       color: Kolors.kRed,
-    //                       size: 18,
-    //                     ),
-    //                   ),
-    //                 ),
-    //               ),
-    //             ],
-    //             flexibleSpace: FlexibleSpaceBar(
-    //               centerTitle: false,
-    //               background: SizedBox(
-    //                 height: 415.h,
-    //                 child: propertyNotifier.property!.images.isNotEmpty
-    //                 ? ImageSlideshow(
-    //                   indicatorColor: Kolors.kPrimaryLight,
-    //                   onPageChanged: (p) {},
-    //                   autoPlayInterval: 15000,
-    //                   isLoop: propertyNotifier.property!.images.length > 1 ? true : false,
-    //                   children: List.generate(propertyNotifier.property!.images.length, (i) {
-    //                     return CachedNetworkImage(
-    //                       placeholder: placeholder,
-    //                       errorWidget: errorWidget,
-    //                       height: 350.h,
-    //                       imageUrl: propertyNotifier.property!.images[i],
-    //                       fit: BoxFit.cover,
-    //                     );
-    //                   }),
-    //                 ) : Center(
-    //                   child: Column(
-    //                     mainAxisAlignment: MainAxisAlignment.center,
-    //                     children: [
-    //                       const Icon(
-    //                         Icons.image_not_supported,
-    //                         size: 100,
-    //                         color: Kolors.kGray,
-    //                       ),
-    //                       SizedBox(height: 16.h),
-    //                       Text(
-    //                         "No images available",
-    //                         style: appStyle(14.sp, Kolors.kGray, FontWeight.w400),
-    //                       ),
-    //                     ],
-    //                   ),
-    //                 ),
-    //               ),
-    //             ),
-    //           ),
-              
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 16.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: ReusableText(
-    //                 text: '\$${propertyNotifier.property!.rent}/${propertyNotifier.property!.rentFrequency}',
-    //                 style: appStyle(24, Kolors.kGray, FontWeight.w600)
-    //               ),
-    //             )
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 8.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: Row(
-    //                 children: [
-    //                   Icon(
-    //                     Icons.bed,
-    //                     size: 16.sp,
-    //                     color: Kolors.kGray,
-    //                   ),
-    //                   SizedBox(width: 4.w),
-    //                   Text(
-    //                     '${propertyNotifier.property!.bedrooms}BR',
-    //                     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                   ),
-    //                   SizedBox(width: 8.w),
-    //                   Icon(
-    //                     Icons.bathtub,
-    //                     size: 16.sp,
-    //                     color: Kolors.kGray,
-    //                   ),
-    //                   SizedBox(width: 4.w),
-    //                   Text(
-    //                     '${propertyNotifier.property!.bathrooms}BA',
-    //                     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                   ),
-    //                   SizedBox(width: 8.w),
-    //                   Icon(
-    //                     // TODO: Need to change this icon to FontAwesome Icon
-    //                     MaterialCommunityIcons.ruler,
-    //                     size: 16.sp,
-    //                     color: Kolors.kGray,
-    //                   ),
-    //                   SizedBox(width: 4.w),
-    //                   Text(
-    //                     '${propertyNotifier.property!.bedrooms} Sqft',
-    //                     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                   ),
-    //                 ],
-    //               ),
-    //             ),
-    //           ),
-            
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 8.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: Row(
-    //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //                 children: [
-    //                   ReusableText(
-    //                     text: propertyNotifier.property!.address,
-    //                     style: appStyle(14, Kolors.kGray, FontWeight.w600)
-    //                   ),
-    //                 ],
-    //               ),
-    //             )
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 12.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 8.w),
-    //               child: Divider(
-    //                 thickness: .5.h,
-    //               ),
-    //             )
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: Row(
-    //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //                 children: [
-    //                   Row(
-    //                     children: [
-    //                       Icon(
-    //                         Icons.calendar_month,
-    //                         size: 16.sp,
-    //                         color: Kolors.kGray,
-    //                       ),
-    //                       SizedBox(width: 4.w),
-    //                       Text(
-    //                         // TODO: Change this to get this from created_at of property listing
-    //                         'Listed 1 day ago',
-    //                         style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                       ),
-    //                     ],
-    //                   ),
-    //                   Row(
-    //                     children: [
-    //                       Icon(
-    //                         MaterialCommunityIcons.clock_outline,
-    //                         size: 16.sp,
-    //                         color: Kolors.kGray,
-    //                       ),
-    //                       SizedBox(width: 4.w),
-    //                       Text(
-    //                         // TODO: Change this to get this from available move-in date
-    //                         'Jan 1 Move-In',
-    //                         style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-    //                       ),
-    //                     ],
-    //                   )
-    //                 ],
-    //               ),
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 8.w),
-    //               child: Divider(
-    //                 thickness: .5.h,
-    //               ),
-    //             )
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 10.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: Column(
-    //                 crossAxisAlignment: CrossAxisAlignment.start,
-    //                 children: [
-    //                   ReusableText(
-    //                     text: 'Description',
-    //                     style: appStyle(18, Kolors.kGray, FontWeight.normal)
-    //                   ),
-    //                   SizedBox(
-    //                     height: 10.h,
-    //                   ),
-    //                   ExpandableText(
-    //                     text: propertyNotifier.property!.title
-    //                   ),
-    //                 ],
-    //               ),
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 10.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 8.w),
-    //               child: Divider(
-    //                 thickness: .5.h,
-    //               ),
-    //             )
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 10.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: Column(
-    //                 crossAxisAlignment: CrossAxisAlignment.start,
-    //                 children: [
-    //                   ReusableText(
-    //                     text: 'Posted By',
-    //                     style: appStyle(18, Kolors.kGray, FontWeight.normal)
-    //                   ),
-    //                   SizedBox(
-    //                     height: 10.h,
-    //                   ),
-    //                   Padding(
-    //                     padding: EdgeInsets.symmetric(horizontal: 8.w),
-    //                     child: Row(
-    //                       children: [
-    //                         const CircleAvatar(
-    //                           radius: 35,
-    //                           backgroundColor: Kolors.kOffWhite,
-    //                           backgroundImage: NetworkImage(
-    //                             AppText.kProfilePic
-    //                           ),
-    //                         ),
-    //                         SizedBox(width: 24.w),
-    //                         // ReusableText(
-    //                         //   // TODO: Name the owner of the property
-    //                         //   text: propertyNotifier.property!.username,
-    //                         //   style: appStyle(18, Kolors.kGray, FontWeight.normal)
-    //                         // ),
-    //                       ],
-    //                     ),
-    //                   ),
-    //                 ],
-    //               ),
-    //             ),
-    //           ),
-            
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 10.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 8.w),
-    //               child: Divider(
-    //                 thickness: .5.h,
-    //               ),
-    //             )
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: SizedBox(
-    //               height: 10.h,
-    //             ),
-    //           ),
-
-    //           SliverToBoxAdapter(
-    //             child: Padding(
-    //               padding: EdgeInsets.symmetric(horizontal: 16.w),
-    //               child: Column(
-    //                 crossAxisAlignment: CrossAxisAlignment.start,
-    //                 children: [
-    //                   ReusableText(
-    //                     text: 'Similar Homes Nearby',
-    //                     style: appStyle(18, Kolors.kGray, FontWeight.normal)
-    //                   ),
-    //                   SizedBox(
-    //                     height: 10.h,
-    //                   ),
-    //                   // const SimilarProperties(),
-    //                 ],
-    //               ),
-    //             ),
-    //           ),
-    //         ],
-    //       ),
-          
-    //       bottomNavigationBar: PropertyBottomBar(
-    //         price: propertyNotifier.property!.rent,
-    //       ),
-    //     );
-    //   }
-    // );
   }
 }
+
+
+
+
+
+
+
+
