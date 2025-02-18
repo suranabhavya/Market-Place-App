@@ -14,6 +14,7 @@ class EmailTextField extends StatelessWidget {
     this.initialValue,
     this.radius,
     this.onChanged,
+    this.validator,
   }) : super(key: key);
   final String? hintText;
   final double? radius;
@@ -24,6 +25,7 @@ class EmailTextField extends StatelessWidget {
   final FocusNode? focusNode;
   final String? initialValue;
   final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +37,7 @@ class EmailTextField extends StatelessWidget {
         initialValue: initialValue,
         controller: controller,
         onChanged: onChanged,
-        validator: (value) {
-          if (value!.isEmpty) {
-            return "Please enter a valid value";
-          } else {
-            return null;
-          }
-        },
+        validator: validator,
         style: appStyle(12, Kolors.kDark, FontWeight.normal),
         decoration: InputDecoration(
           hintText: hintText,

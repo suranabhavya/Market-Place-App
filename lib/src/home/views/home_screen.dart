@@ -27,15 +27,15 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
-  late final TabController _tabController;
+  // late final TabController _tabController;
 
-  int _currentTabIndex = 0;
+  // int _currentTabIndex = 0;
 
   @override
   void initState() {
      super.initState();
-    _tabController = TabController(length: homeTabs.length, vsync: this);
-    _tabController.addListener(_handleSelection);
+    // _tabController = TabController(length: homeTabs.length, vsync: this);
+    // _tabController.addListener(_handleSelection);
     _getLocation();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,24 +43,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     });
   }
 
-  void _handleSelection() {
-    final controller = Provider.of<HomeTabNotifier>(context, listen: false);
-    final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
+  // void _handleSelection() {
+  //   final controller = Provider.of<HomeTabNotifier>(context, listen: false);
+  //   final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
 
-    if(_tabController.indexIsChanging) {
-      setState(() {
-        _currentTabIndex = _tabController.index;
-      });
-      controller.setIndex(homeTabs[_currentTabIndex], propertyNotifier);
-    }
-  }
+  //   if(_tabController.indexIsChanging) {
+  //     setState(() {
+  //       _currentTabIndex = _tabController.index;
+  //     });
+  //     controller.setIndex(homeTabs[_currentTabIndex], propertyNotifier);
+  //   }
+  // }
 
-  @override
-  void dispose() {
-    _tabController.removeListener(_handleSelection);
-    _tabController.dispose();
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   _tabController.removeListener(_handleSelection);
+  //   _tabController.dispose();
+  //   super.dispose();
+  // }
 
   void _getLocation() async {
     await Geolocator.checkPermission();
@@ -70,32 +70,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
       desiredAccuracy: LocationAccuracy.high
     );
     
-    final homeTabNotifier = Provider.of<HomeTabNotifier>(context, listen: false);
-    homeTabNotifier.setUserLocation(position.latitude, position.longitude);
-
-    // final locationService = LocationService();
-    // try {
-    //   final position = await locationService.getCurrentLocation();
-    //   if (!mounted) return;
-
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text(
-    //         "Location: Lat: ${position?.latitude}, Lng: ${position?.longitude}",
-    //       ),
-    //       duration: const Duration(seconds: 3),
-    //     ),
-    //   );
-    // } catch (e) {
-    //   if (!mounted) return;
-
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text("Error: $e"),
-    //       duration: const Duration(seconds: 3),
-    //     ),
-    //   );
-    // }
+    // final homeTabNotifier = Provider.of<HomeTabNotifier>(context, listen: false);
+    // homeTabNotifier.setUserLocation(position.latitude, position.longitude);
   }
 
   @override
@@ -110,23 +86,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         children: [
-          // SizedBox(
-          //   height: 20.h,
-          // ),
-
-          // const HomeSlider(),
+          // HomeTabs(tabController: _tabController),
 
           // SizedBox(
           //   height: 15.h,
           // ),
-
-          // const HomeHeader(),
-
-          HomeTabs(tabController: _tabController),
-
-          SizedBox(
-            height: 15.h,
-          ),
 
           ExploreProperties(filteredProperties: widget.filteredProperties),
 

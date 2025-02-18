@@ -14,6 +14,7 @@ class CustomTextField extends StatelessWidget {
     this.initialValue,
     this.maxLines,
     this.onChanged,
+    this.validator,
   });
   final String? hintText;
   final Widget? prefixIcon;
@@ -24,6 +25,7 @@ class CustomTextField extends StatelessWidget {
   final String? initialValue;
   final int? maxLines;
   final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +39,7 @@ class CustomTextField extends StatelessWidget {
       initialValue: initialValue,
       controller: controller,
       onChanged: onChanged,
-      validator: (value) {
-        if (value!.isEmpty) {
-          return "Please enter a valid value";
-        } else {
-          return null;
-        }
-      },
+      validator: validator,
       style: appStyle(12, Kolors.kDark, FontWeight.normal),
       decoration: InputDecoration(
         prefixIcon: prefixIcon,

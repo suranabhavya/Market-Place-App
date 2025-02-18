@@ -5,7 +5,7 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/src/auth/controllers/password_notifier.dart';
 import 'package:provider/provider.dart';
 
-class PasswordField extends StatelessWidget {
+class PasswordField extends StatefulWidget {
   const PasswordField({
     Key? key,
     required this.controller,
@@ -16,6 +16,14 @@ class PasswordField extends StatelessWidget {
   final FocusNode? focusNode;
   final double? radius;
   final String? hintText;
+
+  @override
+  State<PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<PasswordField> {
+  bool _isObscured = true;
+
   @override
   Widget build(BuildContext context) {
     return Consumer<PasswordNotifier>(
@@ -23,10 +31,10 @@ class PasswordField extends StatelessWidget {
         return TextFormField(
           cursorColor: Colors.black,
           textInputAction: TextInputAction.next,
-          focusNode: focusNode,
+          focusNode: widget.focusNode,
           keyboardType: TextInputType.visiblePassword,
-          controller: controller,
-          obscureText: passwordNotifier.password,
+          controller: widget.controller,
+          obscureText: _isObscured,
           validator: (value) {
             if (value!.isEmpty) {
               return "Please enter a valid password";
@@ -38,16 +46,18 @@ class PasswordField extends StatelessWidget {
           decoration: InputDecoration(
             suffixIcon: GestureDetector(
               onTap: () {
-                passwordNotifier.setPassword();
+                setState(() {
+                  _isObscured = !_isObscured;
+                });
               },
               child: Icon(
-                passwordNotifier.password
+                _isObscured
                     ? Icons.visibility
                     : Icons.visibility_off,
                 color: Kolors.kGrayLight,
               ),
             ),
-            hintText: hintText,
+            hintText: widget.hintText,
             prefixIcon: const Icon(
               CupertinoIcons.lock_circle,
               color: Kolors.kGrayLight,
@@ -59,23 +69,23 @@ class PasswordField extends StatelessWidget {
             // contentPadding: EdgeInsets.only(left: 24),
             errorBorder:  OutlineInputBorder(
                 borderSide: const BorderSide(color: Colors.red, width: 0.5),
-                borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+                borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
             focusedBorder:  OutlineInputBorder(
                 borderSide: const BorderSide(color: Kolors.kPrimary, width: 0.5),
-                borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+                borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
             focusedErrorBorder:  OutlineInputBorder(
                 borderSide: const BorderSide(color: Kolors.kRed, width: 0.5),
-                borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+                borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
             disabledBorder:  OutlineInputBorder(
                 borderSide: const BorderSide(color: Kolors.kGray, width: 0.5),
-                borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+                borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
             enabledBorder:  OutlineInputBorder(
                 borderSide: const BorderSide(color: Kolors.kGray, width: 0.5),
-                borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+                borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
             border:  OutlineInputBorder(
               borderSide: const BorderSide(color: Kolors.kPrimary, width: 0.5),
               borderRadius: BorderRadius.all(
-                Radius.circular(radius??12),
+                Radius.circular(widget.radius??12),
               ),
             ),
           ),
