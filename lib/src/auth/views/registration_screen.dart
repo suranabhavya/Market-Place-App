@@ -24,7 +24,7 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   
   late final TextEditingController _emailController;
-  late final TextEditingController _firstNameController;
+  late final TextEditingController _nameController;
   late final TextEditingController _passwordController;
   late final TextEditingController _confirmPasswordController;
   
@@ -35,14 +35,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.prefilledEmail ?? '');
-    _firstNameController = TextEditingController();
+    _nameController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
   }
   
   @override
   void dispose() {
-    _firstNameController.dispose();
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -121,7 +121,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     EmailTextField(
                       radius: 25,
                       hintText: "Full Name",
-                      controller: _firstNameController,
+                      controller: _nameController,
                       prefixIcon: const Icon(
                         CupertinoIcons.profile_circled,
                         size: 20,
@@ -190,7 +190,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         }
 
                         // Validate Name
-                        if (_firstNameController.text.trim().isEmpty) {
+                        if (_nameController.text.trim().isEmpty) {
                           nameError = "Name cannot be empty";
                         }
 
@@ -230,10 +230,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
                         RegistrationModel model = RegistrationModel(
                           email: _emailController.text,
-                          first_name: _firstNameController.text,
+                          name: _nameController.text,
                           username: _emailController.text,
                           password: _passwordController.text,
-                          re_password: _confirmPasswordController.text
+                          confirm_password: _confirmPasswordController.text
                         );
             
                         String data = registrationModelToJson(model);

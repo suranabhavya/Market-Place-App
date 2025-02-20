@@ -15,6 +15,7 @@ import 'package:marketplace_app/common/widgets/help_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/main.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
+import 'package:marketplace_app/src/auth/models/auth_model.dart';
 import 'package:marketplace_app/src/auth/models/profile_model.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/login_screen.dart';
@@ -40,7 +41,7 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       body: Consumer<AuthNotifier> (
         builder: (context, authNotifier, child) {
-          ProfileModel? user = authNotifier.getUserData();
+          User? user = authNotifier.getUserData();
           return ListView(
             children: [
               Column(
@@ -52,10 +53,10 @@ class ProfilePage extends StatelessWidget {
                   CircleAvatar(
                     radius: 35,
                     backgroundColor: Colors.grey,
-                    backgroundImage: user?.profile_photo != null && user!.profile_photo!.isNotEmpty
-                        ? NetworkImage(user.profile_photo!)
+                    backgroundImage: user?.profilePhoto != null && user!.profilePhoto!.isNotEmpty
+                        ? NetworkImage(user.profilePhoto!)
                         : null,
-                    child: user?.profile_photo == null || user!.profile_photo!.isEmpty
+                    child: user?.profilePhoto == null || user!.profilePhoto!.isEmpty
                         ? const Icon(Icons.person, size: 50, color: Colors.white)
                         : null,
                   ),
@@ -80,7 +81,7 @@ class ProfilePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ReusableText(
-                      text: user.first_name,
+                      text: user!.name,
                       style: appStyle(14, Kolors.kDark, FontWeight.w600)
                     ),
                   )
