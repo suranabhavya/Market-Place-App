@@ -7,31 +7,31 @@ String registrationModelToJson(RegistrationModel data) => json.encode(data.toJso
 class RegistrationModel {
     String email;
     String username;
-    String first_name;
+    String name;
     String password;
-    String re_password;
+    String confirm_password;
 
     RegistrationModel({
         required this.email,
         required this.username,
-        required this.first_name,
+        required this.name,
         required this.password,
-        required this.re_password,
+        required this.confirm_password,
     });
 
     factory RegistrationModel.fromJson(Map<String, dynamic> json) => RegistrationModel(
         email: json["email"],
         username: json["username"],
-        first_name: json["first_name"],
+        name: json["name"],
         password: json["password"],
-        re_password: json["re_password"],
+        confirm_password: json["confirm_password"],
     );
 
     Map<String, dynamic> toJson() => {
         "email": email,
         "username": username,
-        "first_name": first_name,
+        "name": name,
         "password": password,
-        "re_password": re_password,
+        "confirm_password": confirm_password,
     };
 }

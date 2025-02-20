@@ -126,13 +126,6 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
               ],
             ),
             SizedBox(height: 20.h),
-            // _buildSocialButton(
-            //   icon: Icons.phone,
-            //   text: "Continue with Phone",
-            //   onTap: () {
-            //     context.push('/login/mobile');
-            //   },
-            // ),
             _buildSocialButton(
               icon: MaterialCommunityIcons.apple,
               text: "Continue with Apple",

@@ -9,6 +9,7 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/error_modal.dart';
+import 'package:marketplace_app/src/auth/models/auth_model.dart';
 import 'package:marketplace_app/src/auth/models/auth_token_model.dart';
 import 'package:marketplace_app/src/auth/models/check_email_model.dart';
 import 'package:marketplace_app/src/auth/models/check_mobile_model.dart';
@@ -31,8 +32,8 @@ class AuthNotifier with ChangeNotifier {
 
   bool get isRLoading => _isRLoading;
 
-  void setRLoading() {
-    _isRLoading = !_isRLoading;
+  void setRLoading(bool b) {
+    _isRLoading = b;
     notifyListeners();
   }
   
@@ -40,7 +41,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/token/login');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/login');
       print("data is just before calling url: $data");
       var response = await http.post(
         url,
@@ -52,18 +53,20 @@ class AuthNotifier with ChangeNotifier {
       print("sc: ${response.statusCode}");
 
       if(response.statusCode == 200) {
-        String accessToken = accessTokenModelFromJson(response.body).authToken;
+        var responseData = jsonDecode(response.body);
+        AuthModel authData = AuthModel.fromJson(responseData);
 
-        Storage().setString('accessToken', accessToken);
-        
-        getuser(accessToken, ctx);
-        
+        // Store token and user details
+        Storage().setString('accessToken', authData.token);
+        Storage().setString('user', jsonEncode(authData.user.toJson()));
+
         setLoading(false);
-        // ctx.go('/home');
+        ctx.go('/home');
       }
       else {
         setLoading(false);
-        showErrorPopup(ctx, AppText.kErrorLogin, null, null);
+        var errorMessage = jsonDecode(response.body)['message'] ?? AppText.kErrorLogin;
+        showErrorPopup(ctx, errorMessage, null, null);
       }
     } catch(e) {
       setLoading(false);
@@ -72,10 +75,10 @@ class AuthNotifier with ChangeNotifier {
   }
   
   void registrationFunc(String data, BuildContext ctx) async {
-    setRLoading();
+    setRLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/register/');
       print("final data is: $data");
       var response = await  http.post(
         url,
@@ -87,17 +90,42 @@ class AuthNotifier with ChangeNotifier {
       print("response is: ${response.statusCode}");
 
       if(response.statusCode == 201) {
-        setRLoading();
-        ctx.go('/login', extra: {'email': jsonDecode(data)['email']});
-      } else if(response.statusCode == 400) {
-        var data = jsonDecode(response.body);
-        showErrorPopup(ctx, data['password'][0], null, null);
-        setRLoading();
+        var responseData = jsonDecode(response.body);
+        AuthModel authData = AuthModel.fromJson(responseData);
+
+        // Store token and user details
+        Storage().setString('accessToken', authData.token);
+        Storage().setString('user', jsonEncode(authData.user.toJson()));
+
+        setRLoading(false);
+        ctx.go('/home');
+      } else {
+        setRLoading(false);
+        var errorMessage = jsonDecode(response.body)['message'] ?? "Registration failed.";
+        showErrorPopup(ctx, errorMessage, null, null);
       }
-    } catch(e) {
+    } catch (e) {
+      setRLoading(false);
       showErrorPopup(ctx, AppText.kErrorLogin, null, null);
-      setRLoading();
     }
+  }
+
+  User? getUserData() {
+    // String? accessToken = Storage().getString('accessToken');
+
+    // if(accessToken != null) {
+    //   var data = Storage().getString(accessToken);
+    //   if(data != null) {
+    //     print("data is: $data");
+    //     return profileModelFromJson(data);
+    //   }
+    // }
+    // return null;
+    String? userData = Storage().getString('user');
+    if (userData != null) {
+      return User.fromJson(jsonDecode(userData));
+    }
+    return null;
   }
 
   Future<bool> generateOTP(String data) async {
@@ -162,42 +190,29 @@ class AuthNotifier with ChangeNotifier {
     }
   }
 
-  void getuser(String accessToken, BuildContext ctx) async {
-    try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/me/');
-      var response = await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Token $accessToken'
-        },
-      );
+  // void getuser(String accessToken, BuildContext ctx) async {
+  //   try {
+  //     var url = Uri.parse('${Environment.iosAppBaseUrl}/auth/users/me/');
+  //     var response = await http.get(
+  //       url,
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': 'Token $accessToken'
+  //       },
+  //     );
 
-      if(response.statusCode == 200) {
-        print("response body: ${response.body}");
-        Storage().setString(accessToken, response.body);
-        ctx.read<TabIndexNotifier>().setIndex(0);
-        ctx.go('/home');
-      }
-    } catch(e) { 
-      setLoading(false);
-      showErrorPopup(ctx, AppText.kErrorLogin, null, null
-      );
-    }
-  }
-
-  ProfileModel? getUserData() {
-    String? accessToken = Storage().getString('accessToken');
-
-    if(accessToken != null) {
-      var data = Storage().getString(accessToken);
-      if(data != null) {
-        print("data is: $data");
-        return profileModelFromJson(data);
-      }
-    }
-    return null;
-  }
+  //     if(response.statusCode == 200) {
+  //       print("response body: ${response.body}");
+  //       Storage().setString(accessToken, response.body);
+  //       ctx.read<TabIndexNotifier>().setIndex(0);
+  //       ctx.go('/home');
+  //     }
+  //   } catch(e) { 
+  //     setLoading(false);
+  //     showErrorPopup(ctx, AppText.kErrorLogin, null, null
+  //     );
+  //   }
+  // }
 
   Future<bool> verifyOTP(String mobileNumber, String otp) async {
     setLoading(true);
