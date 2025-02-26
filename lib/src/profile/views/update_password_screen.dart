@@ -53,7 +53,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
       return;
     }
 
-    final success = await profileNotifier.updatePassword(newPassword);
+    final success = await profileNotifier.updateUserDetails({"password": newPassword});
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(

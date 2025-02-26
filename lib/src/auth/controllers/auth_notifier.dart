@@ -41,7 +41,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try{
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/login');
+      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/login/');
       print("data is just before calling url: $data");
       var response = await http.post(
         url,
