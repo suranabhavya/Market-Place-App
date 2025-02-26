@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
@@ -20,6 +23,26 @@ class _VerifySchoolEmailPageState extends State<VerifySchoolEmailPage> {
   bool isEmailValid = false;
   bool isOtpSent = false;
   bool isVerifying = false;
+  bool isSchoolEmailVerified = false;
+  String? schoolEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Load user data from Storage
+  void _loadUserData() {
+    final userJson = Storage().getString('user');
+    if (userJson != null) {
+      final userData = jsonDecode(userJson);
+      setState(() {
+        schoolEmail = userData['school_email'];
+        isSchoolEmailVerified = userData['school_email_verified'] ?? false;
+      });
+    }
+  }
 
   // Function to validate edu email
   void validateEmail(String email) {
@@ -98,102 +121,93 @@ class _VerifySchoolEmailPageState extends State<VerifySchoolEmailPage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProfileNotifier>(context, listen: false).fetchUserData();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    if (isSchoolEmailVerified) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Verify School Email"),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 80),
+              const SizedBox(height: 20),
+              Text(
+                "Your school email ID $schoolEmail is verified. Thank you!",
+                style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Verify School Email"),
         centerTitle: true,
       ),
-      body: Consumer<ProfileNotifier>(
-        builder: (context, profileNotifier, child) {
-          final user = profileNotifier.user;
-
-          print("verification: ${user?.school_email_verified}");
-
-          if (user?.school_email_verified == true) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 80),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Your school email ID ${user?.school_email} is verified. Thank you!",
-                    style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+      body: Padding(
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Email Field
+            const Text("Enter your School Email"),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                hintText: "example@school.edu",
+                hintStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
+                border: OutlineInputBorder(),
+                suffixIcon: Icon(
+                  isEmailValid ? Icons.check_circle : Icons.cancel,
+                  color: isEmailValid ? Colors.green : Colors.red,
+                ),
               ),
-            );
-          }
-          return Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Email Field
-                const Text("Enter your School Email"),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: "example@school.edu",
-                    hintStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(
-                      isEmailValid ? Icons.check_circle : Icons.cancel,
-                      color: isEmailValid ? Colors.green : Colors.red,
-                    ),
-                  ),
-                  onChanged: validateEmail,
-                ),
-                const SizedBox(height: 20),
-
-                // Send OTP Button
-                CustomButton(
-                  onTap: isEmailValid ? () => sendOtp(context) : null,
-                  text: "Send OTP",
-                  btnWidth: double.infinity,
-                  btnHeight: 50,
-                  radius: 25,
-                ),
-                const SizedBox(height: 20),
-
-                if (isOtpSent) ...[
-                  // OTP Input Field
-                  const Text("Enter OTP"),
-                  TextField(
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      hintText: "Enter 6-digit OTP",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  isVerifying
-                      ? const Center(child: CircularProgressIndicator())
-                      : CustomButton(
-                          onTap: () => verifyOtp(context),
-                          text: "Verify OTP",
-                          btnWidth: double.infinity,
-                          btnHeight: 50,
-                          radius: 25,
-                        ),
-                ],
-              ],
+              onChanged: validateEmail,
             ),
-          );
-        },
+            const SizedBox(height: 20),
+
+            // Send OTP Button
+            CustomButton(
+              onTap: isEmailValid ? () => sendOtp(context) : null,
+              text: "Send OTP",
+              btnWidth: double.infinity,
+              btnHeight: 50,
+              radius: 25,
+            ),
+            const SizedBox(height: 20),
+
+            if (isOtpSent) ...[
+              // OTP Input Field
+              const Text("Enter OTP"),
+              TextField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: "Enter 6-digit OTP",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              isVerifying
+                  ? const Center(child: CircularProgressIndicator())
+                  : CustomButton(
+                      onTap: () => verifyOtp(context),
+                      text: "Verify OTP",
+                      btnWidth: double.infinity,
+                      btnHeight: 50,
+                      radius: 25,
+                    ),
+            ],
+          ],
+        ),
       ),
     );
   }

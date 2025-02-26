@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -26,8 +28,22 @@ import 'package:marketplace_app/src/properties/controllers/property_notifier.dar
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:provider/provider.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Load the user data when the profile screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProfileNotifier>(context, listen: false).loadUserFromStorage();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +55,13 @@ class ProfilePage extends StatelessWidget {
     }
 
     return Scaffold(
-      body: Consumer<AuthNotifier> (
-        builder: (context, authNotifier, child) {
-          User? user = authNotifier.getUserData();
+      body: Consumer<ProfileNotifier>(
+        builder: (context, profileNotifier, child) {
+          final user = profileNotifier.user;
+
+          if (user == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
           return ListView(
             children: [
               Column(
@@ -53,10 +73,10 @@ class ProfilePage extends StatelessWidget {
                   CircleAvatar(
                     radius: 35,
                     backgroundColor: Colors.grey,
-                    backgroundImage: user?.profilePhoto != null && user!.profilePhoto!.isNotEmpty
+                    backgroundImage: user.profilePhoto != null && user.profilePhoto!.isNotEmpty
                         ? NetworkImage(user.profilePhoto!)
                         : null,
-                    child: user?.profilePhoto == null || user!.profilePhoto!.isEmpty
+                    child: user.profilePhoto == null || user.profilePhoto!.isEmpty
                         ? const Icon(Icons.person, size: 50, color: Colors.white)
                         : null,
                   ),
@@ -66,7 +86,7 @@ class ProfilePage extends StatelessWidget {
                   ),
 
                   ReusableText(
-                    text: user!.email,
+                    text: user.email,
                     style: appStyle(11, Kolors.kGray, FontWeight.normal)
                   ),
 
@@ -81,7 +101,7 @@ class ProfilePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ReusableText(
-                      text: user!.name,
+                      text: user.name,
                       style: appStyle(14, Kolors.kDark, FontWeight.w600)
                     ),
                   )
@@ -99,29 +119,15 @@ class ProfilePage extends StatelessWidget {
                     ProfileTileWidget(
                       title: 'My Account',
                       leading: CupertinoIcons.profile_circled,
-                      onTap: () async {
-                        final result = await context.push('/account', extra: user);
-                        if (result == true) {
-                          Provider.of<ProfileNotifier>(context, listen: false).fetchUserData();
-                        }
-                      },
-                    ),
-
-                    ProfileTileWidget(
-                      title: 'Verify School Email',
-                      leading: Icons.check_circle,
-                      onTap: () async {
-                        final result = await context.push('/profile/verify-school-email', extra: user);
-                        if (result == true) {
-                          Provider.of<ProfileNotifier>(context, listen: false).fetchUserData();
-                        }
+                      onTap: () {
+                        context.push('/account', extra: user);
                       },
                     ),
 
                     ProfileTileWidget(
                       title: 'My Listings',
                       leading: CupertinoIcons.building_2_fill,
-                       onTap: () async {
+                        onTap: () async {
                         try {
                           final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
                           List<PropertyListModel> userProperties = await propertyNotifier.fetchUserProperties();
@@ -172,6 +178,7 @@ class ProfilePage extends StatelessWidget {
                   btnWidth: ScreenUtil().screenWidth - 60,
                   onTap: () {
                     Storage().removeKey('accessToken');
+                    Storage().removeKey('user');
                     context.read<TabIndexNotifier>().setIndex(0);
                     context.go('/home');
                   },
@@ -179,8 +186,8 @@ class ProfilePage extends StatelessWidget {
               ),
             ],
           );
-        }
-      )
+        },
+      ),
     );
   }
 }

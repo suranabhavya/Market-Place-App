@@ -37,22 +37,30 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
 
   Future<void> _updateEmail(BuildContext context) async {
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    final String newEmail = _emailController.text.trim();
+    final String confirmEmail = _confirmEmailController.text.trim();
 
-    if (_emailController.text != _confirmEmailController.text) {
+    if (newEmail.isEmpty || confirmEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email fields cannot be empty"), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (newEmail != confirmEmail) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Emails do not match"), backgroundColor: Colors.red),
       );
       return;
     }
 
-    final success = await profileNotifier.updateEmail(_emailController.text);
+    final success = await profileNotifier.updateUserDetails({"email": newEmail});
 
     if (success) {
-      await profileNotifier.fetchUserData();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Email updated successfully"), backgroundColor: Colors.green),
       );
-      Navigator.pop(context); // Go back to account page
+      Navigator.pop(context); // Navigate back to account page
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to update email"), backgroundColor: Colors.red),
@@ -86,12 +94,6 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
               hintText: "Enter new email",
               keyboardType: TextInputType.emailAddress,
             ),
-            // const TextField(
-            //   decoration: InputDecoration(
-            //     border: OutlineInputBorder(),
-            //     hintText: "Enter new email",
-            //   ),
-            // ),
 
             SizedBox(height: 16.h),
 
@@ -105,12 +107,6 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
               hintText: "Confirm new email",
               keyboardType: TextInputType.emailAddress,
             ),
-            // const TextField(
-            //   decoration: InputDecoration(
-            //     border: OutlineInputBorder(),
-            //     hintText: "Confirm email",
-            //   ),
-            // ),
 
             SizedBox(height: 24.h),
 
