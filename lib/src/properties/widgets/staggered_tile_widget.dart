@@ -33,7 +33,7 @@ class StaggeredTileWidget extends StatefulWidget {
 class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
 
   late PageController _pageController;
-  late Timer _timer;
+  Timer? _timer;
   int _currentPage = 0;
 
   @override
@@ -42,20 +42,29 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
     _pageController = PageController(initialPage: 0);
 
     // Auto-slide every 2 seconds
-    _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-      if (widget.property.images!.isNotEmpty) {
-        if (_currentPage < widget.property.images!.length - 1) {
-          _currentPage++;
-        } else {
-          _currentPage = 0;
+    if (widget.property.images != null && widget.property.images!.isNotEmpty) {
+      _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
+        if (widget.property.images!.isNotEmpty) {
+          if (_currentPage < widget.property.images!.length - 1) {
+            _currentPage++;
+          } else {
+            _currentPage = 0;
+          }
+          _pageController.animateToPage(
+            _currentPage,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
         }
-        _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
   
   @override
@@ -236,29 +245,6 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                               ),
                             ],
                           ],
-                          // children: [
-                          //   Icon(
-                          //     Icons.bed,
-                          //     size: 16.sp,
-                          //     color: Kolors.kGray,
-                          //   ),
-                          //   SizedBox(width: 4.w),
-                          //   Text(
-                          //     '${widget.property.bedrooms}BR',
-                          //     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                          //   ),
-                          //   SizedBox(width: 8.w),
-                          //   Icon(
-                          //     Icons.bathtub,
-                          //     size: 16.sp,
-                          //     color: Kolors.kGray,
-                          //   ),
-                          //   SizedBox(width: 4.w),
-                          //   Text(
-                          //     '${widget.property.bathrooms}BA',
-                          //     style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                          //   ),
-                          // ],
                         ),
                       ],
                     ),

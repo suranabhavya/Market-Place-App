@@ -79,9 +79,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin{
     String? accessToken = Storage().getString('accessToken');
     
     return Scaffold(
-      appBar: const PreferredSize(
-        preferredSize: Size.fromHeight(70),
-        child: CustomAppBar()
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(kToolbarHeight + 60.h),
+        child: const CustomAppBar()
       ),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 16.w),

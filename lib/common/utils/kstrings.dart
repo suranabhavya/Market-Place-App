@@ -3,6 +3,7 @@ class AppText {
   static const String kGetStarted = "Let's Get Started";
   static const String kCategory = 'Category';
   static const String kCategories = 'Categories';
+  static const String kMessaging = 'Messaging';
   static const String kNotifications = 'Notifications';
   static const String kAddresses = 'Addresses';
   static const String kAddShipping = 'Add Shipping Address';
@@ -15,6 +16,7 @@ class AppText {
   static const String kSearchResults = 'Search Results';
   static const String kFilter = 'Filters';
   static const String kCreateListing = 'Create Listing';
+  static const String kSelectDuration = 'Select Duration';
 
   static const String kProfilePic = 'https://www.perfocal.com/blog/content/images/2021/01/Perfocal_17-11-2019_TYWFAQ_100_standard-3.jpg';
   
