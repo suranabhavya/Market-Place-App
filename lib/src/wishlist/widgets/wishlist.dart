@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/widgets/empty_screen_widget.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
@@ -15,40 +14,47 @@ class WishlistWidget extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? accessToken = Storage().getString('accessToken');
     final results = useFetchWishlist();
     final properties = results.properties;
     final isLoading = results.isLoading;
     final refetch = results.refetch;
-    final error = results.error;
 
-    if(isLoading) {
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: const ListShimmer(),
-      );
+    if (isLoading) {
+      return const ListShimmer();
     }
 
-    return properties.isEmpty ? const EmptyScreenWidget() : Column(
-      children: List.generate(
-        properties.length,
-        (i) {
-          final property = properties[i];
-          return StaggeredTileWidget(
-            onTap: () {
-              if (accessToken == null) {
-                loginBottomSheet(context);
-              } else {
-                context.read<WishlistNotifier>().addRemoveWishlist(
-                  property.id,
-                  refetch
-                );
-              }
+    return properties.isEmpty
+        ? const EmptyScreenWidget()
+        : Consumer<WishlistNotifier>(
+            builder: (context, wishlistNotifier, child) {
+              // Ensure that only properties in the local wishlist are displayed
+              final filteredProperties = properties
+                  .where((property) => wishlistNotifier.wishlist.contains(property.id))
+                  .toList();
+
+              return Column(
+                children: List.generate(
+                  filteredProperties.length,
+                  (i) {
+                    final property = filteredProperties[i];
+                    return StaggeredTileWidget(
+                      onTap: () {
+                        final accessToken = Storage().getString('accessToken');
+                        if (accessToken == null) {
+                          loginBottomSheet(context);
+                        } else {
+                          context.read<WishlistNotifier>().toggleWishlist(
+                                property.id,
+                                refetch,
+                              );
+                        }
+                      },
+                      property: property,
+                    );
+                  },
+                ),
+              );
             },
-            property: property,
           );
-        },
-      ),
-    );
   }
 }

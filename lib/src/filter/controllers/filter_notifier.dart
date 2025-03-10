@@ -11,6 +11,8 @@ class FilterNotifier extends ChangeNotifier {
   List<String> selectedBedrooms = [];
   List<String> selectedBathrooms = [];
   List<String> selectedSchools = [];
+  DateTime? availableFrom;
+  DateTime? availableTo;
 
   List<PropertyListModel> filteredProperties = [];
   bool isLoading = false;
@@ -21,20 +23,10 @@ class FilterNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  // void setBedrooms(String value) {
-  //   selectedBedrooms = value;
-  //   notifyListeners();
-  // }
-
   void setBedrooms(List<String> values) {
     selectedBedrooms = values;
     notifyListeners();
   }
-
-  // void setBathrooms(String value) {
-  //   selectedBathrooms = value;
-  //   notifyListeners();
-  // }
 
   void setBathrooms(List<String> values) {
     selectedBathrooms = values;
@@ -43,6 +35,16 @@ class FilterNotifier extends ChangeNotifier {
 
   void setSchools(List<String> values) {
     selectedSchools = values;
+    notifyListeners();
+  }
+
+  void setMoveInDate(DateTime? date) {
+    availableFrom = date;
+    notifyListeners();
+  }
+
+  void setMoveOutDate(DateTime? date) {
+    availableTo = date;
     notifyListeners();
   }
 
@@ -57,38 +59,30 @@ class FilterNotifier extends ChangeNotifier {
         if (selectedBedrooms.isNotEmpty) "bedrooms": selectedBedrooms,
         if (selectedBathrooms.isNotEmpty) "bathrooms": selectedBathrooms,
         if (selectedSchools.isNotEmpty) "schools": selectedSchools,
-        // if (selectedBedrooms != 'All') "bedrooms": int.tryParse(selectedBedrooms),
-        // if (selectedBathrooms != 'All') "bathrooms": int.tryParse(selectedBathrooms),
+        if (availableFrom != null) "available_from": availableFrom!.toIso8601String().split('T')[0],
+        if (availableTo != null) "available_to": availableTo!.toIso8601String().split('T')[0],
       };
 
-      queryParams.removeWhere((key, value) => value == null);
-
-      // final Uri url = Uri.parse(Environment.iosAppBaseUrl).replace(
-      //   path: '/api/properties/filter/',
-      //   queryParameters: queryParams.map((key, value) => MapEntry(key, value.toString())),
-      // );
+      queryParams.removeWhere((key, value) => value == null || value.toString().isEmpty);
 
       final Uri url = Uri.parse(Environment.iosAppBaseUrl).replace(
-        path: '/api/properties/filter/',
+        path: '/api/properties/',
         queryParameters: queryParams.map((key, value) {
           if (value is List<String>) {
-            return MapEntry(key, value); // ✅ Keeps list as multiple query params
+            return MapEntry(key, value);
           } else {
             return MapEntry(key, value.toString());
           }
         }),
       );
 
-      print("url is: $url");
+      print("Fetching filtered properties from: $url");
 
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        var filteredProperties = propertyListModelFromJson(response.body);
-        // List<dynamic> data = json.decode(response.body);
-        // filteredProperties = data.map((item) => PropertyListModel.fromJson(item)).toList();
-        
-        // Navigate to home page to display results
+        filteredProperties = propertyListModelFromJson(response.body);
+        notifyListeners();
         context.go('/home', extra: filteredProperties);
       } else {
         errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
@@ -106,6 +100,8 @@ class FilterNotifier extends ChangeNotifier {
     selectedBedrooms = [];
     selectedBathrooms = [];
     selectedSchools = [];
+    availableFrom = null;
+    availableTo = null;
     notifyListeners();
   }
 }

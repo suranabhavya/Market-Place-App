@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
@@ -28,7 +28,11 @@ WishlistHookResult useFetchWishlist() {
   Future<void> fetchWishlist() async {
     try {
       String? token = Storage().getString('accessToken');
-      print("token is $token");
+      if (token == null) {
+        isLoading.value = false;
+        return;
+      }
+
       final response = await http.get(
         Uri.parse('${Environment.iosAppBaseUrl}/api/wishlist/'),
         headers: {
@@ -38,18 +42,8 @@ WishlistHookResult useFetchWishlist() {
       );
 
       if (response.statusCode == 200) {
-        print("response is: ${response.body}");
         final List<dynamic> data = json.decode(response.body);
-        // properties.value =
-        //     data.map((item) => PropertyListModel.fromJson(item)).toList();
-        properties.value = data.map((item) {
-          try {
-            return PropertyListModel.fromJson(item);
-          } catch (e) {
-            print("Error parsing item: $item. Error: $e");
-            return null; // This will help identify problematic items
-          }
-        }).whereType<PropertyListModel>().toList();
+        properties.value = data.map((item) => PropertyListModel.fromJson(item)).toList();
       } else {
         error.value = 'Failed to fetch wishlist: ${response.reasonPhrase}';
       }
@@ -74,6 +68,6 @@ WishlistHookResult useFetchWishlist() {
     properties: properties.value,
     isLoading: isLoading.value,
     error: error.value,
-    refetch: refetch
+    refetch: refetch,
   );
 }

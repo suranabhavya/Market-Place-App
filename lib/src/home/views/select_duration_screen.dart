@@ -155,32 +155,40 @@ class _SelectDurationPageState extends State<SelectDurationPage> {
               ),
             ),
           ),
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // 🔹 Reset Button
-                Expanded(
-                  child: CustomButton(
-                    text: "Reset",
-                    onTap: _resetDates,
+          // Fixed Buttons at the Bottom
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: _resetDates,
+                      style: TextButton.styleFrom(backgroundColor: Colors.grey[200]),
+                      child: Text(
+                        "Reset All",
+                        style: appStyle(15, Kolors.kPrimary, FontWeight.bold)
+                      ),
+                    ),
                   ),
-                ),
-                SizedBox(width: 10.w),
-                // 🔹 Confirm Button
-                Expanded(
-                  child: CustomButton(
-                    text: "Confirm",
-                    onTap: () {
-                      Navigator.pop(context, {
-                        "fromDate": checkInDate,
-                        "toDate": checkOutDate,
-                      });
-                    },
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context, {
+                          "fromDate": checkInDate,
+                          "toDate": checkOutDate,
+                        });
+                      },
+                      style: TextButton.styleFrom(backgroundColor: Kolors.kPrimary),
+                      child: Text(
+                        "Confirm",
+                        style: appStyle(15, Kolors.kWhite, FontWeight.bold)
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

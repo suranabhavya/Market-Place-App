@@ -53,7 +53,7 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
               if (accessToken == null) {
                 loginBottomSheet(context);
               } else {
-                context.read<WishlistNotifier>().addRemoveWishlist(
+                context.read<WishlistNotifier>().toggleWishlist(
                   property.id,
                   () {}
                 );

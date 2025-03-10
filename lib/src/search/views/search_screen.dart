@@ -26,6 +26,23 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString('accessToken');
@@ -47,6 +64,7 @@ class _SearchPageState extends State<SearchPage> {
             padding: EdgeInsets.all(14.w),
             child: EmailTextField(
               controller: _searchController,
+              focusNode: _focusNode,
               radius: 30,
               hintText: AppText.kSearchHint,
               prefixIcon: GestureDetector(
@@ -101,7 +119,7 @@ class _SearchPageState extends State<SearchPage> {
                           if (accessToken == null) {
                             loginBottomSheet(context);
                           } else {
-                            context.read<WishlistNotifier>().addRemoveWishlist(
+                            context.read<WishlistNotifier>().toggleWishlist(
                               property.id,
                               () {}
                             );

@@ -104,7 +104,7 @@ class _PropertyPageState extends State<PropertyPage> {
                         if(accessToken == null) {
                           loginBottomSheet(context);
                         } else {
-                          wishlistNotifier.addRemoveWishlist(property.id, () {});
+                          wishlistNotifier.toggleWishlist(property.id, () {});
                         }
                       },
                       child: CircleAvatar(
@@ -362,7 +362,7 @@ class _PropertyPageState extends State<PropertyPage> {
                     Wrap(
                       spacing: 8.w,
                       runSpacing: 8.h,
-                      children: property.subleaseDetails.schoolsNearby!.map<Widget>((amenity) {
+                      children: property.subleaseDetails.getSchoolNames().map<Widget>((schoolName) {
                         return Container(
                           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                           decoration: BoxDecoration(
@@ -371,7 +371,7 @@ class _PropertyPageState extends State<PropertyPage> {
                             border: Border.all(color: Kolors.kPrimary, width: 1),
                           ),
                           child: Text(
-                            amenity,
+                            schoolName,
                             style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
                           ),
                         );
@@ -540,11 +540,3 @@ class _PropertyPageState extends State<PropertyPage> {
     );
   }
 }
-
-
-
-
-
-
-
-

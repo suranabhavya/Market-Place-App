@@ -67,11 +67,11 @@ class AppEntryPoint extends StatelessWidget {
                           items: [
                             BottomNavigationBarItem(
                               icon: tabIndexNotifier.index == 0 ? const Icon(
-                                AntDesign.home, 
+                                MaterialCommunityIcons.home_city, 
                                 color: Kolors.kPrimary,
                                 size: 24
                               ) : const Icon(
-                                AntDesign.home,
+                                MaterialCommunityIcons.home_city_outline,
                                 size: 24
                               ),
                               label: "Listings"
@@ -79,36 +79,47 @@ class AppEntryPoint extends StatelessWidget {
 
                             BottomNavigationBarItem(
                               icon: tabIndexNotifier.index == 1 ? const Icon(
-                                Ionicons.heart,
+                                MaterialCommunityIcons.heart,
                                 color: Kolors.kPrimary,
                                 size: 24
                               ) : const Icon(
-                                Ionicons.heart_outline,
+                                MaterialCommunityIcons.heart_outline,
                               ),
                               label: "Wishlist"
                             ),
                             
                             BottomNavigationBarItem(
                               icon: tabIndexNotifier.index == 2 
-                                ? Badge(
-                                    label: Text('${unreadNotifier.globalUnreadCount}'),
-                                    child: const Icon(MaterialCommunityIcons.message, color: Kolors.kPrimary, size: 24),
-                                  )
-                                : Badge(
-                                    label: Text('${unreadNotifier.globalUnreadCount}'),
-                                    child: const Icon(MaterialCommunityIcons.message_outline),
-                                  ),
+                                ? (unreadNotifier.globalUnreadCount > 0 
+                                    ? Badge(
+                                        label: Text('${unreadNotifier.globalUnreadCount}'),
+                                        child: const Icon(
+                                          MaterialCommunityIcons.message_text,
+                                          color: Kolors.kPrimary,
+                                          size: 24
+                                        ),
+                                      )
+                                    : const Icon(MaterialCommunityIcons.message_text, color: Kolors.kPrimary, size: 24))
+                                : (unreadNotifier.globalUnreadCount > 0 
+                                    ? Badge(
+                                        label: Text('${unreadNotifier.globalUnreadCount}'),
+                                        child: const Icon(
+                                          MaterialCommunityIcons.message_text_outline,
+                                          size: 24
+                                        ),
+                                      )
+                                    : const Icon(MaterialCommunityIcons.message_text_outline)),
                               label: "Messages"
                             ),
                             
                             BottomNavigationBarItem(
                               icon: tabIndexNotifier.index == 3 ? const Icon(
-                                EvilIcons.user,
+                                MaterialCommunityIcons.account_circle,
                                 color: Kolors.kPrimary,
-                                size: 34
+                                size: 24
                               ) : const Icon(
-                                EvilIcons.user,
-                                size: 34
+                                MaterialCommunityIcons.account_circle_outline,
+                                size: 24
                               ),
                               label: "Profile"
                             ),
