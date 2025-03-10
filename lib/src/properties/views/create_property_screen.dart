@@ -51,25 +51,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   final TextEditingController _availableFromController = TextEditingController();
   final TextEditingController _availableTillController = TextEditingController();
 
-  final Map<String, bool> amenities = {
-    "🏡 Balcony / Terrace": false,
-    "🏢 Elevator": false,
-    "🌳 Garden / Backyard": false,
-    "🔥 Heating": false,
-    "❄️ Air Conditioning": false,
-    "⚡ Electricity Included": false,
-    "💧 Water Included": false,
-    "📶 WiFi": false,
-    "🚿 Private Bathroom": false,
-    "🚰 Dishwasher": false,
-    "🍕 Microwave": false,
-    "🏋️ Gym": false,
-    "🚨 Smoke Detector": false,
-    "🚗 Free Parking": false,
-    "🐕 Pet-Friendly": false,
-    "🍽️ Restaurant Nearby": false,
-    "🛒 Grocery Store Nearby": false,
-  };
+  Map<String, bool> amenities = {};
   // List to store selected images
   final List<File> _images = [];
 
@@ -94,8 +76,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   String? _city;
   String? _state;
   String? _country;
-  List<String> selectedSchools = [];
-  List<String> schoolOptions = [];
+  List<Map<String, String>> schoolOptions = [];
+  List<String> selectedSchoolIds = [];
 
   // Method to pick an image
   Future<void> _pickImage(ImageSource source) async {
@@ -180,13 +162,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        List<String> nearbySchools = data.map((school) => school.toString()).toList();
-
         setState(() {
-          // Update school options and select them by default
-          // schoolOptions = data.map((school) => school.toString()).toList();
-          // selectedSchools = List.from(schoolOptions);
-          selectedSchools = schoolOptions.where((school) => nearbySchools.contains(school)).toList();
+          selectedSchoolIds = data.map((school) => school['id'] as String).toList();
         });
       } else {
         throw Exception("Failed to load nearby schools");
@@ -269,7 +246,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          schoolOptions = data.map((school) => school.toString()).toList();
+          schoolOptions = data.map<Map<String, String>>((school) => {
+            'id': school['id'].toString(),
+            'name': school['name'].toString()
+          }).toList();
         });
       } else {
         throw Exception("Failed to load schools");
@@ -308,10 +288,40 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     return true;
   }
 
+  // Fetch Amenities from API
+  Future<void> _fetchAmenities() async {
+    const String url = 'http://127.0.0.1:8000/api/amenities/';
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        String responseBody = utf8.decode(response.bodyBytes);
+        print("API Response: $responseBody");
+
+        List<dynamic> data = json.decode(responseBody);
+
+        setState(() {
+          // Convert List into a Map for selection tracking
+          amenities = {for (var item in data) item["name"]: false};
+        });
+      } else {
+        throw Exception("Failed to load amenities");
+      }
+    } catch (e) {
+      print("Error fetching amenities: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchSchools();
+    _fetchAmenities();
+
+    // Set default available_from to today's date
+    DateTime today = DateTime.now();
+    _availableFromController.text =
+      "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
   }
 
   // Helper function to add red asterisk to required fields
@@ -556,12 +566,16 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               SearchableMultiSelectDropdown(
                 title: "Schools",
-                options: schoolOptions,
-                selectedValues: selectedSchools,
+                options: schoolOptions.map((school) => school['name']!).toList(),
+                selectedValues: selectedSchoolIds.map((id) =>
+                  schoolOptions.firstWhere((school) => school['id'] == id)['name']!
+                ).toList(),
                 hintText: "Select Nearby Schools",
-                onSelectionChanged: (List<String> newSelection) {
+                onSelectionChanged: (List<String> selectedNames) {
                   setState(() {
-                    selectedSchools = newSelection;
+                    selectedSchoolIds = selectedNames.map((name) =>
+                      schoolOptions.firstWhere((school) => school['name'] == name)['id']!
+                    ).toList();
                   });
                 },
               ),
@@ -946,42 +960,40 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 16),
 
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: amenities.keys.map((String key) {
-                  bool isSelected = amenities[key]!;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        amenities[key] = !isSelected;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Kolors.kPrimary : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isSelected) const Icon(Icons.check, color: Colors.white, size: 16),
-                          if (isSelected) const SizedBox(width: 6),
-                          Text(
-                            key,
-                            style: appStyle(
-                              12, 
-                              isSelected ? Colors.white : Colors.black,
-                              FontWeight.normal
-                            )
+              amenities.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: amenities.keys.map((String key) {
+                      bool isSelected = amenities[key]!;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            amenities[key] = !isSelected;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Kolors.kPrimary : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isSelected) const Icon(Icons.check, color: Colors.white, size: 16),
+                              if (isSelected) const SizedBox(width: 6),
+                              Text(
+                                key,
+                                style: appStyle(12, isSelected ? Colors.white : Colors.black, FontWeight.normal),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
 
               const SizedBox(height: 16),
 
@@ -1557,7 +1569,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       "sublease_details": {
                         "available_from": _availableFromController.text,
                         if (_availableTillController.text.isNotEmpty) "available_to": _availableTillController.text,
-                        if (selectedSchools.isNotEmpty) "schools_nearby": selectedSchools,
+                        if (selectedSchoolIds.isNotEmpty) "school_ids": selectedSchoolIds,
                         "shared_room": true,
                       },
                       if (selectedAmenities.isNotEmpty) "amenities": selectedAmenities,

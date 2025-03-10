@@ -180,12 +180,14 @@ class PropertyDetailModel {
 class SubleaseDetails {
   DateTime availableFrom;
   DateTime? availableTo;
-  List<String>? schoolsNearby;
+  List<String>? schoolIds;
+  List<School>? schoolsNearby;
   bool? sharedRoom;
 
   SubleaseDetails({
     required this.availableFrom,
     this.availableTo,
+    this.schoolIds,
     this.schoolsNearby,
     this.sharedRoom,
   });
@@ -194,9 +196,12 @@ class SubleaseDetails {
       SubleaseDetails(
         availableFrom: DateTime.parse(json["available_from"]),
         availableTo: json["available_to"] != null ? DateTime.parse(json["available_to"]) : null,
+        // Parse schools_nearby as a list of School objects
         schoolsNearby: json["schools_nearby"] != null
-            ? List<String>.from(json["schools_nearby"].map((x) => x))
-            : null,
+            ? List<School>.from(json["schools_nearby"].map((x) => School.fromJson(x)))
+            : [],
+        // No need to extract school IDs from API response (only for creation)
+        schoolIds: null,
         sharedRoom: json["shared_room"] ?? false,
       );
 
@@ -206,12 +211,14 @@ class SubleaseDetails {
         "available_to": availableTo != null
             ? "${availableTo!.year.toString().padLeft(4, '0')}-${availableTo!.month.toString().padLeft(2, '0')}-${availableTo!.day.toString().padLeft(2, '0')}"
             : null,
-        "schools_nearby": schoolsNearby != null
-            ? List<dynamic>.from(schoolsNearby!.map((x) => x))
-            : null,
+        if (schoolIds != null && schoolIds!.isNotEmpty) "school_ids": schoolIds,
         "shared_room": sharedRoom ?? false,
       };
+
+  List<String> getSchoolNames() {
+    return schoolsNearby?.map((school) => school.name).toList() ?? [];
   }
+}
 
 class Lifestyle {
   String? smoking;
@@ -271,5 +278,25 @@ class Preference {
         if (dietaryPreference != null) "dietary_preference": dietaryPreference,
         if (nationalityPreference != null)
           "nationality_preference": nationalityPreference,
+      };
+}
+
+
+class School {
+  String id;
+  String name;
+
+  School({required this.id, required this.name});
+
+  factory School.fromJson(Map<String, dynamic> json) {
+    return School(
+      id: json["id"],
+      name: json["name"],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "name": name,
       };
 }

@@ -30,7 +30,9 @@ class WishListPage extends StatelessWidget {
       ),
       body: const Padding(
         padding: EdgeInsets.all(8.0),
-        child: WishlistWidget(),
+        child: SingleChildScrollView(
+          child: WishlistWidget(),
+        ),
       ),
     );
   }

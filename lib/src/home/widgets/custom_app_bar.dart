@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/utils/app_routes.dart';
+import 'package:intl/intl.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
-import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/src/home/widgets/notification_widget.dart';
+import 'package:marketplace_app/src/home/views/select_duration_screen.dart';
 
 class CustomAppBar extends StatelessWidget {
   const CustomAppBar({super.key});
@@ -40,7 +39,7 @@ class CustomAppBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(24)
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.h, vertical: 8.h),
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                       child: Row(
                         children: [
                           const Icon(
@@ -57,14 +56,10 @@ class CustomAppBar extends StatelessWidget {
                             child: Text(
                               "Search University, Pin Code, Address, City", 
                               style: appStyle(14, Kolors.kGray, FontWeight.w400),
-                              maxLines: 1, // Ensures it doesn't wrap to the next line
-                              overflow: TextOverflow.ellipsis, // Shows "..."
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          // ReusableText(
-                          //   text: "Search University, Pin Code, Address, City", 
-                          //   style: appStyle(14, Kolors.kGray, FontWeight.w400),
-                          // )
                         ],
                       ),
                     ),
