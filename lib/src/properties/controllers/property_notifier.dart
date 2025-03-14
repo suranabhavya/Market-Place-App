@@ -120,7 +120,8 @@ class PropertyNotifier extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
+        String responseBody = utf8.decode(response.bodyBytes);
+        final jsonData = jsonDecode(responseBody);
         _selectedProperty = PropertyDetailModel.fromJson(jsonData);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           notifyListeners();

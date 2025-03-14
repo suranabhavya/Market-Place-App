@@ -70,19 +70,42 @@ class _ProfilePageState extends State<ProfilePage> {
                     height: 30.h,
                   ),
 
-                  CircleAvatar(
-                    radius: 35,
-                    backgroundColor: Colors.grey,
-                    backgroundImage: user.profilePhoto != null && user.profilePhoto!.isNotEmpty
-                        ? NetworkImage(user.profilePhoto!)
-                        : null,
-                    child: user.profilePhoto == null || user.profilePhoto!.isEmpty
-                        ? const Icon(Icons.person, size: 50, color: Colors.white)
-                        : null,
+                  Stack(
+                    children: [
+                      // Profile Picture
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.grey,
+                        backgroundImage: user.profilePhoto != null && user.profilePhoto!.isNotEmpty
+                            ? NetworkImage(user.profilePhoto!)
+                            : null,
+                        child: user.profilePhoto == null || user.profilePhoto!.isEmpty
+                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                            : null,
+                      ),
+
+                      // Blue Tick Badge if Verified
+                      if (user.schoolEmailVerified == true)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                            child: Icon(
+                              Icons.verified,
+                              color: Colors.blue,
+                              size: 20.sp,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
 
                   SizedBox(
-                    height: 15.h,
+                    height: 10.h,
                   ),
 
                   ReusableText(
@@ -104,7 +127,27 @@ class _ProfilePageState extends State<ProfilePage> {
                       text: user.name,
                       style: appStyle(14, Kolors.kDark, FontWeight.w600)
                     ),
-                  )
+                  ),
+
+                  SizedBox(
+                    height: 10.h,
+                  ),
+
+                  // Show verification warning if email is not verified
+                  if (user.schoolEmailVerified == false) ...[
+                    SizedBox(height: 8.h), // Spacing
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24.sp),
+                        SizedBox(width: 5.w),
+                        Text(
+                          "Verify your account",
+                          style: appStyle(12.sp, Colors.amber.shade700, FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
 
@@ -127,28 +170,25 @@ class _ProfilePageState extends State<ProfilePage> {
                     ProfileTileWidget(
                       title: 'My Listings',
                       leading: CupertinoIcons.building_2_fill,
-                        onTap: () async {
-                        try {
-                          final propertyNotifier = Provider.of<PropertyNotifier>(context, listen: false);
-                          List<PropertyListModel> userProperties = await propertyNotifier.fetchUserProperties();
-
-                          // Push to home screen with user's properties
-                          context.go('/home', extra: userProperties);
-                        } catch (e) {
+                      onTap: () {
+                        final userId = context.read<ProfileNotifier>().user?.id;
+                        if (userId != null) {
+                          context.push('/my-listings/$userId');
+                        } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Failed to load user properties: $e")),
+                            const SnackBar(content: Text("Error fetching user ID")),
                           );
                         }
                       },
                     ),
 
-                    ProfileTileWidget(
-                      title: 'Privacy Policy',
-                      leading: MaterialIcons.policy,
-                      onTap: () {
-                        context.push('/policy');
-                      },
-                    ),
+                    // ProfileTileWidget(
+                    //   title: 'Privacy Policy',
+                    //   leading: MaterialIcons.policy,
+                    //   onTap: () {
+                    //     context.push('/policy');
+                    //   },
+                    // ),
 
                     ProfileTileWidget(
                       title: 'Help Center',

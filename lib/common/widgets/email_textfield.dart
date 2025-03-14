@@ -4,7 +4,7 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 
 class EmailTextField extends StatelessWidget {
   const EmailTextField({
-    Key? key,
+    super.key,
     this.prefixIcon,
     this.keyboardType,
     this.onEditingComplete,
@@ -15,7 +15,9 @@ class EmailTextField extends StatelessWidget {
     this.radius,
     this.onChanged,
     this.validator,
-  }) : super(key: key);
+    this.textInputAction,
+    this.onSubmitted,
+  });
   final String? hintText;
   final double? radius;
   final Widget? prefixIcon;
@@ -26,13 +28,16 @@ class EmailTextField extends StatelessWidget {
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
         cursorColor: Colors.black,
-        textInputAction: TextInputAction.next,
+        textInputAction: textInputAction ?? TextInputAction.next,
         onEditingComplete: onEditingComplete,
+        onFieldSubmitted: onSubmitted,
         keyboardType: keyboardType,
         initialValue: initialValue,
         controller: controller,

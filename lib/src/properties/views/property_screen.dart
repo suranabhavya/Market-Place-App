@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
@@ -55,13 +56,13 @@ class _PropertyPageState extends State<PropertyPage> {
   }
 
   String getAvailableDuration(DateTime availableFrom, DateTime? availableTo) {
-    String fromDate = "${availableFrom.day} ${_getMonthName(availableFrom.month)}";
+    String fromDate = "${availableFrom.day} ${_getMonthName(availableFrom.month)} ${availableFrom.year}";
 
     if (availableTo == null) {
       return fromDate; // Return only the from date if availableTo is null
     }
 
-    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)}";
+    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)} ${availableFrom.year}";
     return "$fromDate - $toDate";
   }
 
@@ -346,62 +347,64 @@ class _PropertyPageState extends State<PropertyPage> {
           ),
 
           if (property.subleaseDetails.schoolsNearby != null && property.subleaseDetails.schoolsNearby!.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ReusableText(
-                      text: 'Nearby Schools',
-                      style: appStyle(18, Kolors.kGray, FontWeight.normal)
-                    ),
-                    SizedBox(
-                      height: 10.h,
-                    ),
-                    Wrap(
-                      spacing: 8.w,
-                      runSpacing: 8.h,
-                      children: property.subleaseDetails.getSchoolNames().map<Widget>((schoolName) {
-                        return Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300], // Background color
-                            borderRadius: BorderRadius.circular(20), // Circular shape
-                            border: Border.all(color: Kolors.kPrimary, width: 1),
-                          ),
-                          child: Text(
-                            schoolName,
-                            style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+            ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ReusableText(
+                        text: 'Nearby Schools',
+                        style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                      ),
+                      SizedBox(
+                        height: 10.h,
+                      ),
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 8.h,
+                        children: property.subleaseDetails.getSchoolNames().map<Widget>((schoolName) {
+                          return Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300], // Background color
+                              borderRadius: BorderRadius.circular(20), // Circular shape
+                              border: Border.all(color: Kolors.kPrimary, width: 1),
+                            ),
+                            child: Text(
+                              schoolName,
+                              style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 10.h,
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Divider(
-                thickness: .5.h,
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 10.h,
+                ),
               ),
-            )
-          ),
 
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 10.h,
-            ),
-          ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  child: Divider(
+                    thickness: .5.h,
+                  ),
+                )
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 10.h,
+                ),
+              ),
+            ],
 
           if (property.amenities != null && property.amenities!.isNotEmpty)
             SliverToBoxAdapter(
@@ -472,17 +475,28 @@ class _PropertyPageState extends State<PropertyPage> {
                     padding: EdgeInsets.symmetric(horizontal: 8.w),
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 35,
-                          backgroundColor: Kolors.kOffWhite,
-                          backgroundImage: NetworkImage(
-                            AppText.kProfilePic
-                          ),
+                          backgroundColor: Colors.grey,
+                          backgroundImage: property.profilePhoto != null && property.profilePhoto!.isNotEmpty
+                              ? NetworkImage(property.profilePhoto!)
+                              : null,
+                          child: property.profilePhoto == null || property.profilePhoto!.isEmpty
+                              ? const Icon(Icons.person, size: 50, color: Colors.white)
+                              : null,
                         ),
                         SizedBox(width: 24.w),
-                        ReusableText(
-                          text: property.name,
-                          style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[300],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                          ),
+                          onPressed: () {
+                            context.push('/public-profile', extra: property.userId);
+                          },
+                          child: Text(property.name, style: appStyle(14, Kolors.kPrimary, FontWeight.w500)),
                         ),
                       ],
                     ),
@@ -535,7 +549,9 @@ class _PropertyPageState extends State<PropertyPage> {
       ),
       
       bottomNavigationBar: PropertyBottomBar(
-        price: property.rent.toString(),
+        senderId: property.userId,
+        senderName: property.name,
+        senderProfilePhoto: property.profilePhoto,
       ),
     );
   }

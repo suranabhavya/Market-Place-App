@@ -10,13 +10,7 @@ import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/error_modal.dart';
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
-import 'package:marketplace_app/src/auth/models/auth_token_model.dart';
 import 'package:marketplace_app/src/auth/models/check_email_model.dart';
-import 'package:marketplace_app/src/auth/models/check_mobile_model.dart';
-import 'package:marketplace_app/src/auth/models/generate_otp_model.dart';
-import 'package:marketplace_app/src/auth/models/profile_model.dart';
-import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
-import 'package:provider/provider.dart';
 
 class AuthNotifier with ChangeNotifier {
   bool _isLoading = false;

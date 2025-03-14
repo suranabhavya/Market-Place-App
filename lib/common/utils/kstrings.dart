@@ -17,6 +17,7 @@ class AppText {
   static const String kFilter = 'Filters';
   static const String kCreateListing = 'Create Listing';
   static const String kSelectDuration = 'Select Duration';
+  static const String kMyListings = 'My Listings';
 
   static const String kProfilePic = 'https://www.perfocal.com/blog/content/images/2021/01/Perfocal_17-11-2019_TYWFAQ_100_standard-3.jpg';
   

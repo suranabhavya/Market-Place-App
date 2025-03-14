@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
@@ -11,12 +12,21 @@ import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
 
 class MessagePage extends StatefulWidget {
   final int chatId;
   final String participants;
+  final String? otherParticipantProfilePhoto;
+  final int? otherParticipantId;
 
-  const MessagePage({super.key, required this.chatId, required this.participants});
+  const MessagePage({
+    super.key,
+    required this.chatId,
+    required this.participants,
+    this.otherParticipantProfilePhoto,
+    this.otherParticipantId,
+  });
 
   @override
   State<MessagePage> createState() => _MessagePageState();
@@ -52,6 +62,7 @@ class _MessagePageState extends State<MessagePage> {
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
+    print("chat_id: ${widget.chatId}");
     channel = WebSocketChannel.connect(
       Uri.parse("ws://127.0.0.1:8000/ws/chat/${widget.chatId}/?token=$token"),
     );
@@ -131,9 +142,45 @@ class _MessagePageState extends State<MessagePage> {
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
-        title: ReusableText(
-          text: widget.participants,
-          style: appStyle(16, Kolors.kPrimary, FontWeight.bold)
+        title: Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
+                  ),
+                );
+              },
+              child: CircleAvatar(
+                radius: 18,
+                backgroundImage: widget.otherParticipantProfilePhoto != null && widget.otherParticipantProfilePhoto!.isNotEmpty
+                    ? NetworkImage(widget.otherParticipantProfilePhoto!)
+                    : null,
+                child: widget.otherParticipantProfilePhoto == null || widget.otherParticipantProfilePhoto!.isEmpty
+                    ? const Icon(Icons.person, size: 18)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
+                    ),
+                  );
+                },
+                child: ReusableText(
+                  text: widget.participants,
+                  style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       body: Column(
@@ -147,8 +194,6 @@ class _MessagePageState extends State<MessagePage> {
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final message = messages[index];
-                      // Safely get sender name.
-                      final String senderName = message['sender_name'] ?? "Unknown";
                       final bool isMine = (message['sender'] is int && message['sender'] == currentUserId);
                       // Safely extract content and timestamp.
                       final String content = message['content'] ?? "";
@@ -168,10 +213,6 @@ class _MessagePageState extends State<MessagePage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                senderName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
                               Text(content),
                               Text(
                                 timeDisplay,
@@ -185,7 +226,7 @@ class _MessagePageState extends State<MessagePage> {
                   ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
             child: Row(
               children: [
                 Expanded(

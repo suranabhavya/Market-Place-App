@@ -10,13 +10,13 @@ class SearchableMultiSelectDropdown extends StatefulWidget {
   final String hintText;
 
   const SearchableMultiSelectDropdown({
-    Key? key,
+    super.key,
     required this.title,
     required this.options,
     required this.selectedValues,
     required this.onSelectionChanged,
     required this.hintText,
-  }) : super(key: key);
+  });
 
   @override
   State<SearchableMultiSelectDropdown> createState() =>

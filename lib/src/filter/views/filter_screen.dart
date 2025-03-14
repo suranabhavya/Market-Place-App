@@ -87,6 +87,17 @@ class _FilterPageState extends State<FilterPage> {
     });
   }
 
+  void _resetAll(FilterNotifier filterNotifier) {
+    setState(() {
+      selectedBedrooms = [];
+      selectedBathrooms = [];
+      selectedSchools = [];
+      filterNotifier.resetAll();
+      _minRentController.text = filterNotifier.priceRange.start.toInt().toString();
+      _maxRentController.text = filterNotifier.priceRange.end.toInt().toString();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final filterNotifier = Provider.of<FilterNotifier>(context);
@@ -214,7 +225,7 @@ class _FilterPageState extends State<FilterPage> {
                     child: TextButton(
                       onPressed: () => _resetFilters(filterNotifier),
                       style: TextButton.styleFrom(backgroundColor: Colors.grey[200]),
-                      child: const Text("Reset All", style: TextStyle(color: Colors.black)),
+                      child: const Text("Reset Filters", style: TextStyle(color: Colors.black)),
                     ),
                   ),
                   const SizedBox(width: 10),

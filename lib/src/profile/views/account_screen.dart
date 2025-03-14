@@ -191,7 +191,7 @@ class _AccountPageState extends State<AccountPage> {
                 ListTile(
                   visualDensity: VisualDensity.compact,
                   title: Text(
-                    "School Email",
+                    "Verify School Email",
                     style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
                   ),
                   subtitle: Text(

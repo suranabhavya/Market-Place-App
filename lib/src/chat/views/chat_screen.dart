@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -55,6 +56,7 @@ class _ChatPageState extends State<ChatPage> {
         final decoded = jsonDecode(data);
         // If the payload contains the key "chats", update our local chat list.
         if (decoded.containsKey("chats")) {
+          print("decoded chats: $decoded");
           setState(() {
             chats = decoded["chats"];
             isLoading = false;
@@ -85,6 +87,12 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    String? accessToken = Storage().getString('accessToken');
+
+    if(accessToken == null) {
+      return const EmailSignupPage();
+    }
+    
     return Scaffold(
       appBar: AppBar(
         title: ReusableText(
@@ -113,7 +121,17 @@ class _ChatPageState extends State<ChatPage> {
                 }
 
                 return ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  leading: CircleAvatar(
+                    radius: 32.w,
+                    backgroundImage: (chat["sender_profile_photo"] != null &&
+                            (chat["sender_profile_photo"] as String).isNotEmpty)
+                        ? NetworkImage(chat["sender_profile_photo"])
+                        : null,
+                    child: (chat["sender_profile_photo"] == null ||
+                            (chat["sender_profile_photo"] as String).isEmpty)
+                        ? const Icon(Icons.person)
+                        : null,
+                  ),
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -144,6 +162,7 @@ class _ChatPageState extends State<ChatPage> {
                     ],
                   ),
                   onTap: () {
+                    print("other user id: ${chat['sender_id']}");
                     // Navigate to the MessagePage. (Marking messages as read will be handled there.)
                     Navigator.push(
                       context,
@@ -151,6 +170,8 @@ class _ChatPageState extends State<ChatPage> {
                         builder: (context) => MessagePage(
                           chatId: chat["id"],
                           participants: displayName,
+                          otherParticipantProfilePhoto: chat["sender_profile_photo"],
+                          otherParticipantId: chat["sender_id"],
                         ),
                       ),
                     );

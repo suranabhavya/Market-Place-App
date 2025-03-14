@@ -6,12 +6,19 @@ import 'package:intl/intl.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/src/home/views/select_duration_screen.dart';
+import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
+import 'package:provider/provider.dart';
 
 class CustomAppBar extends StatelessWidget {
   const CustomAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final filterNotifier = Provider.of<FilterNotifier>(context);
+    final String searchText = filterNotifier.searchKey.isNotEmpty 
+        ? filterNotifier.searchKey 
+        : "Search University, Pin Code, Address, City";
+    
     return AppBar(
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -54,7 +61,7 @@ class CustomAppBar extends StatelessWidget {
                           
                           Expanded(
                             child: Text(
-                              "Search University, Pin Code, Address, City", 
+                              searchText,
                               style: appStyle(14, Kolors.kGray, FontWeight.w400),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

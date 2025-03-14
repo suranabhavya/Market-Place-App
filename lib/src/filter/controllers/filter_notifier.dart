@@ -13,6 +13,7 @@ class FilterNotifier extends ChangeNotifier {
   List<String> selectedSchools = [];
   DateTime? availableFrom;
   DateTime? availableTo;
+  String searchKey = '';
 
   List<PropertyListModel> filteredProperties = [];
   bool isLoading = false;
@@ -48,6 +49,11 @@ class FilterNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSearchKey(String value) {
+    searchKey = value;
+    notifyListeners();
+  }
+
   Future<void> applyFilters(BuildContext context) async {
     isLoading = true;
     notifyListeners();
@@ -61,6 +67,7 @@ class FilterNotifier extends ChangeNotifier {
         if (selectedSchools.isNotEmpty) "schools": selectedSchools,
         if (availableFrom != null) "available_from": availableFrom!.toIso8601String().split('T')[0],
         if (availableTo != null) "available_to": availableTo!.toIso8601String().split('T')[0],
+        if (searchKey.isNotEmpty) "search": searchKey,
       };
 
       queryParams.removeWhere((key, value) => value == null || value.toString().isEmpty);
@@ -103,5 +110,15 @@ class FilterNotifier extends ChangeNotifier {
     availableFrom = null;
     availableTo = null;
     notifyListeners();
+  }
+
+  void clearSearch() {
+    searchKey = '';
+    notifyListeners();
+  }
+
+  void resetAll() {
+    resetFilters();
+    clearSearch();
   }
 }
