@@ -46,18 +46,21 @@ final GoRouter _router = GoRouter(
       path: '/onboarding',
       builder: (context, state) => const OnBoardingScreen(),
     ),
-    // GoRoute(
-    //   path: '/review',
-    //   builder: (context, state) => const ReviewsPage(),
-    // ),
+    GoRoute(
+      path: '/check-email',
+      builder: (context, state) => const EmailSignupPage(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) {
+        final String? prefilledEmail = state.extra != null ? (state.extra as Map<String, dynamic>)['email'] : null;
+        return RegistrationPage(prefilledEmail: prefilledEmail);
+      },
+    ),
     GoRoute(
       path: '/policy',
       builder: (context, state) => const PolicyPage(),
     ),
-    // GoRoute(
-    //   path: '/verification',
-    //   builder: (context, state) => const VerificationPage(),
-    // ),
     GoRoute(
       path: '/search',
       builder: (context, state) => const SearchPage(),
@@ -66,10 +69,6 @@ final GoRouter _router = GoRouter(
       path: '/filter',
       builder: (context, state) => const FilterPage(),
     ),
-    // GoRoute(
-    //   path: '/help',
-    //   builder: (context, state) => const HelpCenterPage(),
-    // ),
     GoRoute(
       path: '/account',
       builder: (context, state) => const AccountPage(),
@@ -86,17 +85,6 @@ final GoRouter _router = GoRouter(
       path: '/profile/verify-school-email',
       builder: (context, state) => const VerifySchoolEmailPage(),
     ),
-    // GoRoute(
-    //   path: '/login',
-    //   builder: (context, state) => const LoginPage(),
-    // ),
-    
-    
-    // GoRoute(
-    //   path: '/login',
-    //   builder: (context, state) => const LoginPage(),
-    // ),
-
     GoRoute(
       path: '/login',
       builder: (context, state) {
@@ -116,73 +104,21 @@ final GoRouter _router = GoRouter(
       },
     ),
     GoRoute(
-      path: '/login/email',
-      builder: (context, state) => const EmailSignupPage(),
-    ),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) {
-        final String? prefilledEmail = state.extra != null ? (state.extra as Map<String, dynamic>)['email'] : null;
-        return RegistrationPage(prefilledEmail: prefilledEmail);
-      },
-    ),
-    // GoRoute(
-    //   path: '/register/mobile',
-    //   builder: (context, state) => const RegisterMobilePage(),
-    // ),
-    // GoRoute(
-    //   path: '/register',
-    //   builder: (context, state) => const RegistrationPage(),
-    // ),
-    GoRoute(
       path: '/categories',
       builder: (context, state) => const CategoriesPage(),
     ),
-    //  GoRoute(
-    //   path: '/category',
-    //   builder: (context, state) => const CategoryPage(),
-    // ),
-
-    // GoRoute(
-    //   path: '/addaddress',
-    //   builder: (context, state) => const AddAddress(),
-    // ),
-
     GoRoute(
       path: '/addresses',
       builder: (context, state) => const ShippingAddress()
     ),
-
      GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsPage(),
     ),
-
-    //  GoRoute(
-    //   path: '/tracking',
-    //   builder: (context, state) => const TrackOrderPage(),
-    // ),
-
-    // GoRoute(
-    //   path: '/checkout',
-    //   builder: (context, state) => const CheckoutPage(),
-    // ),
-
-    //   GoRoute(
-    //   path: '/successful',
-    //   builder: (context, state) => const SuccessfulPayment(),
-    // ),
-
-    //   GoRoute(
-    //   path: '/failed',
-    //   builder: (context, state) => const FailedPayment(),
-    // ),
-
     GoRoute(
       path: '/property/create',
       builder: (context, state) => const CreatePropertyPage(),
     ),
-    
     GoRoute(
       path: '/property/:id',
       builder: (BuildContext context, GoRouterState state) {
@@ -190,7 +126,6 @@ final GoRouter _router = GoRouter(
         return PropertyPage(propertyId: propertyId.toString());
       },
     ),
-
     GoRoute(
       path: '/public-profile',
       builder: (context, state) {
@@ -198,7 +133,6 @@ final GoRouter _router = GoRouter(
         return PublicProfilePage(userId: userId);
       },
     ),
-
     GoRoute(
       path: '/my-listings/:userId',
       builder: (context, state) {

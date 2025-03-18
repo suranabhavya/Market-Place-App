@@ -9,14 +9,14 @@ class RegistrationModel {
     String username;
     String name;
     String password;
-    String confirm_password;
+    String confirmPassword;
 
     RegistrationModel({
         required this.email,
         required this.username,
         required this.name,
         required this.password,
-        required this.confirm_password,
+        required this.confirmPassword,
     });
 
     factory RegistrationModel.fromJson(Map<String, dynamic> json) => RegistrationModel(
@@ -24,7 +24,7 @@ class RegistrationModel {
         username: json["username"],
         name: json["name"],
         password: json["password"],
-        confirm_password: json["confirm_password"],
+        confirmPassword: json["confirm_password"],
     );
 
     Map<String, dynamic> toJson() => {
@@ -32,6 +32,6 @@ class RegistrationModel {
         "username": username,
         "name": name,
         "password": password,
-        "confirm_password": confirm_password,
+        "confirm_password": confirmPassword,
     };
 }

@@ -17,19 +17,36 @@ class OnBoardingScreen extends StatefulWidget {
 }
 
 class _OnBoardingScreenState extends State<OnBoardingScreen> {
-
   late final PageController _pageController;
 
   @override
   void initState() {
-    _pageController = PageController(
-      initialPage: context.read<OnboardingNotifier>().selectedPage);
     super.initState();
+    _pageController = PageController(
+      initialPage: context.read<OnboardingNotifier>().selectedPage
+    );
+  }
+
+   // Dispose controller to prevent memory leaks
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _navigateToPage(int page) {
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeIn
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-
+    final onboardingNotifier = context.watch<OnboardingNotifier>();
+    final currentPage = onboardingNotifier.selectedPage;
+    
     return Scaffold(
       body: Stack(
         children: [
@@ -45,82 +62,58 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
             ],
           ),
           
-          context.watch<OnboardingNotifier>().selectedPage == 2 ? const SizedBox.shrink() : Positioned(
-            bottom: 50.h,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              width: ScreenUtil().screenWidth,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  context.watch<OnboardingNotifier>().selectedPage == 0 ? const SizedBox(
-                    width: 25,
-                  ) :
-                  GestureDetector(
-                    onTap: () {
-                      _pageController.animateToPage(
-                        context.read<OnboardingNotifier>().selectedPage - 1,
+          // Only show navigation controls on pages 0 and 1
+          if (currentPage != 2)
+            Positioned(
+              bottom: 30.h,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                width: ScreenUtil().screenWidth,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Back button (hidden on first page)
+                    currentPage == 0 
+                      ? const SizedBox(width: 25)
+                      : GestureDetector(
+                          onTap: () => _navigateToPage(currentPage - 1),
+                          child: const Icon(
+                            AntDesign.leftcircleo,
+                            color: Kolors.kPrimary,
+                            size: 30
+                          ),
+                        ),
+                    
+                    // Page indicator dots
+                    SizedBox(
+                      width: ScreenUtil().screenWidth * 0.7,
+                      height: 50.h,
+                      child: PageViewDotIndicator(
+                        currentItem: currentPage,
+                        count: 3,
+                        unselectedColor: Colors.black26,
+                        selectedColor: Kolors.kPrimary,
                         duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeIn
-                      );
-                    },
-                    child: const Icon(
-                      AntDesign.leftcircleo,
-                      color: Kolors.kPrimary,
-                      size: 30
+                        onItemClicked: _navigateToPage,
+                      ),
                     ),
-                  ),
-                  
-                  SizedBox(
-                    width: ScreenUtil().screenWidth * 0.7,
-                    height: 50.h,
-                    child: PageViewDotIndicator(
-                      currentItem: context.watch<OnboardingNotifier>().selectedPage,
-                      count: 3,
-                      unselectedColor: Colors.black26,
-                      selectedColor: Kolors.kPrimary,
-                      duration: const Duration(milliseconds: 200),
-                      onItemClicked: (index) {
-                        _pageController.animateToPage(
-                          index,
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeIn);
-                      },
-                    ),
-                  ),
 
-                  GestureDetector(
-                    onTap: () {
-                      _pageController.animateToPage(
-                        context.read<OnboardingNotifier>().selectedPage + 1,
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeIn
-                      );
-                    },
-                    child: const Icon(
-                      AntDesign.rightcircleo,
-                      color: Kolors.kPrimary,
-                      size: 30,
+                    // Forward button
+                    GestureDetector(
+                      onTap: () => _navigateToPage(currentPage + 1),
+                      child: const Icon(
+                        AntDesign.rightcircleo,
+                        color: Kolors.kPrimary,
+                        size: 30,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              )
             )
-          )
         ]
       )
-      // body: Column(
-      //   mainAxisAlignment: MainAxisAlignment.center,
-      //   crossAxisAlignment: CrossAxisAlignment.center,
-      //   children: [
-      //     TextButton(onPressed: (){
-      //       context.read<OnboardingNotifier>().setSelectedPage = 7;
-      //     },
-      //     child: Text('Increment')),
-      //     Text(context.watch<OnboardingNotifier>().selectedPage.toString()),
-      //   ],
-      // ),
     );
   }
 }

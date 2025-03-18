@@ -58,7 +58,7 @@ class AppText {
   static const String kWelcomeHeader =
       'The App That Helps You \nFind Your Homies!';
   static const String kWelcomeMessage =
-      "Welcome to HomiSwap – your one-stop solution for finding the perfect student accommodation, roommates, and sublets near your university. Let’s get you started! ";
+      "Welcome to HomiSwap – your one-stop solution for finding the perfect accommodation, roommates, and sublets near your university. Let’s get you started! ";
        static const String kOnboardWishList =
       'Wishlist: Where Fashion \nDream Begin';
        static const String kOnboardWishListMessage =

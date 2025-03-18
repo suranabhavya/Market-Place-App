@@ -19,16 +19,19 @@ class _SplashScreenState extends State<SplashScreen> {
 		super.initState();
 	}
 
-	_navigator() async{
-		await Future.delayed(const Duration(milliseconds: 3000), () {
-			if (Storage().getBool('firstOpen') == null) {
-				// Go to the onboarding screen
-				GoRouter.of(context).go('/onboarding');
-			} else {
-				// Go to the Home Page
-				GoRouter.of(context).go('/home');
-			}
-		});
+	_navigator() async {
+		await Future.delayed(const Duration(milliseconds: 3000));
+		
+		// Check if widget is still mounted before using context
+		if (!mounted) return;
+		
+		if (Storage().getBool('firstOpen') == null) {
+			// Go to the onboarding screen
+			GoRouter.of(context).go('/onboarding');
+		} else {
+			// Go to the Home Page
+			GoRouter.of(context).go('/home');
+		}
 	}
 
   @override
