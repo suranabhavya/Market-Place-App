@@ -10,8 +10,9 @@ String propertyDetailModelToJson(PropertyDetailModel data) =>
 
 class PropertyDetailModel {
   String id;
-  int user;
+  int userId;
   String name;
+  String? profilePhoto;
   String listingType;
   String title;
   String description;
@@ -43,8 +44,9 @@ class PropertyDetailModel {
 
   PropertyDetailModel({
     required this.id,
-    required this.user,
+    required this.userId,
     required this.name,
+    this.profilePhoto,
     required this.listingType,
     required this.title,
     required this.description,
@@ -78,8 +80,9 @@ class PropertyDetailModel {
   factory PropertyDetailModel.fromJson(Map<String, dynamic> json) =>
       PropertyDetailModel(
         id: json["id"],
-        user: json["user"],
+        userId: json["user_id"],
         name: json["name"],
+        profilePhoto: json["profile_photo"],
         listingType: json["listing_type"],
         title: json["title"],
         description: json["description"],
@@ -134,8 +137,9 @@ class PropertyDetailModel {
 
   Map<String, dynamic> toJson() => {
         "id": id,
-        "user": user,
+        "user_id": userId,
         "name": name,
+        "profile_photo": profilePhoto,
         "listing_type": listingType,
         "title": title,
         "description": description,

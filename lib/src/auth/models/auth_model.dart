@@ -35,7 +35,7 @@ class User {
     String name;
     dynamic mobileNumber;
     dynamic profilePhoto;
-    String schoolEmail;
+    dynamic schoolEmail;
     bool schoolEmailVerified;
 
     User({

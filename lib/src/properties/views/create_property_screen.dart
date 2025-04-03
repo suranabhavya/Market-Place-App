@@ -26,6 +26,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../common/widgets/custom_text.dart';
 
+
+// TODO: fetch schools API is behaving weirdly when multiple schools are selected it keeps on loading check later
+
 class CreatePropertyPage extends StatefulWidget {
   const CreatePropertyPage({super.key});
 
@@ -38,6 +41,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
   // Controllers for input fields
   final ImagePicker _picker = ImagePicker();
+  String _lastSearchQuery = '';
+  final Map<String, Map<String, String>> _selectedSchoolsMap = {};
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -78,6 +83,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   String? _country;
   List<Map<String, String>> schoolOptions = [];
   List<String> selectedSchoolIds = [];
+  final ScrollController _schoolScrollController = ScrollController();
+  int _currentPage = 1;
+  bool _hasMoreSchools = true;
+  bool _isLoadingMoreSchools = false;
 
   // Method to pick an image
   Future<void> _pickImage(ImageSource source) async {
@@ -130,6 +139,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     _bathroomsController.dispose();
     _availableFromController.dispose();
     _availableTillController.dispose();
+    _schoolScrollController.dispose();
     super.dispose();
   }
 
@@ -239,23 +249,119 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   }
 
   Future<void> _fetchSchools() async {
-    String url = "${Environment.iosAppBaseUrl}/api/school/lite/";
+    if (!_hasMoreSchools || _isLoadingMoreSchools) return;
+
+    setState(() {
+      _isLoadingMoreSchools = true;
+    });
+
+    String url = "${Environment.iosAppBaseUrl}/api/school/lite/?page=$_currentPage";
     try {
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> results = data['results'];
+        final bool hasNext = data['next'] != null;
+
         setState(() {
-          schoolOptions = data.map<Map<String, String>>((school) => {
-            'id': school['id'].toString(),
-            'name': school['name'].toString()
-          }).toList();
+          if (_currentPage == 1) {
+            schoolOptions = results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }).toList();
+          } else {
+            schoolOptions.addAll(results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }));
+          }
+          _hasMoreSchools = hasNext;
+          if (hasNext) _currentPage++;
+          _isLoadingMoreSchools = false;
         });
       } else {
+        setState(() {
+          _isLoadingMoreSchools = false;
+        });
         throw Exception("Failed to load schools");
       }
     } catch (e) {
+      setState(() {
+        _isLoadingMoreSchools = false;
+      });
       print("Error fetching schools: $e");
+    }  
+  }
+
+  Future<void> _searchSchools(String query) async {
+    // Reset pagination when a new search is initiated
+    if (_lastSearchQuery != query) {
+      setState(() {
+        _currentPage = 1;
+        _hasMoreSchools = true;
+        _lastSearchQuery = query;
+      });
+    }
+
+    if (!_hasMoreSchools || _isLoadingMoreSchools) return;
+
+    setState(() {
+      _isLoadingMoreSchools = true;
+    });
+
+    if (query.isEmpty && _currentPage == 1) {
+      await _fetchSchools();
+      return;
+    }
+
+    String url = "${Environment.iosAppBaseUrl}/api/school/lite/?name=$query&page=$_currentPage";
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> results = data['results'];
+        final bool hasNext = data['next'] != null;
+
+        setState(() {
+          if (_currentPage == 1) {
+            // Create a new list with both API results and selected schools
+            List<Map<String, String>> newOptions = results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }).toList();
+
+            // Add selected schools that aren't in the search results
+            for (String id in selectedSchoolIds) {
+              if (!newOptions.any((school) => school['id'] == id) && _selectedSchoolsMap.containsKey(id)) {
+                newOptions.add(_selectedSchoolsMap[id]!);
+              }
+            }
+            schoolOptions = newOptions;
+          } else {
+            // For pagination, only add new schools from API that aren't already in the list
+            List<Map<String, String>> newSchools = results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }).where((school) => !schoolOptions.any((existing) => existing['id'] == school['id'])).toList();
+            schoolOptions.addAll(newSchools);
+          }
+          _hasMoreSchools = hasNext;
+          if (hasNext) _currentPage++;
+          _isLoadingMoreSchools = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingMoreSchools = false;
+        });
+        throw Exception("Failed to search schools");
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingMoreSchools = false;
+      });
+      print("Error searching schools: $e");
     }
   }
 
@@ -555,6 +661,25 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 16),
 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: _hideAddress,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _hideAddress = value ?? false;
+                      });
+                    },
+                    activeColor: Kolors.kPrimary,
+                    checkColor: Colors.white,
+                  ),
+                  Text(
+                    "Hide Address",
+                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               // Title
               Text(
@@ -568,42 +693,24 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 title: "Schools",
                 options: schoolOptions.map((school) => school['name']!).toList(),
                 selectedValues: selectedSchoolIds.map((id) =>
-                  schoolOptions.firstWhere((school) => school['id'] == id)['name']!
+                  schoolOptions.firstWhere((school) => school['id'] == id, orElse: () => _selectedSchoolsMap[id] ?? {'name': '', 'id': id})['name']!
                 ).toList(),
                 hintText: "Select Nearby Schools",
                 onSelectionChanged: (List<String> selectedNames) {
                   setState(() {
-                    selectedSchoolIds = selectedNames.map((name) =>
-                      schoolOptions.firstWhere((school) => school['name'] == name)['id']!
-                    ).toList();
+                    // Update selectedSchoolIds and _selectedSchoolsMap
+                    selectedSchoolIds = selectedNames.map((name) {
+                      var school = schoolOptions.firstWhere((s) => s['name'] == name);
+                      _selectedSchoolsMap[school['id']!] = school;
+                      return school['id']!;
+                    }).toList();
                   });
                 },
+                onSearch: _searchSchools,
+                scrollController: _schoolScrollController,
+                isLoading: _isLoadingMoreSchools,
               ),
 
-              const SizedBox(height: 16),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Hide Address",
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-                  ),
-                  Transform.scale(
-                    scale: 0.8, // Reduce switch size
-                    child: Switch(
-                      value: _hideAddress,
-                      onChanged: (bool value) {
-                        setState(() {
-                          _hideAddress = value;
-                        });
-                      },
-                      activeColor: Kolors.kPrimary,
-                      inactiveThumbColor: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 16),
 
               requiredLabel("Property Type"),

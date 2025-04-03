@@ -9,7 +9,7 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
     context: context,
     builder: (BuildContext context) {
       return Container(
-        height: MediaQuery.of(context).size.height * 0.7,
+        height: MediaQuery.of(context).size.height * 0.5,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
@@ -21,7 +21,7 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Fashion App Help Center',
+                'HomiSwap App Help Center',
                 style: appStyle(
                   18.0,
                   Kolors.kPrimary,
@@ -80,30 +80,30 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
                   Icon(MaterialCommunityIcons.email_outline),
                   SizedBox(width: 10.0),
                   Text(
-                    'support@fashionapp.com',
+                    'suranabhavya99@gmail.com',
                     style: TextStyle(fontSize: 16.0),
                   ),
                 ],
               ),
               SizedBox(height: 20.h),
 
-              const Row(
-                children: [
-                  Icon(MaterialCommunityIcons.phone_outline),
-                  SizedBox(width: 10.0),
-                  Text(
-                    '+860000000000',
-                    style: TextStyle(fontSize: 16.0),
-                  ),
-                ],
-              ),
+              // const Row(
+              //   children: [
+              //     Icon(MaterialCommunityIcons.phone_outline),
+              //     SizedBox(width: 10.0),
+              //     Text(
+              //       '+860000000000',
+              //       style: TextStyle(fontSize: 16.0),
+              //     ),
+              //   ],
+              // ),
 
               SizedBox(height: 20.h),
 
-              ElevatedButton(
-                onPressed: () {},
-                child: const Text('Visit Full Help Center'),
-              ),
+              // ElevatedButton(
+              //   onPressed: () {},
+              //   child: const Text('Visit Full Help Center'),
+              // ),
             ],
           ),
         ),

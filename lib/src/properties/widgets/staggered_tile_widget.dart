@@ -18,13 +18,17 @@ import 'package:provider/provider.dart';
 
 
 class StaggeredTileWidget extends StatefulWidget {
-  const StaggeredTileWidget(
-    {super.key, required this.property, this.onTap}
-  );
+  const StaggeredTileWidget({
+    super.key, 
+    required this.property, 
+    this.onTap,
+    this.onEdit,
+  });
 
   // final int i;
   final PropertyListModel property;
   final void Function()? onTap;
+  final void Function()? onEdit;
 
   @override
   State<StaggeredTileWidget> createState() => _StaggeredTileWidgetState();
@@ -41,15 +45,16 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
     super.initState();
     _pageController = PageController(initialPage: 0);
 
-    // Auto-slide every 2 seconds
-    if (widget.property.images != null && widget.property.images!.isNotEmpty) {
+    // Auto-slide every 5 seconds if there are multiple images
+    if (widget.property.images != null && widget.property.images!.length > 1) {
       _timer = Timer.periodic(const Duration(seconds: 5), (Timer timer) {
-        if (widget.property.images!.isNotEmpty) {
-          if (_currentPage < widget.property.images!.length - 1) {
-            _currentPage++;
-          } else {
-            _currentPage = 0;
-          }
+        if (_currentPage < widget.property.images!.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
+        
+        if (_pageController.hasClients) {
           _pageController.animateToPage(
             _currentPage,
             duration: const Duration(milliseconds: 500),
@@ -76,183 +81,196 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
         });
         context.push('/property/${widget.property.id}');
       },
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 10.h),
-        child: Card(
-          margin: EdgeInsets.symmetric(vertical: 2.h),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Property Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  children: [
-                    SizedBox(
-                      height: 220.h,
-                      width: double.infinity,
-                      child: widget.property.images!.isNotEmpty
-                        ? PageView.builder(
-                            controller: _pageController,
-                            itemCount: widget.property.images?.length,
-                            itemBuilder: (context, index) {
-                              return CachedNetworkImage(
-                                imageUrl: widget.property.images![index],
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) =>
-                                    const Center(child: CircularProgressIndicator()),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(Icons.broken_image, size: 100, color: Kolors.kGray),
-                              );
-                            },
-                          )
-                        : Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(height: 16.h),
-                                const Icon(
-                                  Icons.image_not_supported,
-                                  size: 120,
-                                  color: Kolors.kGray,
-                                ),
-                                SizedBox(height: 8.h),
-                                Text(
-                                  "No images available",
-                                  style: appStyle(14.sp, Kolors.kGray, FontWeight.w400),
-                                ),
-                                SizedBox(height: 16.h),
-                              ],
-                            ),
-                          ),
-                    ),
-
-                    if (widget.property.images!.length > 1)
-                      Positioned(
-                        bottom: 10.h,
-                        left: 0,
-                        right: 0,
-                        child: Row(
+      child: Card(
+        margin: EdgeInsets.symmetric(vertical: 8.h),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Property Image
+            Stack(
+              children: [
+                SizedBox(
+                  height: 200.h,
+                  width: double.infinity,
+                  child: (widget.property.images != null && widget.property.images!.isNotEmpty)
+                    ? PageView.builder(
+                        controller: _pageController,
+                        itemCount: widget.property.images?.length,
+                        itemBuilder: (context, index) {
+                          return CachedNetworkImage(
+                            imageUrl: widget.property.images![index],
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.broken_image, size: 60, color: Kolors.kGray),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            widget.property.images!.length,
-                            (index) => AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              margin: const EdgeInsets.symmetric(horizontal: 4),
-                              height: 6,
-                              width: _currentPage == index ? 14 : 6,
-                              decoration: BoxDecoration(
-                                color: _currentPage == index ? Kolors.kPrimary : Kolors.kGray,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                          children: [
+                            const Icon(
+                              Icons.image_not_supported,
+                              size: 80,
+                              color: Kolors.kGray,
                             ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              "No images",
+                              style: appStyle(16.sp, Kolors.kGray, FontWeight.w400),
+                            ),
+                          ],
+                        ),
+                      ),
+                ),
+
+                if (widget.property.images != null && widget.property.images!.length > 1)
+                  Positioned(
+                    bottom: 10.h,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        widget.property.images!.length,
+                        (index) => AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          height: 6,
+                          width: _currentPage == index ? 14 : 6,
+                          decoration: BoxDecoration(
+                            color: _currentPage == index ? Kolors.kPrimary : Kolors.kGray,
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                       ),
+                    ),
+                  ),
 
-                    Positioned(
-                      right: 10.h,
-                      top: 10.h,
-                      child: Consumer<WishlistNotifier>(
-                        builder: (context, wishlistNotifier, child) {
-                          return GestureDetector(
-                            onTap: widget.onTap,
-                            child: CircleAvatar(
-                              backgroundColor: Kolors.kSecondaryLight,
-                              child: Icon(
-                                AntDesign.heart,
-                                color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
-                              ),
-                            ),
-                          );
-                        }
-                      )
-                    ),
-                  ],
-                ),
-              ),
-              // Property Details
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12.h, vertical: 12.h),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Text(
-                      widget.property.title,
-                      style: appStyle(16.sp, Kolors.kDark, FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    SizedBox(height: 4.h),
-                    // Location and Rent
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            widget.property.address,
-                            style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                Positioned(
+                  right: 10.h,
+                  top: 10.h,
+                  child: Consumer<WishlistNotifier>(
+                    builder: (context, wishlistNotifier, child) {
+                      return GestureDetector(
+                        onTap: widget.onTap,
+                        child: CircleAvatar(
+                          radius: 15.r,
+                          backgroundColor: Kolors.kSecondaryLight,
+                          child: Icon(
+                            AntDesign.heart,
+                            color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
+                            size: 15.r,
                           ),
                         ),
-                        // SizedBox(width: 8.w),
-                        // Text(
-                        //   '\$${property.rent.toStringAsFixed(0)}/${property.rentFrequency}',
-                        //   style: appStyle(15.sp, Kolors.kDark, FontWeight.w500),
-                        // ),
-                      ],
-                    ),
-                    SizedBox(height: 8.h),
-                    // Bedrooms and Bathrooms
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '\$${widget.property.rent}/${widget.property.rentFrequency}',
-                          style: appStyle(15.sp, Kolors.kDark, FontWeight.w500),
-                        ),
-                        Row(
-                          children: [
-                            if (widget.property.bedrooms != null) ...[
-                              Icon(
-                                Icons.bed,
-                                size: 16.sp,
-                                color: Kolors.kGray,
-                              ),
-                              SizedBox(width: 4.w),
-                              Text(
-                                '${widget.property.bedrooms}BR',
-                                style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                              ),
-                            ],
-                            if (widget.property.bedrooms != null && widget.property.bathrooms != null)
-                              SizedBox(width: 8.w), // Add spacing if both exist
-                            if (widget.property.bathrooms != null) ...[
-                              Icon(
-                                Icons.bathtub,
-                                size: 16.sp,
-                                color: Kolors.kGray,
-                              ),
-                              SizedBox(width: 4.w),
-                              Text(
-                                '${widget.property.bathrooms}BA',
-                                style: appStyle(13.sp, Kolors.kGray, FontWeight.w400),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                      );
+                    }
+                  )
                 ),
+                
+                // Edit button - only show if onEdit is provided
+                if (widget.onEdit != null)
+                  Positioned(
+                    left: 10.h,
+                    top: 10.h,
+                    child: GestureDetector(
+                      onTap: widget.onEdit,
+                      child: CircleAvatar(
+                        radius: 15.r,
+                        backgroundColor: Kolors.kSecondaryLight,
+                        child: Icon(
+                          Icons.edit,
+                          color: Kolors.kPrimary,
+                          size: 15.r,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            // Property Details
+            Padding(
+              padding: EdgeInsets.all(10.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    widget.property.title,
+                    style: appStyle(16.sp, Kolors.kDark, FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  SizedBox(height: 4.h),
+                  // Location and Rent
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.property.address,
+                          style: appStyle(14.sp, Kolors.kGray, FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  // Bedrooms and Bathrooms
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$${widget.property.rent}/${widget.property.rentFrequency}',
+                        style: appStyle(14.sp, Kolors.kDark, FontWeight.w600),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.property.bedrooms != null) ...[
+                            Icon(
+                              Icons.bed,
+                              size: 14.sp,
+                              color: Kolors.kGray,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              '${widget.property.bedrooms}BR',
+                              style: appStyle(12.sp, Kolors.kGray, FontWeight.w400),
+                            ),
+                          ],
+                          if (widget.property.bedrooms != null && widget.property.bathrooms != null)
+                            SizedBox(width: 8.w), // Add spacing if both exist
+                          if (widget.property.bathrooms != null) ...[
+                            Icon(
+                              Icons.bathtub,
+                              size: 14.sp,
+                              color: Kolors.kGray,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              '${widget.property.bathrooms}BA',
+                              style: appStyle(12.sp, Kolors.kGray, FontWeight.w400),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

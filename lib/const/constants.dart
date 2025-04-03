@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/const/resource.dart';
-import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 
 LinearGradient kGradient = const LinearGradient(

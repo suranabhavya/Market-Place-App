@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:marketplace_app/common/utils/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
@@ -11,6 +11,7 @@ import 'package:marketplace_app/common/widgets/password_field.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:marketplace_app/src/auth/models/registration_model.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 
 class RegistrationPage extends StatefulWidget {
   final String? prefilledEmail;
@@ -28,8 +29,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
   late final TextEditingController _passwordController;
   late final TextEditingController _confirmPasswordController;
   
+  final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _passwordNode = FocusNode();
   final FocusNode _confirmPasswordNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
+  
+  // Validation error states
+  String? _emailError;
+  String? _nameError;
+  String? _passwordError;
+  String? _confirmPasswordError;
+  
+  // Debounce timer for validation
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -38,6 +50,17 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _nameController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    
+    // Set focus based on whether email is pre-filled
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.prefilledEmail != null && widget.prefilledEmail!.isNotEmpty) {
+        // Email is pre-filled, focus on name field
+        FocusScope.of(context).requestFocus(_nameFocusNode);
+      } else {
+        // No email pre-filled, focus on email field first
+        FocusScope.of(context).requestFocus(_emailFocusNode);
+      }
+    });
   }
   
   @override
@@ -46,9 +69,75 @@ class _RegistrationPageState extends State<RegistrationPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _nameFocusNode.dispose();
     _passwordNode.dispose();
     _confirmPasswordNode.dispose();
+    _emailFocusNode.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+  
+  // Consolidated validation function
+  String? _validateField(String fieldName, String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return "$fieldName cannot be empty";
+    }
+    
+    switch (fieldName) {
+      case "Email":
+        const pattern = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$';
+        if (!RegExp(pattern, caseSensitive: false).hasMatch(value)) {
+          return "Enter a valid email";
+        }
+        break;
+      case "Confirm Password":
+        if (value != _passwordController.text) {
+          return "Passwords do not match";
+        }
+        break;
+    }
+    
+    return null;
+  }
+  
+  // Simplified debounce validation that only runs if the field needs to be validated
+  void _validateWithDebounce(String value, String fieldName, Function(String?) errorSetter) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        errorSetter(_validateField(fieldName, value));
+      }
+    });
+  }
+  
+  // Simplified error setters
+  void _setError(String fieldName, String? error) {
+    setState(() {
+      switch (fieldName) {
+        case "Email":
+          _emailError = error;
+          break;
+        case "Name":
+          _nameError = error;
+          break;
+        case "Password":
+          _passwordError = error;
+          break;
+        case "Confirm Password":
+          _confirmPasswordError = error;
+          break;
+      }
+    });
+  }
+  
+  // Validate all fields and update error states
+  void _validateAllFields() {
+    setState(() {
+      _emailError = _validateField("Email", _emailController.text);
+      _nameError = _validateField("Name", _nameController.text);
+      _passwordError = _validateField("Password", _passwordController.text);
+      _confirmPasswordError = _validateField("Confirm Password", _confirmPasswordController.text);
+    });
   }
 
   @override
@@ -58,13 +147,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: const AppBackButton(),
+        leading: AppBackButton(
+           onTap: () => context.go('/home'),
+        ),
       ),
 
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -75,185 +166,150 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
                 ),
                 
-                SizedBox(
-                  height: 10.h,
-                ),
+                SizedBox(height: 10.h),
             
                 Text(
-                  "Hey Homie! Let’s get you set up and rolling!",
+                  "Hey Homie! Let's get you set up and rolling!",
                   textAlign: TextAlign.center,
                   style: appStyle(13, Kolors.kGray, FontWeight.normal),
                 ),
             
-                SizedBox(
-                  height: 25.h,
-                ),
+                SizedBox(height: 25.h),
             
-                Padding(padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  children: [
-                    EmailTextField(
-                      radius: 25,
-                      focusNode: _passwordNode,
-                      hintText: "Email",
-                      controller: _emailController,
-                      prefixIcon: const Icon(
-                        CupertinoIcons.mail,
-                        size: 20,
-                        color: Kolors.kGray
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    children: [
+                      // Email field with inline validation
+                      EmailTextField(
+                        radius: 25,
+                        hintText: "Email",
+                        controller: _emailController,
+                        focusNode: _emailFocusNode,
+                        prefixIcon: const Icon(
+                          CupertinoIcons.mail,
+                          size: 20,
+                          color: Kolors.kGray
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                        onEditingComplete: () {
+                          FocusScope.of(context).requestFocus(_nameFocusNode);
+                        },
+                        onChanged: (value) => _validateWithDebounce(
+                          value, "Email", (error) => _setError("Email", error)
+                        ),
+                        errorText: _emailError,
+                        validator: (value) => _validateField("Email", value),
                       ),
-                      keyboardType: TextInputType.emailAddress,
-                      onEditingComplete: () {
-                        FocusScope.of(context).requestFocus(_passwordNode);
-                      },
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Email cannot be empty";
-                        }
-                        return null;
-                      },
-                    ),
-            
-                    SizedBox(
-                      height: 25.h,
-                    ),
-
-                    EmailTextField(
-                      radius: 25,
-                      hintText: "Full Name",
-                      controller: _nameController,
-                      prefixIcon: const Icon(
-                        CupertinoIcons.profile_circled,
-                        size: 20,
-                        color: Kolors.kGray
+              
+                      SizedBox(height: 20.h),
+  
+                      // Name field with inline validation
+                      EmailTextField(
+                        radius: 25,
+                        hintText: "Full Name",
+                        controller: _nameController,
+                        focusNode: _nameFocusNode,
+                        prefixIcon: const Icon(
+                          CupertinoIcons.profile_circled,
+                          size: 20,
+                          color: Kolors.kGray
+                        ),
+                        keyboardType: TextInputType.name,
+                        onEditingComplete: () {
+                          FocusScope.of(context).requestFocus(_passwordNode);
+                        },
+                        onChanged: (value) => _validateWithDebounce(
+                          value, "Name", (error) => _setError("Name", error)
+                        ),
+                        errorText: _nameError,
+                        validator: (value) => _validateField("Name", value),
                       ),
-                      keyboardType: TextInputType.name,
-                      onEditingComplete: () {
-                        FocusScope.of(context).requestFocus(_passwordNode);
-                      },
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Name cannot be empty";
-                        }
-                        return null;
-                      },
-                    ),
-            
-                    SizedBox(
-                      height: 25.h,
-                    ),
-            
-                    PasswordField(
-                      controller: _passwordController,
-                      focusNode: _passwordNode,
-                      radius: 25,
-                      hintText: "Password",
-                    ),
-                  
-                    SizedBox(
-                      height: 25.h,
-                    ),
-            
-                    PasswordField(
-                      controller: _confirmPasswordController,
-                      focusNode: _confirmPasswordNode,
-                      radius: 25,
-                      hintText: "Confirm Password",
-                    ),
+              
+                      SizedBox(height: 20.h),
+              
+                      // Password field
+                      PasswordField(
+                        controller: _passwordController,
+                        focusNode: _passwordNode,
+                        radius: 25,
+                        hintText: "Password",
+                        errorText: _passwordError,
+                        onChanged: (value) => _validateWithDebounce(
+                          value, "Password", (error) => _setError("Password", error)
+                        ),
+                        onEditingComplete: () {
+                          FocusScope.of(context).requestFocus(_confirmPasswordNode);
+                        },
+                      ),
                     
-                    SizedBox(height: 25.h),
-            
-                    context.watch<AuthNotifier>().isRLoading ?
-                    const Center(
-                      child: CircularProgressIndicator(
-                        backgroundColor: Kolors.kPrimary,
-                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+                      SizedBox(height: 20.h),
+              
+                      // Confirm password field
+                      PasswordField(
+                        controller: _confirmPasswordController,
+                        focusNode: _confirmPasswordNode,
+                        radius: 25,
+                        hintText: "Confirm Password",
+                        errorText: _confirmPasswordError,
+                        onChanged: (value) => _validateWithDebounce(
+                          value, "Confirm Password", (error) => _setError("Confirm Password", error)
+                        ),
+                        onEditingComplete: _handleRegistration,
                       ),
-                    ) :
-                    CustomButton(
-                      onTap: () {
-                        String? emailError;
-                        String? nameError;
-                        String? passwordError;
-                        String? confirmPasswordError;
-
-                        // Validate Email
-                        if (_emailController.text.trim().isEmpty) {
-                          emailError = "Email cannot be empty";
-                        } else {
-                          String emailPattern =
-                              r'^[a-zA-Z0-9.a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+';
-                          RegExp regex = RegExp(emailPattern);
-                          if (!regex.hasMatch(_emailController.text)) {
-                            emailError = "Enter a valid email";
-                          }
-                        }
-
-                        // Validate Name
-                        if (_nameController.text.trim().isEmpty) {
-                          nameError = "Name cannot be empty";
-                        }
-
-                        // Validate Password
-                        if (_passwordController.text.isEmpty) {
-                          passwordError = "Password cannot be empty";
-                        }
-
-                        // Validate Confirm Password
-                        if (_confirmPasswordController.text.isEmpty) {
-                          confirmPasswordError = "Confirm Password cannot be empty";
-                        } else if (_passwordController.text != _confirmPasswordController.text) {
-                          confirmPasswordError = "Passwords do not match";
-                        }
-
-                        // Collect all errors
-                        List<String> errors = [];
-                        if (emailError != null) errors.add(emailError);
-                        if (nameError != null) errors.add(nameError);
-                        if (passwordError != null) errors.add(passwordError);
-                        if (confirmPasswordError != null) errors.add(confirmPasswordError);
-
-                        // Show errors if there are any
-                        if (errors.isNotEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: errors.map((e) => Text(e)).toList(),
-                              ),
-                              backgroundColor: Colors.red,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                          return; // Stop execution if errors exist
-                        }
-
-                        RegistrationModel model = RegistrationModel(
-                          email: _emailController.text,
-                          name: _nameController.text,
-                          username: _emailController.text,
-                          password: _passwordController.text,
-                          confirm_password: _confirmPasswordController.text
-                        );
-            
-                        String data = registrationModelToJson(model);
-
-                        print("data is: $data");
-            
-                        context.read<AuthNotifier>().registrationFunc(data, context);
-                      },
-                      text: "S I G N U P",
-                      btnWidth: ScreenUtil().screenWidth,
-                      btnHeight: 40,
-                      radius: 20,
-                    )
-                  ],
-                ),)
+                      
+                      SizedBox(height: 20.h),
+              
+                      Consumer<AuthNotifier>(
+                        builder: (context, authNotifier, _) {
+                          return authNotifier.isRLoading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  backgroundColor: Kolors.kPrimary,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+                                ),
+                              )
+                            : CustomButton(
+                                onTap: _handleRegistration,
+                                text: "S I G N U P",
+                                textSize: 16,
+                                btnWidth: ScreenUtil().screenWidth,
+                                btnHeight: 50.h,
+                                radius: 25,
+                              );
+                        },
+                      )
+                    ],
+                  ),
+                )
               ],
             ),
           ),
         ),
       ),
     );
+  }
+  
+  void _handleRegistration() {
+    // Validate all fields and update error states
+    _validateAllFields();
+    
+    // Check if there are any validation errors
+    if (_emailError != null || _nameError != null || 
+        _passwordError != null || _confirmPasswordError != null) {
+      return; // Stop execution if there are validation errors
+    }
+
+    // Create registration model and submit using camelCase naming
+    final model = RegistrationModel(
+      email: _emailController.text,
+      username: _emailController.text,
+      name: _nameController.text,
+      password: _passwordController.text,
+      confirmPassword: _confirmPasswordController.text
+    );
+
+    final data = registrationModelToJson(model);
+    context.read<AuthNotifier>().registrationFunc(data, context);
   }
 }

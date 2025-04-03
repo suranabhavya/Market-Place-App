@@ -7,15 +7,29 @@ import 'package:provider/provider.dart';
 
 class PasswordField extends StatefulWidget {
   const PasswordField({
-    Key? key,
+    super.key,
     required this.controller,
-    this.focusNode, this.radius, this.hintText
-  }) : super(key: key);
+    this.focusNode,
+    this.radius,
+    this.hintText,
+    this.onEditingComplete,
+    this.onChanged,
+    this.validator,
+    this.errorText,
+    this.textInputAction,
+    this.onSubmitted,
+  });
 
   final TextEditingController controller;
   final FocusNode? focusNode;
   final double? radius;
   final String? hintText;
+  final void Function()? onEditingComplete;
+  final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
+  final String? errorText;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   State<PasswordField> createState() => _PasswordFieldState();
@@ -30,19 +44,22 @@ class _PasswordFieldState extends State<PasswordField> {
       builder: (context, passwordNotifier, child) {
         return TextFormField(
           cursorColor: Colors.black,
-          textInputAction: TextInputAction.next,
+          textInputAction: widget.textInputAction ?? TextInputAction.next,
           focusNode: widget.focusNode,
           keyboardType: TextInputType.visiblePassword,
           controller: widget.controller,
           obscureText: _isObscured,
-          validator: (value) {
-            if (value!.isEmpty) {
+          onEditingComplete: widget.onEditingComplete,
+          onChanged: widget.onChanged,
+          onFieldSubmitted: widget.onSubmitted,
+          validator: widget.validator ?? (value) {
+            if (value == null || value.isEmpty) {
               return "Please enter a valid password";
             } else {
               return null;
             }
           },
-          style: appStyle(12, Kolors.kDark, FontWeight.normal),
+          style: appStyle(14, Kolors.kDark, FontWeight.normal),
           decoration: InputDecoration(
             suffixIcon: GestureDetector(
               onTap: () {
@@ -60,29 +77,32 @@ class _PasswordFieldState extends State<PasswordField> {
             hintText: widget.hintText,
             prefixIcon: const Icon(
               CupertinoIcons.lock_circle,
-              color: Kolors.kGrayLight,
               size: 26,
+              color: Kolors.kGray,
             ),
             isDense: true,
-            contentPadding: const EdgeInsets.all(6),
-            hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-            // contentPadding: EdgeInsets.only(left: 24),
-            errorBorder:  OutlineInputBorder(
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            hintStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
+            
+            errorText: widget.errorText,
+            errorStyle: appStyle(12, Colors.red, FontWeight.normal),
+            
+            errorBorder: OutlineInputBorder(
                 borderSide: const BorderSide(color: Colors.red, width: 0.5),
                 borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
-            focusedBorder:  OutlineInputBorder(
-                borderSide: const BorderSide(color: Kolors.kPrimary, width: 0.5),
+            focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.0),
                 borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
-            focusedErrorBorder:  OutlineInputBorder(
-                borderSide: const BorderSide(color: Kolors.kRed, width: 0.5),
+            focusedErrorBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: Colors.red, width: 0.5),
                 borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
-            disabledBorder:  OutlineInputBorder(
+            disabledBorder: OutlineInputBorder(
                 borderSide: const BorderSide(color: Kolors.kGray, width: 0.5),
                 borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
-            enabledBorder:  OutlineInputBorder(
+            enabledBorder: OutlineInputBorder(
                 borderSide: const BorderSide(color: Kolors.kGray, width: 0.5),
                 borderRadius: BorderRadius.all(Radius.circular(widget.radius??12))),
-            border:  OutlineInputBorder(
+            border: OutlineInputBorder(
               borderSide: const BorderSide(color: Kolors.kPrimary, width: 0.5),
               borderRadius: BorderRadius.all(
                 Radius.circular(widget.radius??12),

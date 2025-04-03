@@ -37,9 +37,11 @@ dependencies:
   webview_universal: ^0.0.5
   # google_maps_flutter: ^2.6.1
   get_time_ago: ^2.3.0
-  firebase_messaging: ^14.7.21
-  flutter_local_notifications: ^17.0.0
-  firebase_core: ^2.32.0
+  # Removing Firebase dependencies
+  # firebase_messaging: ^14.7.21
+  # flutter_local_notifications: ^17.0.0
+  # firebase_core: ^2.32.0
+  google_sign_in: ^6.2.1
   http: ^1.2.2
   image_picker: ^1.1.2
   geolocator: ^11.0.0
@@ -61,5 +63,6 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/icons/
     - .env.development
     - .env.production

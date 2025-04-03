@@ -4,19 +4,27 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 
 class EmailTextField extends StatelessWidget {
   const EmailTextField({
-    Key? key,
+    super.key,
     this.prefixIcon,
     this.keyboardType,
     this.onEditingComplete,
     this.controller,
     this.hintText,
+    this.labelText,
+    this.floatingLabelBehavior,
     this.focusNode,
     this.initialValue,
     this.radius,
     this.onChanged,
     this.validator,
-  }) : super(key: key);
+    this.textInputAction,
+    this.onSubmitted,
+    this.errorText,
+    this.suffixIcon,
+  });
   final String? hintText;
+  final String? labelText;
+  final FloatingLabelBehavior? floatingLabelBehavior;
   final double? radius;
   final Widget? prefixIcon;
   final TextInputType? keyboardType;
@@ -26,42 +34,58 @@ class EmailTextField extends StatelessWidget {
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final String? errorText;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
         cursorColor: Colors.black,
-        textInputAction: TextInputAction.next,
+        textInputAction: textInputAction ?? TextInputAction.next,
         onEditingComplete: onEditingComplete,
+        onFieldSubmitted: onSubmitted,
         keyboardType: keyboardType,
         initialValue: initialValue,
         controller: controller,
         onChanged: onChanged,
         validator: validator,
-        style: appStyle(12, Kolors.kDark, FontWeight.normal),
+        focusNode: focusNode,
+        style: appStyle(14, Kolors.kDark, FontWeight.normal),
         decoration: InputDecoration(
           hintText: hintText,
+          labelText: labelText ?? hintText,
+          floatingLabelBehavior: floatingLabelBehavior ?? FloatingLabelBehavior.auto,
           prefixIcon: prefixIcon,
+          suffixIcon: suffixIcon,
           isDense: true,
-          contentPadding: const EdgeInsets.all(6),
-
-          hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-          // contentPadding: EdgeInsets.only(left: 24),
-          errorBorder:  OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(radius??12))),
-          focusedBorder:  OutlineInputBorder(
-              borderSide: const BorderSide(color: Kolors.kPrimary, width: 0.5),
-              borderRadius: BorderRadius.all(Radius.circular(radius??12))),
-          focusedErrorBorder:  OutlineInputBorder(
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          
+          hintStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
+          labelStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
+          
+          floatingLabelStyle: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+          
+          errorText: errorText,
+          errorStyle: appStyle(12, Colors.red, FontWeight.normal),
+          
+          errorBorder: OutlineInputBorder(
               borderSide: const BorderSide(color: Colors.red, width: 0.5),
               borderRadius: BorderRadius.all(Radius.circular(radius??12))),
-          disabledBorder:  OutlineInputBorder(
+          focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.0),
+              borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+          focusedErrorBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.red, width: 0.5),
+              borderRadius: BorderRadius.all(Radius.circular(radius??12))),
+          disabledBorder: OutlineInputBorder(
               borderSide: const BorderSide(color: Kolors.kGray, width: 0.5),
               borderRadius: BorderRadius.all(Radius.circular(radius??12))),
-          enabledBorder:  OutlineInputBorder(
+          enabledBorder: OutlineInputBorder(
               borderSide: const BorderSide(color: Kolors.kGray, width: 0.5),
               borderRadius: BorderRadius.all(Radius.circular(radius??12))),
-          border:  OutlineInputBorder(
+          border: OutlineInputBorder(
             borderSide: const BorderSide(color: Kolors.kPrimary, width: 0.5),
             borderRadius: BorderRadius.all(
               Radius.circular(radius??12),

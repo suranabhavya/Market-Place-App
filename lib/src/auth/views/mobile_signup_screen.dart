@@ -153,7 +153,7 @@ class _MobileSignupPageState extends State<MobileSignupPage> {
               icon: Icons.email,
               text: "Continue with email",
               onTap: () {
-                context.push('/login/email');
+                context.push('/check-email');
               },
             ),
             _buildSocialButton(
