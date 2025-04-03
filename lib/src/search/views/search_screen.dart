@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
@@ -35,16 +36,25 @@ class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   Timer? _debounce;
+  bool _isLocationLoading = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
-    });
+    
+    // Initialize the search controller with any existing search query
+    final filterNotifier = context.read<FilterNotifier>();
+    if (filterNotifier.searchKey.isNotEmpty) {
+      _searchController.text = filterNotifier.searchKey;
+    }
     
     // Add listener to search controller
     _searchController.addListener(_onSearchChanged);
+    
+    // Set focus to the search field
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
   }
 
   @override
@@ -69,20 +79,96 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
   
+  // Get nearby properties using device location
+  Future<void> _getNearbyProperties() async {
+    setState(() {
+      _isLocationLoading = true;
+    });
+    
+    try {
+      // Check and request location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.denied || 
+          permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Location permission is required to find nearby properties"),
+            backgroundColor: Kolors.kRed,
+          ),
+        );
+        setState(() {
+          _isLocationLoading = false;
+        });
+        return;
+      }
+      
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high
+      );
+      
+      // Update filter notifier with location
+      final filterNotifier = context.read<FilterNotifier>();
+      
+      // Clear search text and set "Near Me" as the search key
+      _searchController.text = "Properties Near Me";
+      filterNotifier.setSearchKey("Properties Near Me");
+      
+      // Set location in filter notifier
+      filterNotifier.setLocation(position.latitude, position.longitude);
+      
+      // Apply filters with the new location
+      await filterNotifier.applyFilters(context);
+      
+      // Navigate back to home
+      if (mounted) {
+        context.pop();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to get location: $e"),
+          backgroundColor: Kolors.kRed,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLocationLoading = false;
+        });
+      }
+    }
+  }
+  
   // Perform the search when user selects an autocomplete suggestion or presses search
   void _performSearch(String query) async {
-    // Update the search key in FilterNotifier instead of SearchNotifier
+    if (query.isEmpty) return;
+    
+    // Update the search key in FilterNotifier
     final filterNotifier = context.read<FilterNotifier>();
     filterNotifier.setSearchKey(query);
     
-    // Use FilterNotifier to apply filters (which now includes search)
-    filterNotifier.applyFilters(context);
+    // Reset location if we're not doing a location-based search
+    if (query != "Properties Near Me") {
+      filterNotifier.resetLocation();
+    }
+    
+    // Use FilterNotifier to apply filters
+    await filterNotifier.applyFilters(context);
+    
+    // Go back to home screen
+    if (mounted) {
+      context.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    String? accessToken = Storage().getString('accessToken');
-    
     return Scaffold(
       appBar: AppBar(
         leading: AppBackButton(
@@ -127,6 +213,20 @@ class _SearchPageState extends State<SearchPage> {
                           color: Kolors.kPrimary,
                         ),
                       ),
+                      // Add clear button to search field
+                      suffixIcon: _searchController.text.isNotEmpty 
+                          ? GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                                context.read<SearchNotifier>().clearAutocompleteResults();
+                              },
+                              child: const Icon(
+                                Icons.close,
+                                color: Kolors.kGray,
+                                size: 18,
+                              ),
+                            )
+                          : null,
                     ),
                     if (searchNotifier.isAutocompleteLoading)
                       Positioned(
@@ -151,63 +251,156 @@ class _SearchPageState extends State<SearchPage> {
 
       body: Consumer<SearchNotifier>(
         builder: (context, searchNotifier, child) {
+          final bool hasAutocompleteResults = searchNotifier.autocompleteResults.entries
+              .any((entry) => entry.value.isNotEmpty);
+              
           return Padding(
             padding: EdgeInsets.symmetric(horizontal: 14.w),
             child: Column(
               children: [
-                // Autocomplete results section
-                if (searchNotifier.autocompleteResults.isNotEmpty)
-                  Flexible(
-                    child: ListView(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      physics: const BouncingScrollPhysics(),
-                      children: searchNotifier.autocompleteResults.entries.expand((entry) {
-                        String displayName = _getDisplayName(entry.key);
-                        return [
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                            child: ReusableText(
-                              text: displayName,
-                              style: appStyle(12, Kolors.kGray, FontWeight.w600),
-                            ),
-                          ),
-                          const Divider(height: 1),
-                          ...entry.value.map((value) => InkWell(
-                            onTap: () {
-                              _searchController.text = value;
-                              _performSearch(value);
-                            },
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _getCategoryIcon(entry.key),
-                                    size: 18, 
-                                    color: Kolors.kGray
-                                  ),
-                                  SizedBox(width: 10.w),
-                                  Expanded(
-                                    child: ReusableText(
-                                      text: value,
-                                      style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )).toList(),
-                          if (entry.key != searchNotifier.autocompleteResults.keys.last)
-                            SizedBox(height: 10.h),
-                        ];
-                      }).toList(),
+                // "Near Me" option
+                InkWell(
+                  onTap: _isLocationLoading ? null : _getNearbyProperties,
+                  child: Container(
+                    margin: EdgeInsets.symmetric(vertical: 8.h),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: Kolors.kOffWhite,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Kolors.kGray.withOpacity(0.3)),
                     ),
+                    child: Row(
+                      children: [
+                        _isLocationLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Kolors.kPrimary,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.location_on,
+                                color: Kolors.kPrimary,
+                                size: 24,
+                              ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(
+                            "Find properties near me",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.w500),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Kolors.kPrimary,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                // Search suggestions or "No results" message
+                if (_searchController.text.isNotEmpty)
+                  Expanded(
+                    child: hasAutocompleteResults 
+                      ? _buildAutocompleteResults(searchNotifier)
+                      : searchNotifier.isAutocompleteLoading 
+                          ? Container() // Don't show anything while loading
+                          : _buildNoResultsMessage(),
                   ),
               ],
             ),
           );
         }
+      ),
+    );
+  }
+  
+  // Build the autocomplete results list
+  Widget _buildAutocompleteResults(SearchNotifier searchNotifier) {
+    return ListView(
+      padding: EdgeInsets.only(top: 8.h),
+      physics: const BouncingScrollPhysics(),
+      children: searchNotifier.autocompleteResults.entries
+        // Filter out empty categories first
+        .where((entry) => entry.value.isNotEmpty)
+        .expand((entry) {
+          String displayName = _getDisplayName(entry.key);
+          return [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+              child: Text(
+                displayName,
+                style: appStyle(12, Kolors.kGray, FontWeight.w600),
+              ),
+            ),
+            const Divider(height: 1),
+            ...entry.value.map((value) => InkWell(
+              onTap: () {
+                _searchController.text = value;
+                _performSearch(value);
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                child: Row(
+                  children: [
+                    Icon(
+                      _getCategoryIcon(entry.key),
+                      size: 18, 
+                      color: Kolors.kGray
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(
+                        value,
+                        style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )).toList(),
+            // Add spacing after each category except the last one
+            if (entry.key != searchNotifier.autocompleteResults.entries
+                .where((e) => e.value.isNotEmpty)
+                .last.key)
+              SizedBox(height: 10.h),
+          ];
+      }).toList(),
+    );
+  }
+  
+  // Build the no results message
+  Widget _buildNoResultsMessage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 60.sp,
+            color: Kolors.kGray.withOpacity(0.5),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            "No results found",
+            style: appStyle(16, Kolors.kDark, FontWeight.w500),
+          ),
+          SizedBox(height: 8.h),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32.w),
+            child: Text(
+              "Try a different search term or use the location search option",
+              style: appStyle(14, Kolors.kGray, FontWeight.normal),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }

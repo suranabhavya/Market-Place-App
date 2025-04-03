@@ -36,7 +36,18 @@ class PropertyNotifier extends ChangeNotifier {
   List<PropertyListModel> get properties => _properties;
   PropertyDetailModel? get selectedProperty => _selectedProperty;
   bool isLoading = false;
+  bool isLoadingMore = false;
+  String? nextPageUrl;
+  int totalPropertiesCount = 0;
   List<PropertyListModel> userProperties = [];
+
+  // Reset properties and pagination data
+  void resetProperties() {
+    _properties = [];
+    nextPageUrl = null;
+    totalPropertiesCount = 0;
+    notifyListeners();
+  }
 
   Future<List<PropertyListModel>> fetchUserProperties() async {
     try {
@@ -64,15 +75,21 @@ class PropertyNotifier extends ChangeNotifier {
     }
   }
 
-
   Future<void> fetchProperties({double? lat, double? lng}) async {
+    if (isLoading) return;
+    
     isLoading = true;
+    nextPageUrl = null; // Reset pagination when fetching from the beginning
     notifyListeners();
+    
     try {
       String url = '${Environment.iosAppBaseUrl}/api/properties/';
       if (lat != null && lng != null) {
         url += "?lat=$lat&lng=$lng";
       }
+      
+      debugPrint("Fetching properties from URL: $url");
+      
       final response = await http.get(
         Uri.parse(url),
         headers: {
@@ -81,14 +98,19 @@ class PropertyNotifier extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        // Parse the response
-        final List<dynamic> jsonData = jsonDecode(response.body);
-        final List<PropertyListModel> fetchedProperties = jsonData.map((json) {
-          return PropertyListModel.fromJson(json);
-        }).toList();
+        // Parse the paginated response
+        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+        
+        // Update properties list with results
+        _properties = paginatedResponse.results;
+        
+        // Store pagination info
+        nextPageUrl = paginatedResponse.next;
+        totalPropertiesCount = paginatedResponse.count;
 
-        // Notify listeners with the fetched data
-        _properties = fetchedProperties;
+        debugPrint("Fetched ${paginatedResponse.results.length} properties");
+        debugPrint("Total count: $totalPropertiesCount");
+        debugPrint("Next page URL: $nextPageUrl");
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           notifyListeners();
@@ -99,10 +121,50 @@ class PropertyNotifier extends ChangeNotifier {
     } catch (e) {
       debugPrint("Exception: $e");
     }
+    
     isLoading = false;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners();  // Notify UI after the widget tree is fully built
-    });
+    notifyListeners();
+  }
+
+  // Load more properties for infinite scrolling
+  Future<void> loadMoreProperties() async {
+    if (isLoadingMore || nextPageUrl == null) {
+      debugPrint("Skipping load more: isLoadingMore=$isLoadingMore, nextPageUrl=$nextPageUrl");
+      return;
+    }
+    
+    debugPrint("Loading more properties from URL: $nextPageUrl");
+    isLoadingMore = true;
+    notifyListeners();
+    
+    try {
+      final response = await http.get(
+        Uri.parse(nextPageUrl!),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the paginated response
+        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+        
+        // Add more properties to the existing list
+        _properties.addAll(paginatedResponse.results);
+        debugPrint("Added ${paginatedResponse.results.length} more properties, total now: ${_properties.length}");
+        
+        // Update pagination info
+        nextPageUrl = paginatedResponse.next;
+        debugPrint("Next page URL updated to: $nextPageUrl");
+      } else {
+        debugPrint("Error loading more properties: ${response.body}");
+      }
+    } catch (e) {
+      debugPrint("Exception loading more properties: $e");
+    }
+    
+    isLoadingMore = false;
+    notifyListeners();
   }
 
   // Fetch a specific property detail by ID

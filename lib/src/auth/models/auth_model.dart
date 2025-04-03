@@ -37,7 +37,6 @@ class User {
     dynamic profilePhoto;
     dynamic schoolEmail;
     bool schoolEmailVerified;
-    List<dynamic> properties;
 
     User({
         required this.id,
@@ -48,7 +47,6 @@ class User {
         required this.profilePhoto,
         required this.schoolEmail,
         required this.schoolEmailVerified,
-        required this.properties,
     });
 
     factory User.fromJson(Map<String, dynamic> json) => User(
@@ -60,7 +58,6 @@ class User {
         profilePhoto: json["profile_photo"],
         schoolEmail: json["school_email"],
         schoolEmailVerified: json["school_email_verified"],
-        properties: json["properties"] ?? [],
     );
 
     Map<String, dynamic> toJson() => {
@@ -72,6 +69,5 @@ class User {
         "profile_photo": profilePhoto,
         "school_email": schoolEmail,
         "school_email_verified": schoolEmailVerified,
-        "properties": properties,
     };
 }

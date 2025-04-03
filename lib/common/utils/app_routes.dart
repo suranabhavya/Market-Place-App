@@ -11,13 +11,11 @@ import 'package:marketplace_app/src/filter/views/filter_screen.dart';
 import 'package:marketplace_app/src/notifications/views/notification_screen.dart';
 import 'package:marketplace_app/src/onboarding/views/onboarding_screen.dart';
 import 'package:marketplace_app/src/profile/views/account_screen.dart';
-import 'package:marketplace_app/src/profile/views/policy_screen.dart';
-import 'package:marketplace_app/src/profile/views/shipping_address_screen.dart';
+import 'package:marketplace_app/src/profile/views/settings_screen.dart';
 import 'package:marketplace_app/src/profile/views/update_email_screen.dart';
 import 'package:marketplace_app/src/profile/views/update_password_screen.dart';
 import 'package:marketplace_app/src/profile/views/user_listings_screen.dart';
 import 'package:marketplace_app/src/profile/views/verify_school_email_screen.dart';
-import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/views/create_property_screen.dart';
 import 'package:marketplace_app/src/properties/views/property_screen.dart';
 import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
@@ -38,8 +36,7 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/home',
       builder: (context, state) {
-        final filteredProperties = state.extra as List<PropertyListModel>?;
-        return AppEntryPoint(filteredProperties: filteredProperties);
+        return AppEntryPoint();
       },
     ),
     GoRoute(
@@ -56,10 +53,6 @@ final GoRouter _router = GoRouter(
         final String? prefilledEmail = state.extra != null ? (state.extra as Map<String, dynamic>)['email'] : null;
         return RegistrationPage(prefilledEmail: prefilledEmail);
       },
-    ),
-    GoRoute(
-      path: '/policy',
-      builder: (context, state) => const PolicyPage(),
     ),
     GoRoute(
       path: '/search',
@@ -86,6 +79,10 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const VerifySchoolEmailPage(),
     ),
     GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
       path: '/login',
       builder: (context, state) {
         final String? prefilledEmail = state.extra != null ? (state.extra as Map<String, dynamic>)['email'] : null;
@@ -106,10 +103,6 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/categories',
       builder: (context, state) => const CategoriesPage(),
-    ),
-    GoRoute(
-      path: '/addresses',
-      builder: (context, state) => const ShippingAddress()
     ),
      GoRoute(
       path: '/notifications',

@@ -66,7 +66,7 @@ class _SelectDurationPageState extends State<SelectDurationPage> {
         ),
         title: ReusableText(
           text: AppText.kSelectDuration,
-          style: appStyle(15, Kolors.kPrimary, FontWeight.bold)
+          style: appStyle(16, Kolors.kPrimary, FontWeight.bold)
         ),
       ),
       body: Column(
@@ -81,7 +81,10 @@ class _SelectDurationPageState extends State<SelectDurationPage> {
                   onTap: () => setState(() => checkOutDate = null),
                   child: Column(
                     children: [
-                      const Text("Move-in"),
+                      Text(
+                        "Move-in",
+                        style: appStyle(14, Kolors.kPrimary, FontWeight.w400),
+                      ),
                       Text(
                         formattedCheckIn,
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -99,7 +102,10 @@ class _SelectDurationPageState extends State<SelectDurationPage> {
                   },
                   child: Column(
                     children: [
-                      const Text("Move-out"),
+                      Text(
+                        "Move-out",
+                        style: appStyle(14, Kolors.kPrimary, FontWeight.w400),
+                      ),
                       Text(
                         formattedCheckOut,
                         style: const TextStyle(fontWeight: FontWeight.bold),

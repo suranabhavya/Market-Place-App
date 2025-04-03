@@ -64,6 +64,7 @@ class AuthNotifier with ChangeNotifier {
 
         // Store token and user details
         Storage().setString('accessToken', authData.token);
+        print("logged in user is: ${jsonEncode(authData.user.toJson())}");
         Storage().setString('user', jsonEncode(authData.user.toJson()));
 
         if (ctx.mounted) {

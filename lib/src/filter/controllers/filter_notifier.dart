@@ -13,11 +13,44 @@ class FilterNotifier extends ChangeNotifier {
   List<String> selectedSchools = [];
   DateTime? availableFrom;
   DateTime? availableTo;
-  String searchKey = '';
+  String _searchKey = '';
+  String get searchKey => _searchKey;
+
+  // New state variables for property type and flatmate preferences
+  String propertyType = '';
+  String smokingPreference = '';
+  String partyingPreference = '';
+  String dietaryPreference = '';
+  String nationalityPreference = '';
+  Map<String, bool> amenities = {};
 
   List<PropertyListModel> filteredProperties = [];
   bool isLoading = false;
+  bool isLoadingMore = false;
+  String? nextPageUrl;
+  int totalPropertiesCount = 0;
   String? errorMessage;
+
+  // Location for proximity search
+  double? _latitude;
+  double? _longitude;
+  
+  double? get latitude => _latitude;
+  double? get longitude => _longitude;
+  
+  // Set location for proximity search
+  void setLocation(double lat, double lng) {
+    _latitude = lat;
+    _longitude = lng;
+    notifyListeners();
+  }
+  
+  // Reset location data
+  void resetLocation() {
+    _latitude = null;
+    _longitude = null;
+    notifyListeners();
+  }
 
   void setPriceRange(RangeValues values) {
     priceRange = values;
@@ -49,59 +82,194 @@ class FilterNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSearchKey(String value) {
-    searchKey = value;
+  void setSearchKey(String key) {
+    _searchKey = key;
     notifyListeners();
   }
 
+  // New methods for property type and flatmate preferences
+  void setPropertyType(String type) {
+    propertyType = type;
+    notifyListeners();
+  }
+
+  void setSmokingPreference(String preference) {
+    smokingPreference = preference;
+    notifyListeners();
+  }
+
+  void setPartyingPreference(String preference) {
+    partyingPreference = preference;
+    notifyListeners();
+  }
+
+  void setDietaryPreference(String preference) {
+    dietaryPreference = preference;
+    notifyListeners();
+  }
+
+  void setNationalityPreference(String preference) {
+    nationalityPreference = preference;
+    notifyListeners();
+  }
+
+  void toggleAmenity(String amenity) {
+    amenities[amenity] = !(amenities[amenity] ?? false);
+    notifyListeners();
+  }
+
+  // Update _buildFilterUrl to include new filters
+  String _buildFilterUrl() {
+    String url = "${Environment.iosAppBaseUrl}/api/properties/?";
+
+    // Add search parameter if available
+    if (_searchKey.isNotEmpty && _searchKey != "Properties Near Me") {
+      url += "search=$_searchKey&";
+    }
+
+    // Add location parameters if available
+    if (_latitude != null && _longitude != null) {
+      url += "latitude=$_latitude&longitude=$_longitude&";
+    }
+
+    // Add property type
+    if (propertyType.isNotEmpty) {
+      url += "property_type=$propertyType&";
+    }
+
+    // Add flatmate preferences
+    if (smokingPreference.isNotEmpty) {
+      url += "smoking_preference=$smokingPreference&";
+    }
+    if (partyingPreference.isNotEmpty) {
+      url += "partying_preference=$partyingPreference&";
+    }
+    if (dietaryPreference.isNotEmpty) {
+      url += "dietary_preference=$dietaryPreference&";
+    }
+    if (nationalityPreference.isNotEmpty) {
+      url += "nationality_preference=$nationalityPreference&";
+    }
+
+    // Add amenities
+    List<String> selectedAmenities = amenities.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+    if (selectedAmenities.isNotEmpty) {
+      url += "amenities=${selectedAmenities.join(',')}&";
+    }
+
+    // Add price range
+    if (priceRange.start > 0) {
+      url += "min_price=${priceRange.start.toInt()}&";
+    }
+    if (priceRange.end < 50000) {
+      url += "max_price=${priceRange.end.toInt()}&";
+    }
+
+    // Add other filters
+    if (selectedBedrooms.isNotEmpty) {
+      url += "bedrooms=${selectedBedrooms.join(',')}&";
+    }
+    if (selectedBathrooms.isNotEmpty) {
+      url += "bathrooms=${selectedBathrooms.join(',')}&";
+    }
+    if (selectedSchools.isNotEmpty) {
+      url += "schools=${selectedSchools.join(',')}&";
+    }
+    if (availableFrom != null) {
+      url += "available_from=${availableFrom!.toIso8601String().split('T')[0]}&";
+    }
+    if (availableTo != null) {
+      url += "available_to=${availableTo!.toIso8601String().split('T')[0]}&";
+    }
+    
+    return url;
+  }
+
   Future<void> applyFilters(BuildContext context) async {
+    if (isLoading) return;
+    
     isLoading = true;
+    errorMessage = null;
+    filteredProperties = [];
+    nextPageUrl = null;
+    
     notifyListeners();
 
     try {
-      final Map<String, dynamic> queryParams = {
-        "min_rent": priceRange.start.toInt(),
-        "max_rent": priceRange.end.toInt(),
-        if (selectedBedrooms.isNotEmpty) "bedrooms": selectedBedrooms,
-        if (selectedBathrooms.isNotEmpty) "bathrooms": selectedBathrooms,
-        if (selectedSchools.isNotEmpty) "schools": selectedSchools,
-        if (availableFrom != null) "available_from": availableFrom!.toIso8601String().split('T')[0],
-        if (availableTo != null) "available_to": availableTo!.toIso8601String().split('T')[0],
-        if (searchKey.isNotEmpty) "search": searchKey,
-      };
+      String url = _buildFilterUrl();      
+      debugPrint("Applying filters with URL: $url");
 
-      queryParams.removeWhere((key, value) => value == null || value.toString().isEmpty);
-
-      final Uri url = Uri.parse(Environment.iosAppBaseUrl).replace(
-        path: '/api/properties/',
-        queryParameters: queryParams.map((key, value) {
-          if (value is List<String>) {
-            return MapEntry(key, value);
-          } else {
-            return MapEntry(key, value.toString());
-          }
-        }),
-      );
-
-      print("Fetching filtered properties from: $url");
-
-      final response = await http.get(url);
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        filteredProperties = propertyListModelFromJson(response.body);
+        // Parse the paginated response
+        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+        
+        // Update properties and pagination info
+        filteredProperties = paginatedResponse.results;
+        totalPropertiesCount = paginatedResponse.count;
+        nextPageUrl = paginatedResponse.next;
+        
+        debugPrint("Fetched ${paginatedResponse.results.length} filtered properties");
+        debugPrint("Total filtered count: $totalPropertiesCount");
+        debugPrint("Next page URL for filtered results: $nextPageUrl");
+        
         notifyListeners();
-        context.go('/home', extra: filteredProperties);
+        context.go('/home');
       } else {
         errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
+        debugPrint(errorMessage);
       }
     } catch (e) {
       errorMessage = 'An error occurred: $e';
+      debugPrint(errorMessage);
     }
 
     isLoading = false;
     notifyListeners();
   }
 
+  Future<void> loadMoreFilteredProperties() async {
+    if (isLoadingMore || nextPageUrl == null) {
+      debugPrint("Skipping load more: isLoadingMore=$isLoadingMore, nextPageUrl=$nextPageUrl");
+      return;
+    }
+    
+    debugPrint("Loading more filtered properties from URL: $nextPageUrl");
+    isLoadingMore = true;
+    notifyListeners();
+    
+    try {
+      final response = await http.get(Uri.parse(nextPageUrl!));
+
+      if (response.statusCode == 200) {
+        // Parse the paginated response
+        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+        
+        // Add more properties to the existing list
+        filteredProperties.addAll(paginatedResponse.results);
+        debugPrint("Added ${paginatedResponse.results.length} more properties, total now: ${filteredProperties.length}");
+        
+        // Update pagination info
+        nextPageUrl = paginatedResponse.next;
+        debugPrint("Next page URL updated to: $nextPageUrl");
+      } else {
+        errorMessage = 'Failed to load more properties: ${response.reasonPhrase}';
+        debugPrint(errorMessage);
+      }
+    } catch (e) {
+      errorMessage = 'An error occurred: $e';
+      debugPrint(errorMessage);
+    }
+    
+    isLoadingMore = false;
+    notifyListeners();
+  }
+
+  // Update resetFilters to include new filters
   void resetFilters() {
     priceRange = const RangeValues(0, 50000);
     selectedBedrooms = [];
@@ -109,16 +277,28 @@ class FilterNotifier extends ChangeNotifier {
     selectedSchools = [];
     availableFrom = null;
     availableTo = null;
+    propertyType = '';
+    smokingPreference = '';
+    partyingPreference = '';
+    dietaryPreference = '';
+    nationalityPreference = '';
+    // Reset all amenities to false instead of clearing the map
+    for (var key in amenities.keys.toList()) {
+      amenities[key] = false;
+    }
     notifyListeners();
   }
 
   void clearSearch() {
-    searchKey = '';
+    _searchKey = '';
     notifyListeners();
   }
 
   void resetAll() {
     resetFilters();
     clearSearch();
+    filteredProperties = [];
+    nextPageUrl = null;
+    totalPropertiesCount = 0;
   }
 }

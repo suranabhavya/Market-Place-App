@@ -7,158 +7,53 @@ import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
-import 'package:marketplace_app/src/auth/models/profile_model.dart';
 
 class ProfileNotifier with ChangeNotifier {
+  // Loading states
   bool _isUpdating = false;
+  bool _isSendingOtp = false;
+  bool _isVerifyingOtp = false;
+  
+  // Getters for loading states
   bool get isUpdating => _isUpdating;
-
+  bool get isSendingOtp => _isSendingOtp;
+  bool get isVerifyingOtp => _isVerifyingOtp;
+  
+  // State setters that notify listeners
   void setUpdating(bool value) {
     _isUpdating = value;
     notifyListeners();
   }
 
+  void setSendingOtp(bool value) {
+    _isSendingOtp = value;
+    notifyListeners();
+  }
+
+  void setVerifyingOtp(bool value) {
+    _isVerifyingOtp = value;
+    notifyListeners();
+  }
+
+  // User data
   User? _user;
   User? get user => _user;
 
+  // Load user from local storage
   void loadUserFromStorage() {
     final userJson = Storage().getString('user');
     if (userJson != null) {
-      _user = User.fromJson(jsonDecode(userJson));
-      notifyListeners(); // Notify UI about the update
+      try {
+        _user = User.fromJson(jsonDecode(userJson));
+        notifyListeners();
+      } catch (e) {
+        debugPrint("Error parsing user data: $e");
+      }
     }
   }
 
-
-  // Future<void> fetchUserData() async {
-  //   try {
-  //     final response = await http.get(
-  //       Uri.parse('${Environment.iosAppBaseUrl}/auth/users/me/'),
-  //       headers: {'Authorization': 'Token ${Storage().getString('accessToken')}'},
-  //     );
-
-  //     if (response.statusCode == 200) {
-  //       _user = ProfileModel.fromJson(jsonDecode(response.body));
-  //       notifyListeners();
-  //     }
-  //   } catch (e) {
-  //     print("Error fetching user data: $e");
-  //   }
-  // }
-
-  // Future<bool> updateEmail(String newEmail) async {
-  //   final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
-  //   final String? token = Storage().getString('accessToken');
-
-  //   if (token == null) {
-  //     return false;
-  //   }
-
-  //   try {
-  //     setUpdating(true);
-
-  //     final response = await http.patch(
-  //       Uri.parse(url),
-  //       headers: {
-  //         'Authorization': 'Token $token',
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: jsonEncode({
-  //         "email": newEmail,
-  //       }),
-  //     );
-
-  //     setUpdating(false);
-
-  //     if (response.statusCode == 200) {
-  //       return true;
-  //     } else {
-  //       print("Failed to update email: ${response.body}");
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     setUpdating(false);
-  //     print("Error updating email: $e");
-  //     return false;
-  //   }
-  // }
-
-  // Future<bool> updatePassword(String newPassword) async {
-  //   final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
-  //   final String? token = Storage().getString('accessToken');
-
-  //   if (token == null) {
-  //     return false;
-  //   }
-
-  //   try {
-  //     setUpdating(true);
-
-  //     final response = await http.patch(
-  //       Uri.parse(url),
-  //       headers: {
-  //         'Authorization': 'Token $token',
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: jsonEncode({
-  //         "password": newPassword,
-  //       }),
-  //     );
-
-  //     setUpdating(false);
-
-  //     if (response.statusCode == 200) {
-  //       return true;
-  //     } else {
-  //       print("Failed to update password: ${response.body}");
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     setUpdating(false);
-  //     print("Error updating password: $e");
-  //     return false;
-  //   }
-  // }
-
-  // Future<bool> updateProfile(String name, String mobileNumber) async {
-  //   final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
-  //   final String? token = Storage().getString('accessToken');
-
-  //   if (token == null) {
-  //     return false;
-  //   }
-
-  //   try {
-  //     setUpdating(true);
-
-  //     final response = await http.put(
-  //       Uri.parse(url),
-  //       headers: {
-  //         'Authorization': 'Token $token',
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: jsonEncode({
-  //         "name": name,
-  //         "mobile_number": mobileNumber,
-  //       }),
-  //     );
-
-  //     setUpdating(false);
-
-  //     if (response.statusCode == 200) {
-  //       Storage().setString('user', jsonEncode({"name": name, "mobile_number": mobileNumber}));
-  //       return true;
-  //     } else {
-  //       print("Failed to update profile: ${response.body}");
-  //       return false;
-  //     }
-  //   } catch (e) {
-  //     setUpdating(false);
-  //     return false;
-  //   }
-  // }
-
-  Future<bool> updateUserDetails(Map<String, dynamic> updatedFields) async {
+  // Update user profile details (name, email, password, mobile)
+  Future<bool> updateUserDetails(Map<String, dynamic> updateData) async {
     final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
     final String? token = Storage().getString('accessToken');
 
@@ -166,98 +61,106 @@ class ProfileNotifier with ChangeNotifier {
 
     try {
       setUpdating(true);
-
-      final response = await http.put(
+      
+      final response = await http.patch(
         Uri.parse(url),
         headers: {
           'Authorization': 'Token $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode(updatedFields),
+        body: jsonEncode(updateData),
       );
-
-      setUpdating(false);
-
-      if (response.statusCode == 200) {        
-        // Update locally stored user details
+      
+      if (response.statusCode == 200) {
+        // Update the user in storage
+        final updatedUser = jsonDecode(response.body);
         final userJson = Storage().getString('user');
+        
         if (userJson != null) {
           Map<String, dynamic> userData = jsonDecode(userJson);
-          userData.addAll(updatedFields); // Update only provided fields
+          updateData.forEach((key, value) {
+            // Convert snake_case keys to camelCase if needed
+            final storageKey = key == 'mobile_number' ? 'mobile_number' : key;
+            userData[storageKey] = value;
+          });
+          
           Storage().setString('user', jsonEncode(userData));
           loadUserFromStorage();
-          return true;
         }
-        return false;
-      } else {
-        print("Failed to update user details: ${response.body}");
-        return false;
+        
+        setUpdating(false);
+        return true;
       }
+
+      setUpdating(false);
+      debugPrint("Failed to update user details: ${response.body}");
+      return false;
     } catch (e) {
       setUpdating(false);
-      print("Error updating user details: $e");
+      debugPrint("Error updating user details: $e");
       return false;
     }
   }
 
+  // Update profile photo
   Future<bool> updateProfilePhoto() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery); // Open image picker
-
-    if (pickedFile == null) return false; // User canceled selection
-
-    final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
+    final String url = '${Environment.iosAppBaseUrl}/accounts/upload-profile-photo/';
     final String? token = Storage().getString('accessToken');
-
+    
     if (token == null) return false;
 
     try {
       setUpdating(true);
-
-      var request = http.MultipartRequest("PUT", Uri.parse(url));
-      request.headers['Authorization'] = 'Token $token';
-      request.headers['Content-Type'] = 'multipart/form-data';
-
+      
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      
+      if (image == null) {
+        setUpdating(false);
+        return false;
+      }
+      
+      File imageFile = File(image.path);
+      String fileName = path.basename(imageFile.path);
+      
+      var request = http.MultipartRequest('POST', Uri.parse(url));
+      request.headers.addAll({'Authorization': 'Token $token'});
+      
       request.files.add(
-        await http.MultipartFile.fromPath(
-          'profile_photo',
-          pickedFile.path,
-          filename: path.basename(pickedFile.path),
-        ),
+        await http.MultipartFile.fromPath('profile_photo', imageFile.path, filename: fileName),
       );
-
-      var response = await request.send();
-      var responseData = await http.Response.fromStream(response);
-
+      
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+      
       setUpdating(false);
-
+      
       if (response.statusCode == 200) {
-        final data = jsonDecode(responseData.body);
-        String newProfilePhoto = data['profile_photo'];
-
-        // Retrieve and update stored user data
+        // Update the user in storage
+        final responseData = jsonDecode(response.body);
+        final profilePhotoUrl = responseData['profile_photo'];
+        
         final userJson = Storage().getString('user');
         if (userJson != null) {
           Map<String, dynamic> userData = jsonDecode(userJson);
-          userData['profile_photo'] = newProfilePhoto; // Update only profile photo
-          Storage().setString('user', jsonEncode(userData)); // Save updated data
+          userData['profile_photo'] = profilePhotoUrl;
+          Storage().setString('user', jsonEncode(userData));
           loadUserFromStorage();
-          notifyListeners();
-          return true;
         }
-        return false;
-      } else {
-        print("Failed to update profile photo: ${responseData.body}");
-        return false;
+        
+        return true;
       }
+      
+      debugPrint("Failed to update profile photo: ${response.body}");
+      return false;
     } catch (e) {
       setUpdating(false);
-      print("Error updating profile photo: $e");
+      debugPrint("Error updating profile photo: $e");
       return false;
     }
   }
 
-
+  // Send OTP to verify school email
   Future<bool> sendSchoolEmailOtp(String email) async {
     final String url = '${Environment.iosAppBaseUrl}/accounts/generate-school-email-otp/';
     final String? token = Storage().getString('accessToken');
@@ -265,6 +168,8 @@ class ProfileNotifier with ChangeNotifier {
     if (token == null) return false;
 
     try {
+      setSendingOtp(true);
+      
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -273,21 +178,32 @@ class ProfileNotifier with ChangeNotifier {
         },
         body: jsonEncode({"school_email": email}),
       );
+      
+      setSendingOtp(false);
 
       if (response.statusCode == 200) {
-        print("OTP Sent Successfully");
+        // Store the school_email in local storage
+        final userJson = Storage().getString('user');
+        if (userJson != null) {
+          Map<String, dynamic> userData = jsonDecode(userJson);
+          userData['school_email'] = email;
+          Storage().setString('user', jsonEncode(userData));
+          loadUserFromStorage();
+        }
+        
         return true;
       }
 
-      print("Failed to send OTP: ${response.body}");
+      debugPrint("Failed to send OTP: ${response.body}");
       return false;
     } catch (e) {
-      print("Error sending OTP: $e");
+      setSendingOtp(false);
+      debugPrint("Error sending OTP: $e");
       return false;
     }
   }
 
-
+  // Verify school email with OTP
   Future<bool> verifySchoolEmailOtp(String email, String otp) async {
     final String url = '${Environment.iosAppBaseUrl}/accounts/verify-school-email-otp/';
     final String? token = Storage().getString('accessToken');
@@ -295,6 +211,8 @@ class ProfileNotifier with ChangeNotifier {
     if (token == null) return false;
 
     try {
+      setVerifyingOtp(true);
+      
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -306,16 +224,28 @@ class ProfileNotifier with ChangeNotifier {
           "otp": otp,
         }),
       );
+      
+      setVerifyingOtp(false);
 
       if (response.statusCode == 200) {
-        print("School Email Verified Successfully");
+        // Update the storage with verified status
+        final userJson = Storage().getString('user');
+        if (userJson != null) {
+          Map<String, dynamic> userData = jsonDecode(userJson);
+          userData['school_email'] = email;
+          userData['school_email_verified'] = true;
+          Storage().setString('user', jsonEncode(userData));
+          loadUserFromStorage();
+        }
+        
         return true;
       }
 
-      print("Failed to verify school email: ${response.body}");
+      debugPrint("Failed to verify school email: ${response.body}");
       return false;
     } catch (e) {
-      print("Error verifying school email: $e");
+      setVerifyingOtp(false);
+      debugPrint("Error verifying school email: $e");
       return false;
     }
   }

@@ -8,6 +8,9 @@ class SearchableMultiSelectDropdown extends StatefulWidget {
   final List<String> selectedValues;
   final Function(List<String>) onSelectionChanged;
   final String hintText;
+  final Function(String)? onSearch;
+  final ScrollController? scrollController;
+  final bool isLoading;
 
   const SearchableMultiSelectDropdown({
     super.key,
@@ -16,6 +19,9 @@ class SearchableMultiSelectDropdown extends StatefulWidget {
     required this.selectedValues,
     required this.onSelectionChanged,
     required this.hintText,
+    this.onSearch,
+    this.scrollController,
+    this.isLoading = false,
   });
 
   @override
@@ -37,14 +43,28 @@ class _SearchableMultiSelectDropdownState
     _searchController.addListener(_filterOptions);
   }
 
+  @override
+  void didUpdateWidget(SearchableMultiSelectDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.options != widget.options) {
+      setState(() {
+        _filteredOptions = widget.options;
+      });
+    }
+  }
+
   void _filterOptions() {
-    setState(() {
-      _filteredOptions = widget.options
-          .where((option) => option
-              .toLowerCase()
-              .contains(_searchController.text.toLowerCase()))
-          .toList();
-    });
+    if (widget.onSearch != null) {
+      widget.onSearch!(_searchController.text);
+    } else {
+      setState(() {
+        _filteredOptions = widget.options
+            .where((option) => option
+                .toLowerCase()
+                .contains(_searchController.text.toLowerCase()))
+            .toList();
+      });
+    }
   }
 
   void _toggleSelection(String option) {
@@ -143,9 +163,36 @@ class _SearchableMultiSelectDropdownState
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: _filteredOptions.map((option) {
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (ScrollNotification scrollInfo) {
+                      if (widget.scrollController != null && 
+                          !widget.isLoading &&
+                          scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+                        // Load more data when near the bottom
+                        widget.onSearch?.call(_searchController.text);
+                      }
+                      return true;
+                    },
+                    child: ListView.builder(
+                      controller: widget.scrollController,
+                      itemCount: _filteredOptions.length + (widget.isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == _filteredOptions.length) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.0,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        final option = _filteredOptions[index];
                         bool isSelected = widget.selectedValues.contains(option);
                         return InkWell(
                           onTap: () => _toggleSelection(option),
@@ -167,7 +214,7 @@ class _SearchableMultiSelectDropdownState
                             ),
                           ),
                         );
-                      }).toList(),
+                      },
                     ),
                   ),
                 ),

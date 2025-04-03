@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
-import 'package:marketplace_app/src/home/views/select_duration_screen.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +16,11 @@ class CustomAppBar extends StatelessWidget {
     final String searchText = filterNotifier.searchKey.isNotEmpty 
         ? filterNotifier.searchKey 
         : "Search University, Pin Code, Address, City";
+    
+    // Check if using location-based search
+    final bool isLocationSearch = filterNotifier.searchKey == "Properties Near Me" && 
+                                  filterNotifier.latitude != null && 
+                                  filterNotifier.longitude != null;
     
     return AppBar(
       elevation: 0,
@@ -49,15 +52,13 @@ class CustomAppBar extends StatelessWidget {
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                       child: Row(
                         children: [
-                          const Icon(
-                            Ionicons.search, 
+                          Icon(
+                            isLocationSearch ? Icons.location_on : Ionicons.search, 
                             size: 20, 
                             color: Kolors.kPrimaryLight
                           ),
                           
-                          SizedBox(
-                            width: 10.w,
-                          ),
+                          SizedBox(width: 10.w),
                           
                           Expanded(
                             child: Text(
@@ -67,6 +68,21 @@ class CustomAppBar extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          
+                          // Show clear button if there's search text
+                          if (filterNotifier.searchKey.isNotEmpty)
+                            GestureDetector(
+                              onTap: () {
+                                filterNotifier.clearSearch();
+                                filterNotifier.resetLocation();
+                                filterNotifier.applyFilters(context);
+                              },
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Kolors.kGray,
+                              ),
+                            ),
                         ],
                       ),
                     ),

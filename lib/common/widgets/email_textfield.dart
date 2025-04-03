@@ -20,6 +20,7 @@ class EmailTextField extends StatelessWidget {
     this.textInputAction,
     this.onSubmitted,
     this.errorText,
+    this.suffixIcon,
   });
   final String? hintText;
   final String? labelText;
@@ -36,6 +37,7 @@ class EmailTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
   final String? errorText;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +58,7 @@ class EmailTextField extends StatelessWidget {
           labelText: labelText ?? hintText,
           floatingLabelBehavior: floatingLabelBehavior ?? FloatingLabelBehavior.auto,
           prefixIcon: prefixIcon,
+          suffixIcon: suffixIcon,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           
