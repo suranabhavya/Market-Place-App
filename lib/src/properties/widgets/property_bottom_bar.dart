@@ -6,9 +6,11 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/src/message/views/message_screen.dart';
+import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:marketplace_app/src/chat/utils/chat_utils.dart';
+import 'package:marketplace_app/src/message/views/message_screen.dart';
 import 'package:marketplace_app/src/message/views/message_modal_screen.dart';
+import 'package:provider/provider.dart';
 
 class PropertyBottomBar extends StatelessWidget {
   const PropertyBottomBar({
@@ -25,6 +27,12 @@ class PropertyBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString('accessToken');
+    final currentUser = context.read<AuthNotifier>().getUserData();
+    
+    // Don't show the message button if the property is listed by the current user
+    if (currentUser?.id == senderId) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       height: 68.h,
@@ -45,14 +53,26 @@ class PropertyBottomBar extends StatelessWidget {
                     builder: (context) => MessagePage(
                       chatId: chatId,
                       participants: senderName,
-                      otherParticipantProfilePhoto: senderProfilePhoto,
                       otherParticipantId: senderId,
+                      otherParticipantProfilePhoto: senderProfilePhoto,
                     ),
                   ),
                 );
               } else {
-                // Navigate to a temporary message screen
-                showMessageModal(context, senderId);
+                // Show message modal for new chat
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Container(
+                      padding: const EdgeInsets.all(24.0),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
+                      child: MessageModalContent(senderId: senderId),
+                    ),
+                  ),
+                );
               }
             }
           },

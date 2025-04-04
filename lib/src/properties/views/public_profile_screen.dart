@@ -9,6 +9,7 @@ import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/message/views/message_screen.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
+import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -62,6 +63,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString('accessToken');
+    final currentUser = context.read<AuthNotifier>().getUserData();
     
     if (isLoading) {
       return const Scaffold(
@@ -116,7 +118,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               ),
             ),
             const SizedBox(height: 10),
-            Center(
+            if (currentUser?.id != widget.userId) Center(
               child: CustomButton(
                 text: 'Message',
                 onTap: () async {

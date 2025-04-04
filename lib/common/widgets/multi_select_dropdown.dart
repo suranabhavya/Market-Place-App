@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/widgets/app_style.dart';
 
 class MultiSelectDropdown extends StatefulWidget {
   final String title;
@@ -41,10 +43,18 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
               contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade400),
               ),
-              hintText: widget.selectedValues.isNotEmpty
-                  ? widget.selectedValues.join(", ")
-                  : widget.hintText,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
+              ),
+              hintText: widget.hintText,
+              hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -55,6 +65,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                         ? widget.selectedValues.join(", ")
                         : widget.hintText,
                     overflow: TextOverflow.ellipsis,
+                    style: appStyle(12, Kolors.kDark, FontWeight.normal),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down),
@@ -85,10 +96,13 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                       : Icons.check_box_outline_blank,
                   color: widget.selectedValues.contains(option)
                       ? Theme.of(context).primaryColor
-                      : Colors.grey,
+                      : Kolors.kPrimary,
                 ),
                 const SizedBox(width: 8),
-                Text(option),
+                Text(
+                  option,
+                  style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                ),
               ],
             ),
           ),

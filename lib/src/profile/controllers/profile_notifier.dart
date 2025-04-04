@@ -49,6 +49,10 @@ class ProfileNotifier with ChangeNotifier {
       } catch (e) {
         debugPrint("Error parsing user data: $e");
       }
+    } else {
+      // If no user data in storage, clear the user
+      _user = null;
+      notifyListeners();
     }
   }
 
