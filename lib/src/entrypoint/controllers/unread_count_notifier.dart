@@ -25,4 +25,13 @@ class UnreadCountNotifier with ChangeNotifier {
   void disposeChannel() {
     _channel.sink.close();
   }
+
+  void refreshUnreadCount() {
+    _channel.sink.add(jsonEncode({"refresh": true}));
+  }
+
+  void setGlobalUnreadCount(int count) {
+    _globalUnreadCount = count;
+    notifyListeners();
+  }
 }

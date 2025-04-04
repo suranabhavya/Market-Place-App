@@ -54,10 +54,10 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
   
-  Future<void> _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext rootContext) async {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: rootContext,
+      builder: (dialogContext) => AlertDialog(
         title: Text(
           "Logout",
           style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
@@ -68,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               "Cancel",
               style: appStyle(14, Kolors.kGray, FontWeight.normal),
@@ -76,13 +76,19 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              // First close the dialog
+              Navigator.pop(dialogContext);
               
-              // Clear user data and navigate to home
+              // Clear user data
               Storage().removeKey('accessToken');
               Storage().removeKey('user');
-              context.read<TabIndexNotifier>().setIndex(0);
-              context.go('/home');
+              
+              // Use root context for navigation
+              rootContext.read<TabIndexNotifier>().setIndex(0);
+              rootContext.go('/home');
+              
+              // Then reload user state
+              rootContext.read<ProfileNotifier>().loadUserFromStorage();
             },
             child: Text(
               "Logout",
@@ -113,28 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 final user = profileNotifier.user;
                 
                 if (user == null) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 50, color: Kolors.kRed),
-                        SizedBox(height: 10.h),
-                        Text(
-                          "Unable to load profile data",
-                          style: appStyle(14, Kolors.kDark, FontWeight.normal),
-                        ),
-                        SizedBox(height: 20.h),
-                        ElevatedButton(
-                          onPressed: _loadUserData,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Kolors.kPrimary,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text("Retry"),
-                        ),
-                      ],
-                    ),
-                  );
+                  return const EmailSignupPage();
                 }
 
                 return RefreshIndicator(

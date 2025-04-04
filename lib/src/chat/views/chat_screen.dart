@@ -11,7 +11,9 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
+import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/message/views/message_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class ChatPage extends StatefulWidget {
@@ -61,6 +63,12 @@ class _ChatPageState extends State<ChatPage> {
             chats = decoded["chats"];
             isLoading = false;
           });
+          // Calculate total unread count from all chats.
+          final int totalUnread = (decoded["chats"] as List)
+              .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
+          // Update the global unread count in the notifier.
+          Provider.of<UnreadCountNotifier>(context, listen: false)
+              .setGlobalUnreadCount(totalUnread);
         }
       } catch (e) {
         debugPrint("Error decoding WS data: $e");
@@ -122,14 +130,15 @@ class _ChatPageState extends State<ChatPage> {
 
                 return ListTile(
                   leading: CircleAvatar(
-                    radius: 32.w,
+                    radius: 24.w,
+                    backgroundColor: Colors.grey,
                     backgroundImage: (chat["sender_profile_photo"] != null &&
                             (chat["sender_profile_photo"] as String).isNotEmpty)
                         ? NetworkImage(chat["sender_profile_photo"])
                         : null,
                     child: (chat["sender_profile_photo"] == null ||
                             (chat["sender_profile_photo"] as String).isEmpty)
-                        ? const Icon(Icons.person)
+                        ? Icon(Icons.person, size: 48.w)
                         : null,
                   ),
                   title: Row(
@@ -161,10 +170,10 @@ class _ChatPageState extends State<ChatPage> {
                         Text(lastUpdated, style: const TextStyle(fontSize: 10)),
                     ],
                   ),
-                  onTap: () {
+                  onTap: () async {
                     print("other user id: ${chat['sender_id']}");
                     // Navigate to the MessagePage. (Marking messages as read will be handled there.)
-                    Navigator.push(
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => MessagePage(

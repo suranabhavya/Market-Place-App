@@ -282,15 +282,14 @@ class _FilterPageState extends State<FilterPage> {
       ),
       body: Column(
         children: [
-          // Scrollable Content
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Existing filters
-                  Text("Rent Range", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
+                  // Rent Range Section
+                  _buildSectionTitle("Rent Range"),
                   RangeSlider(
                     values: RangeValues(
                       filterNotifier.priceRange.start.clamp(0.0, 50000.0),
@@ -307,63 +306,27 @@ class _FilterPageState extends State<FilterPage> {
                   ),
                   Row(
                     children: [
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CustomTextField(
-                              controller: _minRentController,
-                              maxLines: 1,
-                              hintText: "Min Rent",
-                              keyboardType: TextInputType.number,
-                              prefixIcon: const Icon(CupertinoIcons.money_dollar, size: 20, color: Kolors.kGray),
-                              onChanged: (value) => _handleTextChange(value, true),
-                            ),
-                            // if (double.tryParse(_minRentController.text) != null)
-                            //   Text(
-                            //     double.parse(_minRentController.text) < 0 
-                            //         ? "Minimum value is 0" 
-                            //         : double.parse(_minRentController.text) > 50000 
-                            //             ? "Maximum value is 50000"
-                            //             : "",
-                            //     style: appStyle( 12, Kolors.kRed, FontWeight.normal),
-                            //   ),
-                          ],
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _minRentController,
+                          hintText: "Min Rent",
+                          onChanged: (value) => _handleTextChange(value, true),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CustomTextField(
-                              controller: _maxRentController,
-                              maxLines: 1,
-                              hintText: "Max Rent",
-                              keyboardType: TextInputType.number,
-                              prefixIcon: const Icon(CupertinoIcons.money_dollar, size: 20, color: Kolors.kGray),
-                              onChanged: (value) => _handleTextChange(value, false),
-                            ),
-                            // if (double.tryParse(_maxRentController.text) != null)
-                            //   Text(
-                            //     double.parse(_maxRentController.text) < 0 
-                            //         ? "Minimum value is 0" 
-                            //         : double.parse(_maxRentController.text) > 50000 
-                            //             ? "Maximum value is 50000"
-                            //             : "",
-                            //     style: appStyle( 12, Kolors.kRed, FontWeight.normal),
-                            //   ),
-                          ],
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _maxRentController,
+                          hintText: "Max Rent",
+                          onChanged: (value) => _handleTextChange(value, false),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 10.h),
-                  Divider(height: 30.h),
+                  _buildDivider(),
 
-                  // Nearby Schools
-                  Text("Nearby Schools", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                  const SizedBox(height: 8),
+                  // Nearby Schools Section
+                  _buildSectionTitle("Nearby Schools"),
                   SearchableMultiSelectDropdown(
                     title: "Schools",
                     options: schoolOptions.map((school) => school['name']!).toList(),
@@ -373,7 +336,6 @@ class _FilterPageState extends State<FilterPage> {
                     hintText: "Select Nearby Schools",
                     onSelectionChanged: (List<String> selectedNames) {
                       setState(() {
-                        // Update selectedSchoolIds and _selectedSchoolsMap
                         selectedSchoolIds = selectedNames.map((name) {
                           var school = schoolOptions.firstWhere((s) => s['name'] == name);
                           _selectedSchoolsMap[school['id']!] = school;
@@ -386,18 +348,16 @@ class _FilterPageState extends State<FilterPage> {
                     scrollController: _schoolScrollController,
                     isLoading: _isLoadingMoreSchools,
                   ),
-                  SizedBox(height: 10.h),
-                  Divider(height: 30.h),
+                  _buildDivider(),
 
-                  // Bedrooms and Bathrooms
+                  // Bedrooms and Bathrooms Section
                   Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Bedrooms", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                            const SizedBox(height: 8),
+                            _buildSectionTitle("Bedrooms"),
                             MultiSelectDropdown(
                               title: "Bedrooms",
                               options: bedroomOptions,
@@ -418,8 +378,7 @@ class _FilterPageState extends State<FilterPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Bathrooms", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                            const SizedBox(height: 8),
+                            _buildSectionTitle("Bathrooms"),
                             MultiSelectDropdown(
                               title: "Bathrooms",
                               options: bathroomOptions,
@@ -437,12 +396,11 @@ class _FilterPageState extends State<FilterPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 10.h),
-                  Divider(height: 30.h),
-                  // Property Type
-                  Text("Looking for a", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
+                  _buildDivider(),
+
+                  // Property Type Section
+                  _buildSectionTitle("Looking for a"),
+                  _buildDropdown(
                     value: filterNotifier.propertyType,
                     items: const [
                       DropdownMenuItem(value: '', child: Text("Select Property Type")),
@@ -450,29 +408,9 @@ class _FilterPageState extends State<FilterPage> {
                       DropdownMenuItem(value: 'shared_room', child: Text("Shared Room")),
                       DropdownMenuItem(value: 'apartment', child: Text("Apartment")),
                     ],
-                    style: appStyle(12, Kolors.kDark, FontWeight.normal),
-                    onChanged: (value) {
-                      filterNotifier.setPropertyType(value ?? '');
-                    },
-                    decoration: InputDecoration(
-                      labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade400),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade400),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                      ),
-                    ),
+                    onChanged: (value) => filterNotifier.setPropertyType(value ?? ''),
                   ),
-                  SizedBox(height: 10.h),
-                  Divider(height: 30.h),
+                  _buildDivider(),
 
                   // Flatmate Preferences (only show for Private Room or Shared Room)
                   if (filterNotifier.propertyType == 'private_room' || filterNotifier.propertyType == 'shared_room') ...[
@@ -735,6 +673,64 @@ class _FilterPageState extends State<FilterPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Helper Widgets for consistent UI
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(title, style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Divider(height: 1, color: Colors.grey.shade300),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required Function(String) onChanged,
+  }) {
+    return CustomTextField(
+      controller: controller,
+      maxLines: 1,
+      hintText: hintText,
+      keyboardType: TextInputType.number,
+      prefixIcon: const Icon(CupertinoIcons.money_dollar, size: 20, color: Kolors.kGray),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildDropdown({
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      items: items,
+      style: appStyle(12, Kolors.kDark, FontWeight.normal),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
+        ),
       ),
     );
   }

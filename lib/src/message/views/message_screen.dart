@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
@@ -13,6 +12,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
+import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
+import 'package:provider/provider.dart';
 
 class MessagePage extends StatefulWidget {
   final int chatId;
@@ -116,6 +117,8 @@ class _MessagePageState extends State<MessagePage> {
     );
     if (response.statusCode == 200) {
       debugPrint("Messages marked as read");
+      // Refresh the unread count
+      context.read<UnreadCountNotifier>().refreshUnreadCount();
     } else {
       debugPrint("Failed to mark messages as read");
     }
@@ -154,12 +157,13 @@ class _MessagePageState extends State<MessagePage> {
                 );
               },
               child: CircleAvatar(
-                radius: 18,
+                radius: 18.w,
+                backgroundColor: Colors.grey,
                 backgroundImage: widget.otherParticipantProfilePhoto != null && widget.otherParticipantProfilePhoto!.isNotEmpty
                     ? NetworkImage(widget.otherParticipantProfilePhoto!)
                     : null,
                 child: widget.otherParticipantProfilePhoto == null || widget.otherParticipantProfilePhoto!.isEmpty
-                    ? const Icon(Icons.person, size: 18)
+                    ? Icon(Icons.person, size: 36.w)
                     : null,
               ),
             ),

@@ -111,6 +111,15 @@ class _SearchableMultiSelectDropdownState
               contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
               ),
               hintText: widget.hintText,
               hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
@@ -136,13 +145,24 @@ class _SearchableMultiSelectDropdownState
         if (_dropdownOpen)
           Container(
             width: double.infinity,
-            constraints: const BoxConstraints(maxHeight: 300),
+            constraints: BoxConstraints(
+              minHeight: 100,
+              maxHeight: MediaQuery.of(context).size.height * 0.3,
+            ),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade400),
               borderRadius: BorderRadius.circular(8),
               color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -155,6 +175,15 @@ class _SearchableMultiSelectDropdownState
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -162,18 +191,18 @@ class _SearchableMultiSelectDropdownState
                   ),
                 ),
                 const Divider(height: 1),
-                Expanded(
+                Flexible(
                   child: NotificationListener<ScrollNotification>(
                     onNotification: (ScrollNotification scrollInfo) {
                       if (widget.scrollController != null && 
                           !widget.isLoading &&
                           scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
-                        // Load more data when near the bottom
                         widget.onSearch?.call(_searchController.text);
                       }
                       return true;
                     },
                     child: ListView.builder(
+                      shrinkWrap: true,
                       controller: widget.scrollController,
                       itemCount: _filteredOptions.length + (widget.isLoading ? 1 : 0),
                       itemBuilder: (context, index) {
@@ -205,11 +234,13 @@ class _SearchableMultiSelectDropdownState
                                   color: isSelected ? Theme.of(context).primaryColor : Kolors.kPrimary,
                                 ),
                                 const SizedBox(width: 8),
-                                Expanded(child: Text(
-                                  option,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: appStyle(12, Kolors.kPrimary, FontWeight.normal),
-                                )),
+                                Expanded(
+                                  child: Text(
+                                    option,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.normal),
+                                  ),
+                                ),
                               ],
                             ),
                           ),

@@ -173,7 +173,22 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          selectedSchoolIds = data.map((school) => school['id'] as String).toList();
+          // Clear previous selections
+          selectedSchoolIds = [];
+          _selectedSchoolsMap.clear();
+
+          // Update selected schools and map
+          for (var school in data) {
+            String id = school['id'] as String;
+            selectedSchoolIds.add(id);
+            _selectedSchoolsMap[id] = {
+              'id': id,
+              'name': school['name'] as String
+            };
+          }
+
+          // Fetch full school details to ensure we have them in schoolOptions
+          _fetchSchools();
         });
       } else {
         throw Exception("Failed to load nearby schools");
