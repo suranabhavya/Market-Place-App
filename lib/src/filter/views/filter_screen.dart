@@ -9,12 +9,20 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
-import 'package:marketplace_app/common/widgets/custom_text.dart';
+import 'package:marketplace_app/common/widgets/custom_text.dart' as custom_text;
 import 'package:marketplace_app/common/widgets/multi_select_dropdown.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:provider/provider.dart';
+
+import '../../../common/widgets/custom_dropdown.dart';
+import '../../../common/widgets/custom_checkbox.dart';
+import '../../../common/widgets/custom_switch.dart';
+import '../../../common/widgets/custom_divider.dart';
+import '../../../common/widgets/custom_text_field.dart';
+import '../../../common/widgets/amenity_chip.dart';
+import '../../../common/widgets/section_title.dart';
 
 class FilterPage extends StatefulWidget {
   const FilterPage({super.key});
@@ -289,7 +297,9 @@ class _FilterPageState extends State<FilterPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Rent Range Section
-                  _buildSectionTitle("Rent Range"),
+                  SectionTitle(
+                    title: "Rent Range",
+                  ),
                   RangeSlider(
                     values: RangeValues(
                       filterNotifier.priceRange.start.clamp(0.0, 50000.0),
@@ -304,29 +314,44 @@ class _FilterPageState extends State<FilterPage> {
                       _maxRentController.text = values.end.toInt().toString();
                     },
                   ),
+                  SizedBox(height: 16.h),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildTextField(
+                        child: CustomTextField(
                           controller: _minRentController,
+                          labelText: "Min Rent",
+                          maxLines: 1,
                           hintText: "Min Rent",
+                          keyboardType: TextInputType.number,
+                          prefixIcon: const Icon(CupertinoIcons.money_dollar, size: 20, color: Kolors.kGray),
                           onChanged: (value) => _handleTextChange(value, true),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12.w),
                       Expanded(
-                        child: _buildTextField(
+                        child: CustomTextField(
                           controller: _maxRentController,
+                          labelText: "Max Rent",
+                          maxLines: 1,
                           hintText: "Max Rent",
+                          keyboardType: TextInputType.number,
+                          prefixIcon: const Icon(CupertinoIcons.money_dollar, size: 20, color: Kolors.kGray),
                           onChanged: (value) => _handleTextChange(value, false),
                         ),
                       ),
                     ],
                   ),
-                  _buildDivider(),
+
+                  SizedBox(height: 16.h),
 
                   // Nearby Schools Section
-                  _buildSectionTitle("Nearby Schools"),
+                  const SectionTitle(
+                    title: "Nearby Schools",
+                  ),
+
+                  SizedBox(height: 8.h),
+                  
                   SearchableMultiSelectDropdown(
                     title: "Schools",
                     options: schoolOptions.map((school) => school['name']!).toList(),
@@ -348,7 +373,8 @@ class _FilterPageState extends State<FilterPage> {
                     scrollController: _schoolScrollController,
                     isLoading: _isLoadingMoreSchools,
                   ),
-                  _buildDivider(),
+
+                  SizedBox(height: 16.h),
 
                   // Bedrooms and Bathrooms Section
                   Row(
@@ -357,7 +383,10 @@ class _FilterPageState extends State<FilterPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle("Bedrooms"),
+                            const SectionTitle(
+                              title: "Bedrooms",
+                            ),
+                            SizedBox(height: 8.h),
                             MultiSelectDropdown(
                               title: "Bedrooms",
                               options: bedroomOptions,
@@ -378,7 +407,10 @@ class _FilterPageState extends State<FilterPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle("Bathrooms"),
+                            const SectionTitle(
+                              title: "Bathrooms",
+                            ),
+                            SizedBox(height: 8.h),
                             MultiSelectDropdown(
                               title: "Bathrooms",
                               options: bathroomOptions,
@@ -396,11 +428,10 @@ class _FilterPageState extends State<FilterPage> {
                       ),
                     ],
                   ),
-                  _buildDivider(),
+                  
+                  SizedBox(height: 16.h),
 
-                  // Property Type Section
-                  _buildSectionTitle("Looking for a"),
-                  _buildDropdown(
+                  CustomDropdown<String>(
                     value: filterNotifier.propertyType,
                     items: const [
                       DropdownMenuItem(value: '', child: Text("Select Property Type")),
@@ -409,16 +440,27 @@ class _FilterPageState extends State<FilterPage> {
                       DropdownMenuItem(value: 'apartment', child: Text("Apartment")),
                     ],
                     onChanged: (value) => filterNotifier.setPropertyType(value ?? ''),
+                    labelText: "Looking for a",
                   ),
-                  _buildDivider(),
+
+                  SizedBox(height: 16.h),
 
                   // Flatmate Preferences (only show for Private Room or Shared Room)
                   if (filterNotifier.propertyType == 'private_room' || filterNotifier.propertyType == 'shared_room') ...[
-                    Text("Flatmate Preferences", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text("Smoking", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
+                    CustomDivider(
+                      height: 1,
+                      thickness: 0.5.h,
+                      color: Kolors.kGrayLight,
+                    ),
+
+                    SizedBox(height: 16.h),
+                    
+                    const SectionTitle(
+                      title: "Flatmate Preferences",
+                    ),
+
+                    const SizedBox(height: 16),
+                    CustomDropdown<String>(
                       value: filterNotifier.smokingPreference,
                       items: [
                         DropdownMenuItem(
@@ -431,7 +473,7 @@ class _FilterPageState extends State<FilterPage> {
                                 style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                               ),
                               SizedBox(width: 8.w),
-                              const Icon(Icons.smoking_rooms , color: Colors.black, size: 16)
+                              const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
                             ],
                           )
                         ),
@@ -440,32 +482,13 @@ class _FilterPageState extends State<FilterPage> {
                         const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
                         const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
                       ],
-                      style: appStyle(12, Kolors.kDark, FontWeight.normal),
                       onChanged: (value) {
                         filterNotifier.setSmokingPreference(value ?? '');
                       },
-                      decoration: InputDecoration(
-                        labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                        ),
-                      ),
+                      labelText: "Smoking",
                     ),
                     const SizedBox(height: 16),
-
-                    Text("Partying", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
+                    CustomDropdown<String>(
                       value: filterNotifier.partyingPreference,
                       items: [
                         DropdownMenuItem(
@@ -478,7 +501,7 @@ class _FilterPageState extends State<FilterPage> {
                                 style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                               ),
                               SizedBox(width: 8.w),
-                              const Icon(Icons.wine_bar , color: Colors.black, size: 16)
+                              const Icon(Icons.wine_bar, color: Colors.black, size: 16)
                             ],
                           )
                         ),
@@ -487,32 +510,13 @@ class _FilterPageState extends State<FilterPage> {
                         const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
                         const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
                       ],
-                      style: appStyle(12, Kolors.kDark, FontWeight.normal),
                       onChanged: (value) {
                         filterNotifier.setPartyingPreference(value ?? '');
                       },
-                      decoration: InputDecoration(
-                        labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                        ),
-                      ),
+                      labelText: "Partying",
                     ),
                     const SizedBox(height: 16),
-
-                    Text("Dietary", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
+                    CustomDropdown<String>(
                       value: filterNotifier.dietaryPreference,
                       items: [
                         DropdownMenuItem(
@@ -525,7 +529,7 @@ class _FilterPageState extends State<FilterPage> {
                                 style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                               ),
                               SizedBox(width: 8.w),
-                              const Icon(Icons.lunch_dining , color: Colors.black, size: 16)
+                              const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
                             ],
                           )
                         ),
@@ -533,32 +537,13 @@ class _FilterPageState extends State<FilterPage> {
                         const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
                         const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
                       ],
-                      style: appStyle(12, Kolors.kDark, FontWeight.normal),
                       onChanged: (value) {
                         filterNotifier.setDietaryPreference(value ?? '');
                       },
-                      decoration: InputDecoration(
-                        labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                        ),
-                      ),
+                      labelText: "Dietary",
                     ),
                     const SizedBox(height: 16),
-
-                    Text("Nationality", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
+                    CustomDropdown<String>(
                       value: filterNotifier.nationalityPreference,
                       items: [
                         DropdownMenuItem(
@@ -571,7 +556,7 @@ class _FilterPageState extends State<FilterPage> {
                                 style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                               ),
                               SizedBox(width: 8.w),
-                              const Icon(Icons.groups_3_sharp , color: Colors.black, size: 16)
+                              const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
                             ],
                           )
                         ),
@@ -582,32 +567,26 @@ class _FilterPageState extends State<FilterPage> {
                         const DropdownMenuItem(value: 'others', child: Text("Others")),
                         const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
                       ],
-                      style: appStyle(12, Kolors.kDark, FontWeight.normal),
                       onChanged: (value) {
                         filterNotifier.setNationalityPreference(value ?? '');
                       },
-                      decoration: InputDecoration(
-                        labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade400),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                        ),
-                      ),
+                      labelText: "Nationality",
                     ),
                     const SizedBox(height: 16),
                   ],
 
+                  CustomDivider(
+                    height: 1,
+                    thickness: 0.5.h,
+                    color: Kolors.kGrayLight,
+                  ),
+
+                  SizedBox(height: 16.h),
+
                   // Must Haves (Amenities)
-                  Text("Must Haves", style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
+                  const SectionTitle(
+                    title: "Must Haves",
+                  ),
                   const SizedBox(height: 16),
                   filterNotifier.amenities.isEmpty
                     ? const Center(child: CircularProgressIndicator())
@@ -616,28 +595,13 @@ class _FilterPageState extends State<FilterPage> {
                         runSpacing: 8,
                         children: filterNotifier.amenities.keys.map((String key) {
                           bool isSelected = filterNotifier.amenities[key]!;
-                          return GestureDetector(
+                          return AmenityChip(
+                            label: key,
+                            isSelected: isSelected,
                             onTap: () {
                               filterNotifier.toggleAmenity(key);
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Kolors.kPrimary : Colors.grey[300],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isSelected) const Icon(Icons.check, color: Colors.white, size: 16),
-                                  if (isSelected) const SizedBox(width: 6),
-                                  Text(
-                                    key,
-                                    style: appStyle(12, isSelected ? Colors.white : Colors.black, FontWeight.normal),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            icon: Icons.check,
                           );
                         }).toList(),
                       ),
@@ -673,64 +637,6 @@ class _FilterPageState extends State<FilterPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Helper Widgets for consistent UI
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(title, style: appStyle(14, Kolors.kPrimary, FontWeight.bold)),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Divider(height: 1, color: Colors.grey.shade300),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hintText,
-    required Function(String) onChanged,
-  }) {
-    return CustomTextField(
-      controller: controller,
-      maxLines: 1,
-      hintText: hintText,
-      keyboardType: TextInputType.number,
-      prefixIcon: const Icon(CupertinoIcons.money_dollar, size: 20, color: Kolors.kGray),
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildDropdown({
-    required String value,
-    required List<DropdownMenuItem<String>> items,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      items: items,
-      style: appStyle(12, Kolors.kDark, FontWeight.normal),
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade400),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade400),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-        ),
       ),
     );
   }

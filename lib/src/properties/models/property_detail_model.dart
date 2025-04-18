@@ -8,6 +8,23 @@ PropertyDetailModel propertyDetailModelFromJson(String str) =>
 String propertyDetailModelToJson(PropertyDetailModel data) =>
     json.encode(data.toJson());
 
+class PropertyImage {
+  final String id;
+  final String url;
+
+  PropertyImage({required this.id, required this.url});
+
+  factory PropertyImage.fromJson(Map<String, dynamic> json) => PropertyImage(
+    id: json['id'].toString(),
+    url: json['url'],
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'url': url,
+  };
+}
+
 class PropertyDetailModel {
   String id;
   int userId;
@@ -31,7 +48,8 @@ class PropertyDetailModel {
   int? bedrooms;
   int? bathrooms;
   int? squareFootage;
-  List<String>? images;
+  List<PropertyImage>? images;
+  List<String>? deletedImages;
   DateTime createdAt;
   DateTime updatedAt;
   SubleaseDetails subleaseDetails;
@@ -66,6 +84,7 @@ class PropertyDetailModel {
     this.bathrooms,
     this.squareFootage,
     this.images,
+    this.deletedImages,
     required this.createdAt,
     required this.updatedAt,
     required this.subleaseDetails,
@@ -98,15 +117,13 @@ class PropertyDetailModel {
         rentFrequency: json["rent_frequency"] ?? "",
         propertyType: json["property_type"] ?? "",
         furnished: json["furnished"] ?? false,
-        // bedrooms: json["bedrooms"] ?? 0,
-        // bathrooms: json["bathrooms"] ?? 0,
-        // squareFootage: json["square_footage"] ?? 0,
         bedrooms: json["bedrooms"],
         bathrooms: json["bathrooms"],
         squareFootage: json["square_footage"],
         images: json["images"] != null
-            ? List<String>.from(json["images"].map((x) => extractImageUrl(x)))
+            ? List<PropertyImage>.from(json["images"].map((x) => PropertyImage.fromJson(x)))
             : [],
+        deletedImages: json["deleted_images"]?.cast<String>(),
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
         subleaseDetails: json["sublease_details"] != null
@@ -158,7 +175,8 @@ class PropertyDetailModel {
         "bedrooms": bedrooms,
         "bathrooms": bathrooms,
         "square_footage": squareFootage,
-        "images": images,
+        "images": images?.map((x) => x.toJson()).toList(),
+        if (deletedImages != null) "deleted_images": deletedImages,
         "created_at": createdAt.toIso8601String(),
         "updated_at": updatedAt.toIso8601String(),
         "sublease_details": subleaseDetails.toJson(),
@@ -166,19 +184,10 @@ class PropertyDetailModel {
         "amenities": amenities,
         "hide_address": hideAddress,
         if (lifestyle != null) "lifestyle": lifestyle!.toJson(),
-        if (preference != null) "preferences": preference!.toJson(),
+        if (preference != null) "preference": preference!.toJson(),
         "user_properties":
             userProperties?.map((x) => x.toJson()).toList() ?? [],
       };
-
-  static String extractImageUrl(String rawValue) {
-    final RegExp regex = RegExp(r"property_images/([^>]+)");
-    final match = regex.firstMatch(rawValue);
-    if (match != null) {
-      return "https://homiswapbucket.s3.amazonaws.com/${match.group(0)}"; // Adjust base URL as needed
-    }
-    return rawValue; // Return original if no match
-  }
 }
 
 class SubleaseDetails {
@@ -284,7 +293,6 @@ class Preference {
           "nationality_preference": nationalityPreference,
       };
 }
-
 
 class School {
   String id;

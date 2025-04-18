@@ -17,6 +17,7 @@ import 'package:marketplace_app/src/profile/views/update_password_screen.dart';
 import 'package:marketplace_app/src/profile/views/user_listings_screen.dart';
 import 'package:marketplace_app/src/profile/views/verify_school_email_screen.dart';
 import 'package:marketplace_app/src/properties/views/create_property_screen.dart';
+import 'package:marketplace_app/src/properties/views/property_edit_screen.dart';
 import 'package:marketplace_app/src/properties/views/property_screen.dart';
 import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
 import 'package:marketplace_app/src/search/views/search_screen.dart';
@@ -131,6 +132,13 @@ final GoRouter _router = GoRouter(
       builder: (context, state) {
         final userId = int.parse(state.pathParameters['userId']!);
         return UserListingsPage(userId: userId);
+      },
+    ),
+    GoRoute(
+      path: '/my-listings/edit/:propertyId',
+      builder: (context, state) {
+        final propertyId = state.pathParameters['propertyId']!;
+        return PropertyEditPage(propertyId: propertyId);
       },
     ),
   ],

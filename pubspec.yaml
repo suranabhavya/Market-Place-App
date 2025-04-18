@@ -50,6 +50,7 @@ dependencies:
   web_socket_channel: ^2.1.0
   intl: ^0.20.2
   table_calendar: ^3.2.0
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:

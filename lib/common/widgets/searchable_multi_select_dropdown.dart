@@ -122,7 +122,7 @@ class _SearchableMultiSelectDropdownState
                 borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
               ),
               hintText: widget.hintText,
-              hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
+              hintStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -133,7 +133,7 @@ class _SearchableMultiSelectDropdownState
                         ? widget.selectedValues.join(", ")
                         : widget.hintText,
                     overflow: TextOverflow.ellipsis,
-                    style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
                   ),
                 ),
                 Icon(_dropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down),
@@ -187,7 +187,7 @@ class _SearchableMultiSelectDropdownState
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
                   ),
                 ),
                 const Divider(height: 1),
@@ -238,7 +238,7 @@ class _SearchableMultiSelectDropdownState
                                   child: Text(
                                     option,
                                     overflow: TextOverflow.ellipsis,
-                                    style: appStyle(12, Kolors.kPrimary, FontWeight.normal),
+                                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
                                   ),
                                 ),
                               ],
@@ -266,7 +266,7 @@ class _SearchableMultiSelectDropdownState
                   deleteIcon: const Icon(Icons.close, size: 16),
                   onDeleted: () => _removeSelection(value),
                   backgroundColor: Colors.grey[200],
-                  labelStyle: appStyle(12, Kolors.kPrimary, FontWeight.normal),
+                  labelStyle: appStyle(14, Kolors.kPrimary, FontWeight.normal),
                 );
               }).toList(),
             ),

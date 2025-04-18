@@ -23,12 +23,14 @@ class StaggeredTileWidget extends StatefulWidget {
     required this.property, 
     this.onTap,
     this.onEdit,
+    this.onDelete,
   });
 
   // final int i;
   final PropertyListModel property;
   final void Function()? onTap;
   final void Function()? onEdit;
+  final void Function()? onDelete;
 
   @override
   State<StaggeredTileWidget> createState() => _StaggeredTileWidgetState();
@@ -72,6 +74,45 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
     super.dispose();
   }
   
+  void _showDeleteConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            "Delete Property",
+            style: appStyle(16.sp, Kolors.kPrimary, FontWeight.bold),
+          ),
+          content: Text(
+            "Are you sure you want to delete this property? This action cannot be undone.",
+            style: appStyle(12.sp, Kolors.kPrimary, FontWeight.w400),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "Cancel",
+                style: appStyle(12.sp, Kolors.kPrimary, FontWeight.bold),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                if (widget.onDelete != null) {
+                  widget.onDelete!();
+                }
+              },
+              child: Text(
+                "Delete",
+                style: appStyle(12.sp, Kolors.kRed, FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -176,22 +217,41 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                   )
                 ),
                 
-                // Edit button - only show if onEdit is provided
+                // Edit and Delete buttons - only show if onEdit is provided
                 if (widget.onEdit != null)
                   Positioned(
                     left: 10.h,
                     top: 10.h,
-                    child: GestureDetector(
-                      onTap: widget.onEdit,
-                      child: CircleAvatar(
-                        radius: 15.r,
-                        backgroundColor: Kolors.kSecondaryLight,
-                        child: Icon(
-                          Icons.edit,
-                          color: Kolors.kPrimary,
-                          size: 15.r,
+                    child: Row(
+                      children: [
+                        // Edit button
+                        GestureDetector(
+                          onTap: widget.onEdit,
+                          child: CircleAvatar(
+                            radius: 15.r,
+                            backgroundColor: Kolors.kSecondaryLight,
+                            child: Icon(
+                              Icons.edit,
+                              color: Kolors.kPrimary,
+                              size: 15.r,
+                            ),
+                          ),
                         ),
-                      ),
+                        SizedBox(width: 8.w),
+                        // Delete button
+                        GestureDetector(
+                          onTap: _showDeleteConfirmationDialog,
+                          child: CircleAvatar(
+                            radius: 15.r,
+                            backgroundColor: Kolors.kSecondaryLight,
+                            child: Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                              size: 15.r,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
