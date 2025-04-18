@@ -14,6 +14,7 @@ import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dar
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
+import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:provider/provider.dart';
 
 class UserListingsPage extends StatefulWidget {
@@ -103,7 +104,7 @@ class _UserListingsPageState extends State<UserListingsPage> {
       appBar: AppBar(
         leading: const AppBackButton(),
         title: ReusableText(
-          text: isCurrentUser ? AppText.kMyListings : "User Listings",
+          text: isCurrentUser ? AppText.kMyListings : "My Listings",
           style: appStyle(16, Kolors.kPrimary, FontWeight.bold)
         ),
         centerTitle: true,
@@ -181,13 +182,13 @@ class _UserListingsPageState extends State<UserListingsPage> {
                       onRefresh: _refreshListings,
                       color: Kolors.kPrimary,
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
                         child: GridView.builder(
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 1,
                             crossAxisSpacing: 8.w,
                             mainAxisSpacing: 8.h,
-                            childAspectRatio: 1.05,
+                            childAspectRatio: 1.30.h,
                           ),
                           itemCount: userProperties.length,
                           itemBuilder: (context, index) {
@@ -210,7 +211,38 @@ class _UserListingsPageState extends State<UserListingsPage> {
                                 }
                               },
                               property: property,
-                              onEdit: isCurrentUser ? () => context.push('/listing/edit/${property.id}') : null,
+                              onEdit: isCurrentUser ? () async {
+                                await context.push('/my-listings/edit/${property.id}');
+                                // Fetch updated properties after returning from edit screen
+                                await fetchUserListings();
+                              } : null,
+                              onDelete: isCurrentUser ? () async {
+                                String? accessToken = Storage().getString('accessToken');
+                                if (accessToken == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("User not authenticated")),
+                                  );
+                                  return;
+                                }
+
+                                await context.read<PropertyNotifier>().deleteProperty(
+                                  token: accessToken,
+                                  propertyId: property.id,
+                                  onSuccess: () {
+                                    setState(() {
+                                      userProperties.removeWhere((p) => p.id == property.id);
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Property deleted successfully")),
+                                    );
+                                  },
+                                  onError: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Failed to delete property")),
+                                    );
+                                  },
+                                );
+                              } : null,
                             );
                           },
                         ),

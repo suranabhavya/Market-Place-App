@@ -54,7 +54,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
               ),
               hintText: widget.hintText,
-              hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
+              hintStyle: appStyle(14, Kolors.kGray, FontWeight.normal),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -65,7 +65,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                         ? widget.selectedValues.join(", ")
                         : widget.hintText,
                     overflow: TextOverflow.ellipsis,
-                    style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
                   ),
                 ),
                 const Icon(Icons.arrow_drop_down),
@@ -101,7 +101,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 const SizedBox(width: 8),
                 Text(
                   option,
-                  style: appStyle(12, Kolors.kDark, FontWeight.normal),
+                  style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
                 ),
               ],
             ),

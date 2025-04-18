@@ -29,10 +29,22 @@ class PropertyPage extends StatefulWidget {
 }
 
 class _PropertyPageState extends State<PropertyPage> {
+  // Add a key for the ExpandableText widget
+  final GlobalKey<ExpandableTextState> _expandableTextKey = GlobalKey<ExpandableTextState>();
+
   @override
   void initState() {
     super.initState();
     context.read<PropertyNotifier>().fetchPropertyDetail(widget.propertyId);
+  }
+
+  @override
+  void didUpdateWidget(PropertyPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset the expandable text state when the property changes
+    if (oldWidget.propertyId != widget.propertyId) {
+      _expandableTextKey.currentState?.reset();
+    }
   }
 
   String getDaysAgo(DateTime createdAt) {
@@ -135,7 +147,7 @@ class _PropertyPageState extends State<PropertyPage> {
                       placeholder: placeholder,
                       errorWidget: errorWidget,
                       height: 350.h,
-                      imageUrl: property.images![i],
+                      imageUrl: property.images![i].url,
                       fit: BoxFit.cover,
                     );
                   }),
@@ -312,12 +324,13 @@ class _PropertyPageState extends State<PropertyPage> {
                 children: [
                   ReusableText(
                     text: property.title,
-                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                    style: appStyle(18, Kolors.kGray, FontWeight.bold)
                   ),
                   SizedBox(
                     height: 10.h,
                   ),
                   ExpandableText(
+                    key: _expandableTextKey,
                     text: property.description
                   ),
                 ],

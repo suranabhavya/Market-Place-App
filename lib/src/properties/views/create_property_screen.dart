@@ -20,17 +20,41 @@ import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
 import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
+import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
+import 'package:marketplace_app/src/properties/services/property_service.dart';
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
+import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../common/widgets/custom_text.dart';
+import '../../../common/widgets/custom_text.dart' as custom_text;
+import '../../../common/widgets/custom_dropdown.dart';
+import '../../../common/widgets/custom_checkbox.dart';
+import '../../../common/widgets/custom_switch.dart';
+import '../../../common/widgets/custom_divider.dart';
+import '../../../common/widgets/custom_text_field.dart';
+import '../../../common/widgets/amenity_chip.dart';
+import '../../../common/widgets/section_title.dart';
+import '../../../common/widgets/custom_date_picker.dart';
 
 
 // TODO: fetch schools API is behaving weirdly when multiple schools are selected it keeps on loading check later
+// TODO: cross button to remove school is not working
+
 
 class CreatePropertyPage extends StatefulWidget {
-  const CreatePropertyPage({super.key});
+  final bool isEditing;
+  final String? propertyId;
+  final Map<String, dynamic>? initialData;
+  final Function(Map<String, dynamic>)? onSubmit;
+
+  const CreatePropertyPage({
+    super.key, 
+    this.isEditing = false,
+    this.propertyId,
+    this.initialData,
+    this.onSubmit,
+  });
 
   @override
   State<CreatePropertyPage> createState() => _CreatePropertyPageState();
@@ -38,6 +62,7 @@ class CreatePropertyPage extends StatefulWidget {
 
 class _CreatePropertyPageState extends State<CreatePropertyPage> {
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   // Controllers for input fields
   final ImagePicker _picker = ImagePicker();
@@ -59,6 +84,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   Map<String, bool> amenities = {};
   // List to store selected images
   final List<File> _images = [];
+  // List to store existing images when editing (URLs)
+  List<PropertyImage> _existingImages = [];
+  // List to track removed image IDs
+  final List<String> _deletedImages = [];
 
   List<AutocompletePrediction>? placePredictions = [];
 
@@ -70,7 +99,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   String partying = '';
   String dietary = '';
   String nationality = '';
-  String genderPreference = '';
+  String genderPreference = 'any';
   String smokingPreference = '';
   String partyingPreference = '';
   String dietaryPreference = '';
@@ -107,6 +136,20 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     setState(() {
       _images.removeAt(index);
     });
+  }
+
+  // Method to remove an existing image
+  void _removeExistingImage(int index) {
+    debugPrint("Removing image at index $index");
+    String imageId = _existingImages[index].id;
+    setState(() {
+      // Only add to deleted images if it's not a placeholder and not empty
+      if (imageId.isNotEmpty) {
+        _deletedImages.add(imageId);
+      }
+      _existingImages.removeAt(index);
+    });
+    debugPrint("Current deleted images: "+_deletedImages.toString());
   }
 
   // Method to pick a date
@@ -417,13 +460,23 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
       if (response.statusCode == 200) {
         String responseBody = utf8.decode(response.bodyBytes);
-        print("API Response: $responseBody");
-
         List<dynamic> data = json.decode(responseBody);
 
         setState(() {
-          // Convert List into a Map for selection tracking
+          // Initialize all amenities as false
           amenities = {for (var item in data) item["name"]: false};
+          
+          // If editing mode and we have initial data with amenities
+          if (widget.isEditing && widget.initialData != null && widget.initialData!['amenities'] != null) {
+            List<dynamic> selectedAmenities = widget.initialData!['amenities'];
+            
+            // Mark selected amenities as true
+            for (String amenity in selectedAmenities) {
+              if (amenities.containsKey(amenity)) {
+                amenities[amenity] = true;
+              }
+            }
+          }
         });
       } else {
         throw Exception("Failed to load amenities");
@@ -439,10 +492,84 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     _fetchSchools();
     _fetchAmenities();
 
-    // Set default available_from to today's date
-    DateTime today = DateTime.now();
-    _availableFromController.text =
-      "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+    // If editing, populate form with initial data
+    if (widget.isEditing && widget.initialData != null) {
+      final data = widget.initialData!;
+      
+      // Populate text fields
+      _titleController.text = data['title'] ?? '';
+      _descriptionController.text = data['description'] ?? '';
+      _addressController.text = data['address'] ?? '';
+      _unitController.text = data['unit'] ?? '';
+      _latitudeController.text = data['latitude']?.toString() ?? '';
+      _longitudeController.text = data['longitude']?.toString() ?? '';
+      _rentController.text = data['rent']?.toString() ?? '';
+      _squareFootageController.text = data['square_footage']?.toString() ?? '';
+      _bedroomsController.text = data['bedrooms']?.toString() ?? '';
+      _bathroomsController.text = data['bathrooms']?.toString() ?? '';
+      
+      // Set location fields
+      _pincode = data['pincode'];
+      _city = data['city'];
+      _state = data['state'];
+      _country = data['country'];
+      
+      // Set dropdown values
+      listingType = data['listing_type'] ?? 'sublease';
+      rentFrequency = data['rent_frequency'] ?? 'monthly';
+      propertyType = data['property_type'] ?? 'shared_room';
+      furnished = data['furnished'] ?? false;
+      _hideAddress = data['hide_address'] ?? false;
+
+      // Load existing images
+      if (data['images'] != null && data['images'] is List) {
+        _existingImages = (data['images'] as List)
+            .map<PropertyImage>((img) => img is Map<String, dynamic>
+                ? PropertyImage.fromJson(img)
+                : PropertyImage(id: '', url: img.toString()))
+            .toList();
+      }
+
+      // Handle sublease details
+      if (data['sublease_details'] != null) {
+        _availableFromController.text = data['sublease_details']['available_from'] ?? '';
+        _availableTillController.text = data['sublease_details']['available_to'] ?? '';
+        
+        // Handle schools
+        if (data['sublease_details']['schools_nearby'] != null) {
+          selectedSchoolIds = (data['sublease_details']['schools_nearby'] as List)
+              .map((school) => school['id'].toString())
+              .toList();
+          
+          for (var school in data['sublease_details']['schools_nearby']) {
+            _selectedSchoolsMap[school['id']] = {
+              'id': school['id'],
+              'name': school['name']
+            };
+          }
+        }
+      }
+
+      // Handle lifestyle preferences
+      if (data['lifestyle'] != null) {
+        smoking = data['lifestyle']['smoking'] ?? '';
+        partying = data['lifestyle']['partying'] ?? '';
+        dietary = data['lifestyle']['dietary'] ?? '';
+        nationality = data['lifestyle']['nationality'] ?? '';
+      }
+
+      // Handle preferences
+      genderPreference = data['preference']?['gender_preference'] ?? 'any';
+      smokingPreference = data['preference']?['smoking_preference'] ?? '';
+      partyingPreference = data['preference']?['partying_preference'] ?? '';
+      dietaryPreference = data['preference']?['dietary_preference'] ?? '';
+      nationalityPreference = data['preference']?['nationality_preference'] ?? '';
+    } else {
+      // Set default available_from to today's date if not editing
+      DateTime today = DateTime.now();
+      _availableFromController.text =
+        "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+    }
   }
 
   // Helper function to add red asterisk to required fields
@@ -461,6 +588,168 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     );
   }
 
+  void _handleSubmit() async {
+    if (!_validateForm()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Process amenities
+      List<String> selectedAmenities = amenities.entries
+          .where((e) => e.value)
+          .map((e) => e.key)
+          .toList();
+
+      // Process lifestyle
+      Map<String, dynamic> lifestyleData = {
+        if (smoking.isNotEmpty) 'smoking': smoking,
+        if (partying.isNotEmpty) 'partying': partying,
+        if (dietary.isNotEmpty) 'dietary': dietary,
+        if (nationality.isNotEmpty) 'nationality': nationality,
+      };
+
+      // Process preference
+      Map<String, dynamic> preferenceData = {
+        if (genderPreference.isNotEmpty) 'gender_preference': genderPreference,
+        if (smokingPreference.isNotEmpty) 'smoking_preference': smokingPreference,
+        if (partyingPreference.isNotEmpty) 'partying_preference': partyingPreference,
+        if (dietaryPreference.isNotEmpty) 'dietary_preference': dietaryPreference,
+        if (nationalityPreference.isNotEmpty) 'nationality_preference': nationalityPreference,
+      };
+
+      // Create sublease details object
+      Map<String, dynamic> subleaseDetails = {
+        'available_from': _availableFromController.text,
+        if (_availableTillController.text.isNotEmpty) 'available_to': _availableTillController.text,
+        if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds,
+        'shared_room': false,
+      };
+
+      // Create property data map
+      Map<String, dynamic> propertyData = {
+        'title': _titleController.text,
+        'description': _descriptionController.text,
+        'address': _addressController.text,
+        if (_unitController.text.isNotEmpty) 'unit': _unitController.text,
+        if (_latitudeController.text.isNotEmpty) 'latitude': double.tryParse(_latitudeController.text),
+        if (_longitudeController.text.isNotEmpty) 'longitude': double.tryParse(_longitudeController.text),
+        if (_pincode != null) 'pincode': _pincode,
+        if (_city != null) 'city': _city,
+        if (_state != null) 'state': _state,
+        if (_country != null) 'country': _country,
+        'rent': double.tryParse(_rentController.text) ?? 0.0,
+        'rent_frequency': rentFrequency,
+        'property_type': propertyType,
+        'listing_type': listingType,
+        'furnished': furnished,
+        if (_bedroomsController.text.isNotEmpty) 'bedrooms': int.tryParse(_bedroomsController.text),
+        if (_bathroomsController.text.isNotEmpty) 'bathrooms': int.tryParse(_bathroomsController.text),
+        if (_squareFootageController.text.isNotEmpty) 'square_footage': int.tryParse(_squareFootageController.text),
+        'hide_address': _hideAddress,
+        'sublease_details': subleaseDetails,
+        if (selectedAmenities.isNotEmpty) 'amenities': selectedAmenities,
+        if (lifestyleData.isNotEmpty) 'lifestyle': lifestyleData,
+        if (preferenceData.isNotEmpty) 'preference': preferenceData,
+      };
+
+      if (widget.isEditing && widget.propertyId != null) {
+        // For editing, add images and deleted images to the property data
+        if (_images.isNotEmpty) {
+          propertyData['images'] = _images.map((file) => file.path).toList();
+        }
+        if (_deletedImages.isNotEmpty) {
+          propertyData['deleted_images'] = _deletedImages;
+        }
+        
+        try {
+          // Get the access token
+          String? accessToken = Storage().getString('accessToken');
+          if (accessToken == null) {
+            throw Exception("User not authenticated");
+          }
+
+          // Update property using PropertyNotifier
+          await context.read<PropertyNotifier>().updateProperty(
+            token: accessToken,
+            propertyId: widget.propertyId!,
+            propertyData: propertyData,
+            onSuccess: () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Property updated successfully!")),
+                );
+                context.pop();
+                context.read<PropertyNotifier>().fetchProperties();
+              }
+            },
+            onError: () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Failed to update property")),
+                );
+              }
+            },
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to update property: $e")),
+            );
+          }
+        }
+      } else {
+        try {
+          // For new properties, add images to the property data
+          if (_images.isNotEmpty) {
+            propertyData['images'] = _images.map((file) => file.path).toList();
+          }
+          
+          // Get the access token
+          String? accessToken = Storage().getString('accessToken');
+          if (accessToken == null) {
+            throw Exception("User not authenticated");
+          }
+
+          // Create property using PropertyNotifier
+          await context.read<PropertyNotifier>().createProperty(
+            token: accessToken,
+            propertyData: propertyData,
+            onSuccess: () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Property created successfully!")),
+                );
+                context.pop();
+                context.read<PropertyNotifier>().fetchProperties();
+              }
+            },
+            onError: () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Failed to create property")),
+                );
+              }
+            },
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to create property: $e")),
+            );
+          }
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -471,7 +760,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           },
         ),
         title: ReusableText(
-          text: AppText.kCreateListing,
+          text: widget.isEditing ? "Edit Property" : AppText.kCreateListing,
           style: appStyle(15, Kolors.kPrimary, FontWeight.bold)
         ),
       ),
@@ -481,78 +770,19 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           key: _formKey,
           child: ListView(
             children: [
-              // Image Picker Section
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Images", 
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () => _pickImage(ImageSource.gallery),
-                        icon: const Icon(Icons.photo, color: Kolors.kPrimary),
-                        label: Text(
-                          "Pick from Gallery",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        onPressed: () => _pickImage(ImageSource.camera),
-                        icon: const Icon(Icons.camera, color: Kolors.kPrimary),
-                        label: Text(
-                          "Take Photo",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Display Selected Images
-                  _images.isNotEmpty
-                      ? Wrap(
-                          spacing: 10,
-                          children: _images
-                              .asMap()
-                              .entries
-                              .map((entry) => Stack(
-                                    children: [
-                                      Image.file(
-                                        entry.value,
-                                        height: 100,
-                                        width: 100,
-                                        fit: BoxFit.cover,
-                                      ),
-                                      Positioned(
-                                        right: 0,
-                                        top: 0,
-                                        child: IconButton(
-                                          icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                          onPressed: () => _removeImage(entry.key),
-                                        ),
-                                      ),
-                                    ],
-                                  ))
-                              .toList(),
-                        )
-                      : Text(
-                        "No images selected.",
-                        style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                      ),
-                ],
+              PropertyImagePicker(
+                images: _images,
+                existingImages: _existingImages,
+                onPickImage: _pickImage,
+                onRemoveImage: _removeImage,
+                onRemoveExistingImage: _removeExistingImage,
               ),
               const SizedBox(height: 16),
-              // Title
-              requiredLabel("Title"),
-
-              const SizedBox(height: 8),
               
               CustomTextField(
                 controller: _titleController,
+                labelText: "Title",
+                isRequired: true,
                 maxLines: 2,
                 hintText: "Enter Title",
                 keyboardType: TextInputType.name,
@@ -566,13 +796,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 16),
 
-              // Description
-              requiredLabel("Description"),
-              
-              const SizedBox(height: 8),
-
               CustomTextField(
                 controller: _descriptionController,
+                labelText: "Description",
+                isRequired: true,
                 maxLines: 6,
                 hintText: "Enter Description",
                 keyboardType: TextInputType.name,
@@ -654,46 +881,30 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               ),
 
               const SizedBox(height: 16),
-              // Title
-              Text(
-                "Unit / Apartment #", 
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-              ),
-
-              const SizedBox(height: 8),
 
               CustomTextField(
+                controller: _unitController,
+                labelText: "Unit / Apartment",
+                maxLines: 1,
+                hintText: "Enter Unit / Apartment",
+                keyboardType: TextInputType.name,
                 prefixIcon: const Icon(
                   CupertinoIcons.building_2_fill,
                   size: 20,
                   color: Kolors.kGray,
                 ),
-                controller: _unitController,
-                maxLines: 1,
-                hintText: "Enter Unit / Apartment",
-                keyboardType: TextInputType.name,
               ),
 
               const SizedBox(height: 16),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Checkbox(
-                    value: _hideAddress,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _hideAddress = value ?? false;
-                      });
-                    },
-                    activeColor: Kolors.kPrimary,
-                    checkColor: Colors.white,
-                  ),
-                  Text(
-                    "Hide Address",
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-                  ),
-                ],
+              CustomCheckbox(
+                value: _hideAddress,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _hideAddress = value ?? false;
+                  });
+                },
+                label: "Hide Address",
               ),
               const SizedBox(height: 16),
               // Title
@@ -713,12 +924,40 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 hintText: "Select Nearby Schools",
                 onSelectionChanged: (List<String> selectedNames) {
                   setState(() {
-                    // Update selectedSchoolIds and _selectedSchoolsMap
-                    selectedSchoolIds = selectedNames.map((name) {
-                      var school = schoolOptions.firstWhere((s) => s['name'] == name);
-                      _selectedSchoolsMap[school['id']!] = school;
-                      return school['id']!;
-                    }).toList();
+                    // Create a new map of name to ID for quick lookup
+                    Map<String, String> nameToIdMap = {};
+                    for (var school in schoolOptions) {
+                      nameToIdMap[school['name']!] = school['id']!;
+                    }
+                    // Also add from selected schools map for schools not in options
+                    for (var entry in _selectedSchoolsMap.entries) {
+                      nameToIdMap[entry.value['name']!] = entry.value['id']!;
+                    }
+
+                    // Clear existing selections
+                    selectedSchoolIds = [];
+                    Map<String, Map<String, String>> newSelectedSchoolsMap = {};
+
+                    // Update selections based on selected names
+                    for (String name in selectedNames) {
+                      String? id = nameToIdMap[name];
+                      if (id != null) {
+                        selectedSchoolIds.add(id);
+                        // Keep or add to selected schools map
+                        if (_selectedSchoolsMap.containsKey(id)) {
+                          newSelectedSchoolsMap[id] = _selectedSchoolsMap[id]!;
+                        } else {
+                          newSelectedSchoolsMap[id] = {
+                            'id': id,
+                            'name': name
+                          };
+                        }
+                      }
+                    }
+
+                    // Update the selected schools map
+                    _selectedSchoolsMap.clear();
+                    _selectedSchoolsMap.addAll(newSelectedSchoolsMap);
                   });
                 },
                 onSearch: _searchSchools,
@@ -728,74 +967,37 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 16),
 
-              requiredLabel("Property Type"),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: propertyType,
                 items: const [
                   DropdownMenuItem(value: 'private_room', child: Text("Private Room")),
                   DropdownMenuItem(value: 'shared_room', child: Text("Shared Room")),
                   DropdownMenuItem(value: 'apartment', child: Text("Apartment")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     propertyType = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Property Type",
+                isRequired: true,
               ),
 
               const SizedBox(height: 16),
-              requiredLabel("Listing Type"),
 
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: listingType,
                 items: const [
                   DropdownMenuItem(value: 'sublease', child: Text("Sublease")),
                   DropdownMenuItem(value: 'rent', child: Text("Rent")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     listingType = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Listing Type",
+                isRequired: true,
               ),
 
               const SizedBox(height: 16),
@@ -804,75 +1006,33 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               Row(
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        requiredLabel("Available From"),
-
-                        const SizedBox(height: 8),
-
-                        TextFormField(
-                          controller: _availableFromController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context, _availableFromController),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Available From is required.";
-                            }
-                            return null;
-                          },
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                            ),
-                            suffixIcon: const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
-                            hintText: "Select Date",
-                            hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                          ),
-                        ),
-                      ]
+                    child: CustomDatePicker(
+                      controller: _availableFromController,
+                      labelText: "Available From",
+                      isRequired: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return "Available From is required.";
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Available Till",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        TextFormField(
-                          controller: _availableTillController,
-                          readOnly: true,
-                          onTap: () => _selectDate(context, _availableTillController),
-                          validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              DateTime availableFrom = DateTime.parse(_availableFromController.text);
-                              DateTime availableTill = DateTime.parse(value);
-                              if (availableTill.isBefore(availableFrom)) {
-                                return "Available Till must be after Available From.";
-                              }
-                            }
-                            return null;
-                          },
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                            ),
-                            suffixIcon: const Icon(Icons.calendar_today, size: 20, color: Colors.grey),
-                            hintText: "Select Date",
-                            hintStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                          ),
-                        ),
-                      ]
+                    child: CustomDatePicker(
+                      controller: _availableTillController,
+                      labelText: "Available Till",
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          DateTime availableFrom = DateTime.parse(_availableFromController.text);
+                          DateTime availableTill = DateTime.parse(value);
+                          if (availableTill.isBefore(availableFrom)) {
+                            return "Available Till must be after Available From.";
+                          }
+                        }
+                        return null;
+                      },
                     ),
                   )
                 ]
@@ -887,12 +1047,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        requiredLabel("Rent"),
-
-                        const SizedBox(height: 8),
-
                         CustomTextField(
                           controller: _rentController,
+                          labelText: "Rent",
                           maxLines: 1,
                           hintText: "Enter Rent",
                           keyboardType: TextInputType.number,
@@ -916,39 +1073,20 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        requiredLabel("Rent Frequency"),
-
-                        const SizedBox(height: 8),
-
-                        DropdownButtonFormField<String>(
+                        CustomDropdown<String>(
                           value: rentFrequency,
                           items: const [
                             DropdownMenuItem(value: 'monthly', child: Text("Monthly")),
                             DropdownMenuItem(value: 'weekly', child: Text("Weekly")),
                             DropdownMenuItem(value: 'daily', child: Text("Daily")),
                           ],
-                          style: appStyle(12, Kolors.kDark, FontWeight.normal),
                           onChanged: (value) {
                             setState(() {
                               rentFrequency = value!;
                             });
                           },
-                          decoration: InputDecoration(
-                            labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade400),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey.shade400),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                            ),
-                          ),
+                          labelText: "Rent Frequency",
+                          isRequired: true,
                         ),
                       ]
                     ),
@@ -959,27 +1097,14 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               const SizedBox(height: 16),
 
               // Furnished Checkbox
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Furnished",
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-                  ),
-                  Transform.scale(
-                    scale: 0.8, // Reduce switch size
-                    child: Switch(
-                      value: furnished,
-                      onChanged: (bool value) {
-                        setState(() {
-                          furnished = value;
-                        });
-                      },
-                      activeColor: Kolors.kPrimary,
-                      inactiveThumbColor: Colors.grey,
-                    ),
-                  ),
-                ],
+              CustomSwitch(
+                value: furnished,
+                onChanged: (bool value) {
+                  setState(() {
+                    furnished = value;
+                  });
+                },
+                label: "Furnished",
               ),
 
               const SizedBox(height: 16),
@@ -987,15 +1112,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Square Footage Area",
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                  ),
-
-                  const SizedBox(height: 8),
-
                   CustomTextField(
                     controller: _squareFootageController,
+                    labelText: "Square Footage Area",
                     maxLines: 1,
                     hintText: "Area of the Room / Apartment in Sqft",
                     keyboardType: TextInputType.number,
@@ -1016,15 +1135,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Bedrooms",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                        ),
-
-                        const SizedBox(height: 8),
-
                         CustomTextField(
                           controller: _bedroomsController,
+                          labelText: "Bedrooms",
                           maxLines: 1,
                           hintText: "Bedrooms",
                           keyboardType: TextInputType.number,
@@ -1042,15 +1155,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Bathrooms",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-                        ),
-
-                        const SizedBox(height: 8),
-
                         CustomTextField(
                           controller: _bathroomsController,
+                          labelText: "Bathrooms",
                           maxLines: 1,
                           hintText: "Bathrooms",
                           keyboardType: TextInputType.number,
@@ -1068,16 +1175,16 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               
               const SizedBox(height: 16),
 
-              Divider(
-                color: Kolors.kGrayLight,
+              CustomDivider(
+                height: 1,
                 thickness: 0.5.h,
+                color: Kolors.kGrayLight,
               ),
 
               const SizedBox(height: 16),
 
-              Text(
-                "Amenities (Optional)",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+              const SectionTitle(
+                title: "Amenities (Optional)",
               ),
 
               const SizedBox(height: 16),
@@ -1089,58 +1196,36 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     runSpacing: 8,
                     children: amenities.keys.map((String key) {
                       bool isSelected = amenities[key]!;
-                      return GestureDetector(
+                      return AmenityChip(
+                        label: key,
+                        isSelected: isSelected,
                         onTap: () {
                           setState(() {
                             amenities[key] = !isSelected;
                           });
                         },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Kolors.kPrimary : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isSelected) const Icon(Icons.check, color: Colors.white, size: 16),
-                              if (isSelected) const SizedBox(width: 6),
-                              Text(
-                                key,
-                                style: appStyle(12, isSelected ? Colors.white : Colors.black, FontWeight.normal),
-                              ),
-                            ],
-                          ),
-                        ),
+                        icon: Icons.check,
                       );
                     }).toList(),
                   ),
 
               const SizedBox(height: 16),
 
-              Divider(
-                color: Kolors.kGrayLight,
+              CustomDivider(
+                height: 1,
                 thickness: 0.5.h,
+                color: Kolors.kGrayLight,
               ),
 
               const SizedBox(height: 16),
 
-              Text(
-                "Lifestyle (Optional)",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+              const SectionTitle(
+                title: "Lifestyle (Optional)",
               ),
 
               const SizedBox(height: 16),
 
-              Text(
-                "Smoking",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: smoking,
                 items: [
                   DropdownMenuItem(
@@ -1153,7 +1238,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.smoking_rooms , color: Colors.black, size: 16)
+                        const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1162,40 +1247,17 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
                   const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     smoking = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Smoking",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Partying",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: partying,
                 items: [
                   DropdownMenuItem(
@@ -1208,7 +1270,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.wine_bar , color: Colors.black, size: 16)
+                        const Icon(Icons.wine_bar, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1217,40 +1279,17 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
                   const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     partying = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Partying",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Dietary",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: dietary,
                 items: [
                   DropdownMenuItem(
@@ -1263,7 +1302,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.lunch_dining , color: Colors.black, size: 16)
+                        const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1271,40 +1310,17 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
                   const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     dietary = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Dietary",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Nationality",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: nationality,
                 items: [
                   DropdownMenuItem(
@@ -1317,7 +1333,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.groups_3_sharp , color: Colors.black, size: 16)
+                        const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1328,58 +1344,35 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'others', child: Text("Others")),
                   const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     nationality = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Nationality",
               ),
 
               const SizedBox(height: 16),
 
-              Divider(
-                color: Kolors.kGrayLight,
+              CustomDivider(
+                height: 1,
                 thickness: 0.5.h,
+                color: Kolors.kGrayLight,
               ),
 
               const SizedBox(height: 16),
 
-              Text(
-                "Preference (Optional)",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
+              const SectionTitle(
+                title: "Preference (Optional)",
               ),
 
               const SizedBox(height: 16),
 
-              Text(
-                "Gender Preference",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: genderPreference,
                 items: [
                   DropdownMenuItem(
-                    value: '',
+                    value: 'any',
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
@@ -1388,47 +1381,24 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.people , color: Colors.black, size: 16)
+                        const Icon(Icons.people, color: Colors.black, size: 16)
                       ],
                     )
                   ),
                   const DropdownMenuItem(value: 'boys', child: Text("Boys Only")),
                   const DropdownMenuItem(value: 'girls', child: Text("Girls Only")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     genderPreference = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Gender Preference",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Smoking Preference",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: smokingPreference,
                 items: [
                   DropdownMenuItem(
@@ -1441,7 +1411,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.smoking_rooms , color: Colors.black, size: 16)
+                        const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1450,40 +1420,17 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
                   const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     smokingPreference = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Smoking Preference",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Partying Preference",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: partyingPreference,
                 items: [
                   DropdownMenuItem(
@@ -1496,7 +1443,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.wine_bar , color: Colors.black, size: 16)
+                        const Icon(Icons.wine_bar, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1505,44 +1452,21 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
                   const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     partyingPreference = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Partying Preference",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Dietary Preference",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: dietaryPreference,
                 items: [
                   DropdownMenuItem(
-                    value: '', 
+                    value: '',
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
@@ -1551,7 +1475,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.lunch_dining , color: Colors.black, size: 16)
+                        const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1559,44 +1483,21 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
                   const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     dietaryPreference = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Dietary Preference",
               ),
 
               const SizedBox(height: 8),
 
-              Text(
-                "Nationality Preference",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold)
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
+              CustomDropdown<String>(
                 value: nationalityPreference,
                 items: [
                   DropdownMenuItem(
-                    value: '', 
+                    value: '',
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
@@ -1605,7 +1506,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                           style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
                         ),
                         SizedBox(width: 8.w),
-                        const Icon(Icons.groups_3_sharp , color: Colors.black, size: 16)
+                        const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
                       ],
                     )
                   ),
@@ -1616,121 +1517,24 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const DropdownMenuItem(value: 'others', child: Text("Others")),
                   const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
                 ],
-                style: appStyle(12, Kolors.kDark, FontWeight.normal),
                 onChanged: (value) {
                   setState(() {
                     nationalityPreference = value!;
                   });
                 },
-                decoration: InputDecoration(
-                  labelStyle: appStyle(12, Kolors.kGray, FontWeight.normal),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade400),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                  ),
-                ),
+                labelText: "Nationality Preference",
               ),
 
               const SizedBox(height: 32),
 
               // Submit Button
               CustomButton(
-                onTap: () async {
-                  if (_validateForm()) {
-                    String? accessToken = Storage().getString('accessToken');
-
-                    // Process amenities
-                    List<String> selectedAmenities = amenities.entries
-                        .where((e) => e.value)
-                        .map((e) => e.key.replaceAll(RegExp(r'^\p{So}\s*', unicode: true), '').trim())
-                        .toList();
-
-                    // Process lifestyle
-                    Map<String, String> lifestyleData = {};
-                    if (smoking.isNotEmpty) lifestyleData["smoking"] = smoking;
-                    if (partying.isNotEmpty) lifestyleData["partying"] = partying;
-                    if (dietary.isNotEmpty) lifestyleData["dietary"] = dietary;
-
-                    // Process preference
-                    Map<String, String> preferenceData = {};
-                    if (genderPreference.isNotEmpty) preferenceData["gender_preference"] = genderPreference;
-                    if (smokingPreference.isNotEmpty) preferenceData["smoking_preference"] = smokingPreference;
-                    if (partyingPreference.isNotEmpty) preferenceData["partying_preference"] = partyingPreference;
-                    if (dietaryPreference.isNotEmpty) preferenceData["dietary_preference"] = dietaryPreference;
-
-                    final propertyData = {
-                      "images": _images.map((image) => image.path).toList(),
-                      "title": _titleController.text,
-                      "description": _descriptionController.text,
-                      "address": _addressController.text,
-                      if (_unitController.text.isNotEmpty) "unit": _unitController.text,
-                      if (_pincode != null) "pincode": _pincode,
-                      if (_city != null) "city": _city,
-                      if (_state != null) "state": _state,
-                      if (_country != null) "country": _country,
-                      if (_latitudeController.text.isNotEmpty) "latitude": double.tryParse(_latitudeController.text),
-                      if (_longitudeController.text.isNotEmpty) "longitude": double.tryParse(_longitudeController.text),
-                      "hide_address": _hideAddress,
-                      "property_type": propertyType,
-                      "listing_type": listingType,
-                      "rent": double.tryParse(_rentController.text),
-                      "rent_frequency": rentFrequency,
-                      "furnished": furnished,
-                      if (_squareFootageController.text.isNotEmpty) "square_footage": int.tryParse(_squareFootageController.text),
-                      if (_bedroomsController.text.isNotEmpty) "bedrooms": int.tryParse(_bedroomsController.text),
-                      if (_bathroomsController.text.isNotEmpty) "bathrooms": int.tryParse(_bathroomsController.text),
-                      "sublease_details": {
-                        "available_from": _availableFromController.text,
-                        if (_availableTillController.text.isNotEmpty) "available_to": _availableTillController.text,
-                        if (selectedSchoolIds.isNotEmpty) "school_ids": selectedSchoolIds,
-                        "shared_room": true,
-                      },
-                      if (selectedAmenities.isNotEmpty) "amenities": selectedAmenities,
-                      if (lifestyleData.isNotEmpty) "lifestyle": lifestyleData,
-                      if (preferenceData.isNotEmpty) "preference": preferenceData,
-                      "is_active": true,
-                      "created_at": DateTime.now().toIso8601String(),
-                      "updated_at": DateTime.now().toIso8601String(),
-                    };
-                    print("property data is: $propertyData");
-
-                    if (accessToken != null) {
-                      context.read<PropertyNotifier>().createProperty(
-                        token: accessToken,
-                        propertyData: propertyData,
-                        onSuccess: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Property created successfully!")),
-                          );
-                          context.pop(); // Navigate back after success
-                          context.read<PropertyNotifier>().fetchProperties();
-                        },
-                        onError: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Failed to create property")),
-                          );
-                        },
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Access token not available. Please log in.")),
-                      );
-                    }
-                  }
-                },
-                text: "Create Listing",
+                onTap: _isLoading ? null : _handleSubmit,
+                text: widget.isEditing ? "Update Property" : "Create Listing",
                 btnWidth: ScreenUtil().screenWidth,
                 btnHeight: 40,
                 radius: 20,
+                isLoading: _isLoading,
               )
             ],
           ),

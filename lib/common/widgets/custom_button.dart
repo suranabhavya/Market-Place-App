@@ -19,6 +19,7 @@ class CustomButton extends StatelessWidget {
     this.icon,
     this.svgPath,
     this.iconColor,
+    this.isLoading = false,
   });
   final void Function()? onTap;
   final double? btnWidth;
@@ -31,51 +32,61 @@ class CustomButton extends StatelessWidget {
   final IconData? icon;
   final String? svgPath;
   final Color? iconColor;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       child: Container(
         width: btnWidth ?? ScreenUtil().screenWidth / 2,
         height: btnHeight ?? 25.h,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius??6),
-          color: btnColor?? Kolors.kPrimaryLight,
+          color: isLoading ? (btnColor ?? Kolors.kPrimaryLight).withOpacity(0.7) : btnColor?? Kolors.kPrimaryLight,
           border: Border.all(width: 0.5.h, color:borderColor?? Kolors.kWhite),
         ),
         child: Center(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 3.w),
-            child: (icon != null || svgPath != null)
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    svgPath != null
-                      ? SvgPicture.asset(
-                          svgPath!,
-                          width: 24,
-                          height: 24,
-                          colorFilter: iconColor != null 
-                            ? ColorFilter.mode(iconColor!, BlendMode.srcIn)
-                            : null,
-                        )
-                      : Icon(
-                          icon, 
-                          color: iconColor ?? Kolors.kPrimary, 
-                          size: 24
-                        ),
-                    SizedBox(width: 12.w),
-                    ReusableText(
-                      text: text, 
-                      style: appStyle(textSize??13, Kolors.kPrimary, FontWeight.bold)
-                    ),
-                  ],
+            child: isLoading
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(borderColor ?? Kolors.kWhite),
+                  ),
                 )
-              : ReusableText(
-                  text: text, 
-                  style: appStyle(textSize??13, borderColor??Kolors.kWhite, FontWeight.bold)
-                ),
+              : (icon != null || svgPath != null)
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      svgPath != null
+                        ? SvgPicture.asset(
+                            svgPath!,
+                            width: 24,
+                            height: 24,
+                            colorFilter: iconColor != null 
+                              ? ColorFilter.mode(iconColor!, BlendMode.srcIn)
+                              : null,
+                          )
+                        : Icon(
+                            icon, 
+                            color: iconColor ?? Kolors.kPrimary, 
+                            size: 24
+                          ),
+                      SizedBox(width: 12.w),
+                      ReusableText(
+                        text: text, 
+                        style: appStyle(textSize??13, Kolors.kPrimary, FontWeight.bold)
+                      ),
+                    ],
+                  )
+                : ReusableText(
+                    text: text, 
+                    style: appStyle(textSize??13, borderColor??Kolors.kWhite, FontWeight.bold)
+                  ),
           ),
         ),
       ),
