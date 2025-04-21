@@ -151,29 +151,33 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           return CachedNetworkImage(
                             imageUrl: widget.property.images![index],
                             fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                const Center(child: CircularProgressIndicator()),
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                            ),
                             errorWidget: (context, url, error) =>
                                 const Icon(Icons.broken_image, size: 60, color: Kolors.kGray),
                           );
                         },
                       )
-                    : Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.image_not_supported,
-                              size: 80,
-                              color: Kolors.kGray,
-                            ),
-                            SizedBox(height: 8.h),
-                            Text(
-                              "No images",
-                              style: appStyle(16.sp, Kolors.kGray, FontWeight.w400),
-                            ),
-                          ],
+                    : Container(
+                        color: Colors.grey[200],
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.image_not_supported,
+                                size: 80,
+                                color: Kolors.kGray,
+                              ),
+                              SizedBox(height: 8.h),
+                              Text(
+                                "No images",
+                                style: appStyle(16.sp, Kolors.kGray, FontWeight.w400),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                 ),

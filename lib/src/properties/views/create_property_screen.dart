@@ -120,14 +120,35 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   // Method to pick an image
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedImage = await _picker.pickImage(source: source);
-      if (pickedImage != null) {
-        setState(() {
-          _images.add(File(pickedImage.path));
-        });
+      if (source == ImageSource.gallery) {
+        final List<XFile>? pickedImages = await _picker.pickMultiImage(
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 70, // Reduced quality for better compression
+        );
+        
+        if (pickedImages != null) {
+          setState(() {
+            _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
+          });
+        }
+      } else {
+        // For camera, we can't use pickMultiImage
+        final XFile? pickedImage = await _picker.pickImage(
+          source: source,
+          maxWidth: 1200,
+          maxHeight: 1200,
+          imageQuality: 70, // Reduced quality for better compression
+        );
+        
+        if (pickedImage != null) {
+          setState(() {
+            _images.add(File(pickedImage.path));
+          });
+        }
       }
     } catch (e) {
-      print("Error picking image: $e");
+      print("Error picking images: $e");
     }
   }
 
@@ -1070,6 +1091,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                             }
                             return null;
                           },
+                          isRequired: true,
                         ),
                       ]
                     ),
