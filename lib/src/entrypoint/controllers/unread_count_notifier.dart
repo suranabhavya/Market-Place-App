@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class UnreadCountNotifier with ChangeNotifier {
@@ -11,7 +12,7 @@ class UnreadCountNotifier with ChangeNotifier {
 
   UnreadCountNotifier() {
     _token = Storage().getString('accessToken');
-    final wsUrl = "ws://127.0.0.1:8000/ws/unread/?token=$_token";
+    final wsUrl = "${Environment.iosWsBaseUrl}/ws/unread/?token=$_token";
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
     _channel.stream.listen((data) {
       final decoded = jsonDecode(data);

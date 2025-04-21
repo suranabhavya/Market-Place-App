@@ -32,6 +32,10 @@ class WishlistWidget extends HookWidget {
                   .where((property) => wishlistNotifier.wishlist.contains(property.id))
                   .toList();
 
+              if (filteredProperties.isEmpty) {
+                return const EmptyScreenWidget();
+              }
+
               return Column(
                 children: List.generate(
                   filteredProperties.length,

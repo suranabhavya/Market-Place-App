@@ -188,7 +188,7 @@ class _UserListingsPageState extends State<UserListingsPage> {
                             crossAxisCount: 1,
                             crossAxisSpacing: 8.w,
                             mainAxisSpacing: 8.h,
-                            childAspectRatio: 1.30.h,
+                            childAspectRatio: 1.18 .h,
                           ),
                           itemCount: userProperties.length,
                           itemBuilder: (context, index) {

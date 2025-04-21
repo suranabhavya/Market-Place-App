@@ -67,7 +67,7 @@ class _MessagePageState extends State<MessagePage> {
     if (token == null) return;
     print("chat_id: ${widget.chatId}");
     channel = WebSocketChannel.connect(
-      Uri.parse("ws://127.0.0.1:8000/ws/chat/${widget.chatId}/?token=$token"),
+      Uri.parse("${Environment.iosWsBaseUrl}/ws/chat/${widget.chatId}/?token=$token"),
     );
     channel.stream.listen((message) {
       try {

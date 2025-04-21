@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
@@ -40,7 +41,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   Future<void> fetchUserProfile() async {
-    final String apiUrl = 'http://127.0.0.1:8000/accounts/user/${widget.userId}/';
+    final String apiUrl = '${Environment.iosAppBaseUrl}/accounts/user/${widget.userId}/';
     try {
       final response = await http.get(Uri.parse(apiUrl));
 

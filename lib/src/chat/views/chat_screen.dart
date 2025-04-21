@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
@@ -49,9 +50,12 @@ class _ChatPageState extends State<ChatPage> {
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
+
+    final wsUrl = Environment.iosWsBaseUrl;
+
     // Connect to the user chats WebSocket endpoint.
     channel = WebSocketChannel.connect(
-      Uri.parse("ws://127.0.0.1:8000/ws/user_chats/?token=$token"),
+      Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
     );
     channel.stream.listen((data) {
       try {

@@ -183,7 +183,7 @@ class _FilterPageState extends State<FilterPage> {
   }
 
   Future<void> _fetchAmenities() async {
-    const String url = 'http://127.0.0.1:8000/api/amenities/';
+    String url = '${Environment.iosAppBaseUrl}/api/amenities/';
     try {
       final response = await http.get(Uri.parse(url));
 

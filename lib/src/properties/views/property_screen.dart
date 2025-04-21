@@ -13,11 +13,19 @@ import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/const/constants.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:marketplace_app/src/properties/widgets/expandable_text.dart';
 import 'package:marketplace_app/src/properties/widgets/property_bottom_bar.dart';
-import 'package:marketplace_app/src/properties/widgets/similar_properties.dart';
+import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
+
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return "${this[0].toUpperCase()}${substring(1)}";
+  }
+}
 
 class PropertyPage extends StatefulWidget {
   final String propertyId;
@@ -31,6 +39,8 @@ class PropertyPage extends StatefulWidget {
 class _PropertyPageState extends State<PropertyPage> {
   // Add a key for the ExpandableText widget
   final GlobalKey<ExpandableTextState> _expandableTextKey = GlobalKey<ExpandableTextState>();
+  bool _hasFetchedNearby = false;
+  bool _isLoadingNearby = false;
 
   @override
   void initState() {
@@ -44,6 +54,29 @@ class _PropertyPageState extends State<PropertyPage> {
     // Reset the expandable text state when the property changes
     if (oldWidget.propertyId != widget.propertyId) {
       _expandableTextKey.currentState?.reset();
+      _hasFetchedNearby = false;
+    }
+  }
+
+  Future<void> _fetchNearbyProperties(PropertyDetailModel property) async {
+    if (!_hasFetchedNearby && property.latitude != null && property.longitude != null) {
+      setState(() {
+        _hasFetchedNearby = true;
+        _isLoadingNearby = true;
+      });
+
+      try {
+        await context.read<PropertyNotifier>().fetchNearbyProperties(
+          property.latitude!,
+          property.longitude!,
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoadingNearby = false;
+          });
+        }
+      }
     }
   }
 
@@ -97,6 +130,9 @@ class _PropertyPageState extends State<PropertyPage> {
       );
     }
 
+    // Fetch nearby properties when property details are loaded
+    _fetchNearbyProperties(property);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -108,6 +144,24 @@ class _PropertyPageState extends State<PropertyPage> {
             pinned: true,
             leading: const AppBackButton(),
             actions: [
+              // Share Button
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: GestureDetector(
+                  onTap: () {
+                    // TODO: Implement share functionality to share property details
+                  },
+                  child: CircleAvatar(
+                    backgroundColor: Kolors.kSecondaryLight,
+                    child: Icon(
+                      MaterialCommunityIcons.share,
+                      color: Kolors.kGray,
+                      size: 30.h,
+                    ),
+                  ),
+                ),
+              ),
+              // Wishlist Button
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: Consumer<WishlistNotifier>(
@@ -144,8 +198,16 @@ class _PropertyPageState extends State<PropertyPage> {
                   isLoop: property.images!.length > 1 ? true : false,
                   children: List.generate(property.images!.length, (i) {
                     return CachedNetworkImage(
-                      placeholder: placeholder,
-                      errorWidget: errorWidget,
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Kolors.kGray,
+                          ),
+                        ),
+                      ),
                       height: 350.h,
                       imageUrl: property.images![i].url,
                       fit: BoxFit.cover,
@@ -181,9 +243,40 @@ class _PropertyPageState extends State<PropertyPage> {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: ReusableText(
-                text: '\$${property.rent}/${property.rentFrequency}',
-                style: appStyle(24, Kolors.kGray, FontWeight.w600)
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ReusableText(
+                      text: '\$${property.rent}/${property.rentFrequency}',
+                      style: appStyle(24, Kolors.kGray, FontWeight.w600)
+                    ),
+                    SizedBox(width: 8.w),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: Kolors.kPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: ReusableText(
+                        text: property.propertyType.replaceAll('_', ' ').toUpperCase(),
+                        style: appStyle(12, Kolors.kPrimary, FontWeight.w500)
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: Kolors.kPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: ReusableText(
+                        text: property.listingType.toUpperCase(),
+                        style: appStyle(12, Kolors.kPrimary, FontWeight.w500)
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           ),
@@ -369,7 +462,7 @@ class _PropertyPageState extends State<PropertyPage> {
                     children: [
                       ReusableText(
                         text: 'Nearby Schools',
-                        style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                        style: appStyle(16, Kolors.kGray, FontWeight.bold)
                       ),
                       SizedBox(
                         height: 10.h,
@@ -428,7 +521,7 @@ class _PropertyPageState extends State<PropertyPage> {
                   children: [
                     ReusableText(
                       text: 'Amenities',
-                      style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                      style: appStyle(16, Kolors.kGray, FontWeight.bold)
                     ),
                     SizedBox(
                       height: 10.h,
@@ -471,6 +564,280 @@ class _PropertyPageState extends State<PropertyPage> {
             ),
           ),
 
+          // Lifestyle Section
+          if (property.propertyType != 'apartment' &&
+              property.lifestyle != null &&
+              (property.lifestyle!.smoking != null ||
+               property.lifestyle!.partying != null ||
+               property.lifestyle!.dietary != null ||
+               property.lifestyle!.nationality != null))
+            ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ReusableText(
+                        text: 'Flatmate Lifestyle',
+                        style: appStyle(16, Kolors.kGray, FontWeight.bold)
+                      ),
+                      SizedBox(height: 10.h),
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 8.h,
+                        children: [
+                          if (property.lifestyle!.smoking != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.smoking_rooms, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Smoking: ${property.lifestyle!.smoking!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.lifestyle!.partying != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.wine_bar, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Partying: ${property.lifestyle!.partying!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.lifestyle!.dietary != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.lunch_dining, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Dietary: ${property.lifestyle!.dietary!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.lifestyle!.nationality != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.groups_3_sharp, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Nationality: ${property.lifestyle!.nationality!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(height: 10.h),
+              ),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  child: Divider(thickness: .5.h),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(height: 10.h),
+              ),
+            ],
+
+          // Preferences Section
+          if (property.propertyType != 'apartment' &&
+              property.preference != null &&
+              (property.preference!.genderPreference != null ||
+               property.preference!.smokingPreference != null ||
+               property.preference!.partyingPreference != null ||
+               property.preference!.dietaryPreference != null ||
+               property.preference!.nationalityPreference != null))
+            ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ReusableText(
+                        text: 'Flatmate Preferences',
+                        style: appStyle(16, Kolors.kGray, FontWeight.bold)
+                      ),
+                      SizedBox(height: 10.h),
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 8.h,
+                        children: [
+                          if (property.preference!.genderPreference != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.people, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Gender: ${property.preference!.genderPreference!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.preference!.smokingPreference != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.smoking_rooms, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Smoking: ${property.preference!.smokingPreference!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.preference!.partyingPreference != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.wine_bar, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Partying: ${property.preference!.partyingPreference!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.preference!.dietaryPreference != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.lunch_dining, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Dietary: ${property.preference!.dietaryPreference!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (property.preference!.nationalityPreference != null)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Kolors.kPrimary, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.groups_3_sharp, size: 16.sp, color: Kolors.kPrimary),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    'Nationality: ${property.preference!.nationalityPreference!.replaceAll('_', ' ').capitalize()}',
+                                    style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(height: 10.h),
+              ),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  child: Divider(thickness: .5.h),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(height: 10.h),
+              ),
+            ],
+
+          // Posted By section (moved outside of conditions)
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -479,7 +846,7 @@ class _PropertyPageState extends State<PropertyPage> {
                 children: [
                   ReusableText(
                     text: 'Posted By',
-                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                    style: appStyle(16, Kolors.kGray, FontWeight.bold)
                   ),
                   SizedBox(
                     height: 10.h,
@@ -518,7 +885,7 @@ class _PropertyPageState extends State<PropertyPage> {
               ),
             ),
           ),
-        
+          
           SliverToBoxAdapter(
             child: SizedBox(
               height: 10.h,
@@ -540,6 +907,7 @@ class _PropertyPageState extends State<PropertyPage> {
             ),
           ),
 
+          // Similar Properties section (moved outside of conditions)
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -547,13 +915,44 @@ class _PropertyPageState extends State<PropertyPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ReusableText(
-                    text: 'Similar Homes Nearby',
-                    style: appStyle(18, Kolors.kGray, FontWeight.normal)
+                    text: 'Nearby Properties',
+                    style: appStyle(16, Kolors.kGray, FontWeight.bold)
                   ),
                   SizedBox(
                     height: 10.h,
                   ),
-                  // const SimilarProperties(),
+                  if (_isLoadingNearby)
+                    const Center(child: CircularProgressIndicator())
+                  else if (propertyNotifier.nearbyProperties.isNotEmpty)
+                    Column(
+                      children: propertyNotifier.nearbyProperties
+                          .where((p) => p.id != property.id) // Exclude current property
+                          .take(3) // Show only 3 nearby properties
+                          .map((nearbyProperty) => Padding(
+                                padding: EdgeInsets.only(bottom: 16.h),
+                                child: StaggeredTileWidget(
+                                  onTap: () {
+                                    if (accessToken == null) {
+                                      loginBottomSheet(context);
+                                    } else {
+                                      context.read<WishlistNotifier>().toggleWishlist(
+                                        nearbyProperty.id,
+                                        () {},
+                                      );
+                                    }
+                                  },
+                                  property: nearbyProperty,
+                                ),
+                              ))
+                          .toList(),
+                    )
+                  else
+                    Center(
+                      child: Text(
+                        "No nearby properties found",
+                        style: appStyle(14, Kolors.kGray, FontWeight.normal),
+                      ),
+                    ),
                 ],
               ),
             ),

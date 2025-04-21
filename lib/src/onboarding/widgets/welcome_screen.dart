@@ -29,7 +29,7 @@ class WelcomeScreen extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: double.infinity,
-            height: 320.h,
+            height: 330.h,
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -41,7 +41,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SizedBox(height: 20.h),
+                SizedBox(height: 15.h),
 
                 // Title text
                 Text(
@@ -50,7 +50,7 @@ class WelcomeScreen extends StatelessWidget {
                   style: appStyle(24, Kolors.kPrimary, FontWeight.bold),
                 ),
 
-                SizedBox(height: 20.h),
+                SizedBox(height: 15.h),
 
                 // Description text
                 ConstrainedBox(
@@ -62,7 +62,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(height: 30.h),
+                SizedBox(height: 25.h),
 
                 // Get Started button
                 CustomButton(
@@ -83,9 +83,11 @@ class WelcomeScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    ReusableText(
-                      text: "Already have an Account",
-                      style: appStyle(12, Kolors.kDark, FontWeight.normal)
+                    Flexible(
+                      child: ReusableText(
+                        text: "Already have an Account?",
+                        style: appStyle(12, Kolors.kDark, FontWeight.normal)
+                      ),
                     ),
                     TextButton(
                       onPressed: () => context.go('/check-email'),

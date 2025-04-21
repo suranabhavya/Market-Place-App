@@ -142,6 +142,11 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                     ? PageView.builder(
                         controller: _pageController,
                         itemCount: widget.property.images?.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentPage = index;
+                          });
+                        },
                         itemBuilder: (context, index) {
                           return CachedNetworkImage(
                             imageUrl: widget.property.images![index],
