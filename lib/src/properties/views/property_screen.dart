@@ -249,7 +249,7 @@ class _PropertyPageState extends State<PropertyPage> {
                   children: [
                     ReusableText(
                       text: '\$${property.rent}/${property.rentFrequency}',
-                      style: appStyle(24, Kolors.kGray, FontWeight.w600)
+                      style: appStyle(20, Kolors.kGray, FontWeight.w600)
                     ),
                     SizedBox(width: 8.w),
                     Container(
