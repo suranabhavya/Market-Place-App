@@ -111,29 +111,32 @@ class _MessageModalContentState extends State<MessageModalContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TextField(
-          controller: _messageController,
-          maxLines: 6,
-          decoration: InputDecoration(
-            hintText: 'Type your message...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _messageController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Type your message...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 20),
-        CustomButton(
-          text: 'Send Message',
-          onTap: sendMessage,
-          btnWidth: 150.w,
-          btnHeight: 40.h,
-          textSize: 16,
-          radius: 24,
-        ),
-      ],
+          SizedBox(height: 16),
+          CustomButton(
+            text: 'Send Message',
+            onTap: sendMessage,
+            btnWidth: double.infinity,
+            btnHeight: 40.h,
+            textSize: 16,
+            radius: 24,
+          ),
+        ],
+      ),
     );
   }
 } 

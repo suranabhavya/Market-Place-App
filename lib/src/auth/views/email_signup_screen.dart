@@ -200,10 +200,18 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   // Handle Google Sign-In
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     try {
+      // Unfocus keyboard before starting Google sign-in
+      FocusScope.of(context).unfocus();
+      
       final authNotifier = context.read<AuthNotifier>();
       final success = await authNotifier.signInWithGoogle(context);
       
-      if (!success && mounted) {
+      if (success && mounted) {
+        // If sign-in was successful, navigate to home screen
+        if (mounted) {
+          GoRouter.of(context).pushReplacement('/home');
+        }
+      } else if (!success && mounted) {
         // User canceled or sign-in failed silently
         // No need to show an error as the Google Sign-In UI handles most errors
       }

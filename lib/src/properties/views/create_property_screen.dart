@@ -454,7 +454,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
   // Fetch Amenities from API
   Future<void> _fetchAmenities() async {
-    const String url = 'http://127.0.0.1:8000/api/amenities/';
+    String url = '${Environment.iosAppBaseUrl}/api/amenities/';
     try {
       final response = await http.get(Uri.parse(url));
 
@@ -602,22 +602,28 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           .map((e) => e.key)
           .toList();
 
-      // Process lifestyle
-      Map<String, dynamic> lifestyleData = {
-        if (smoking.isNotEmpty) 'smoking': smoking,
-        if (partying.isNotEmpty) 'partying': partying,
-        if (dietary.isNotEmpty) 'dietary': dietary,
-        if (nationality.isNotEmpty) 'nationality': nationality,
-      };
+      // Process lifestyle and preference data only for shared_room and private_room
+      Map<String, dynamic>? lifestyleData;
+      Map<String, dynamic>? preferenceData;
 
-      // Process preference
-      Map<String, dynamic> preferenceData = {
-        if (genderPreference.isNotEmpty) 'gender_preference': genderPreference,
-        if (smokingPreference.isNotEmpty) 'smoking_preference': smokingPreference,
-        if (partyingPreference.isNotEmpty) 'partying_preference': partyingPreference,
-        if (dietaryPreference.isNotEmpty) 'dietary_preference': dietaryPreference,
-        if (nationalityPreference.isNotEmpty) 'nationality_preference': nationalityPreference,
-      };
+      if (propertyType == 'shared_room' || propertyType == 'private_room') {
+        // Process lifestyle
+        lifestyleData = {
+          if (smoking.isNotEmpty) 'smoking': smoking,
+          if (partying.isNotEmpty) 'partying': partying,
+          if (dietary.isNotEmpty) 'dietary': dietary,
+          if (nationality.isNotEmpty) 'nationality': nationality,
+        };
+
+        // Process preference
+        preferenceData = {
+          if (genderPreference.isNotEmpty) 'gender_preference': genderPreference,
+          if (smokingPreference.isNotEmpty) 'smoking_preference': smokingPreference,
+          if (partyingPreference.isNotEmpty) 'partying_preference': partyingPreference,
+          if (dietaryPreference.isNotEmpty) 'dietary_preference': dietaryPreference,
+          if (nationalityPreference.isNotEmpty) 'nationality_preference': nationalityPreference,
+        };
+      }
 
       // Create sublease details object
       Map<String, dynamic> subleaseDetails = {
@@ -650,8 +656,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         'hide_address': _hideAddress,
         'sublease_details': subleaseDetails,
         if (selectedAmenities.isNotEmpty) 'amenities': selectedAmenities,
-        if (lifestyleData.isNotEmpty) 'lifestyle': lifestyleData,
-        if (preferenceData.isNotEmpty) 'preference': preferenceData,
+        if (lifestyleData?.isNotEmpty ?? false) 'lifestyle': lifestyleData,
+        if (preferenceData?.isNotEmpty ?? false) 'preference': preferenceData,
       };
 
       if (widget.isEditing && widget.propertyId != null) {
@@ -1217,313 +1223,316 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 color: Kolors.kGrayLight,
               ),
 
-              const SizedBox(height: 16),
+              // Only show Lifestyle and Preference sections for shared_room and private_room
+              if (propertyType == 'shared_room' || propertyType == 'private_room') ...[
+                const SizedBox(height: 16),
 
-              const SectionTitle(
-                title: "Lifestyle (Optional)",
-              ),
+                const SectionTitle(
+                  title: "Lifestyle (Optional)",
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              CustomDropdown<String>(
-                value: smoking,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Prefer not to say",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'never', child: Text("Never")),
-                  const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
-                  const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
-                  const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    smoking = value!;
-                  });
-                },
-                labelText: "Smoking",
-              ),
+                CustomDropdown<String>(
+                  value: smoking,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Prefer not to say",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'never', child: Text("Never")),
+                    const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
+                    const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
+                    const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      smoking = value!;
+                    });
+                  },
+                  labelText: "Smoking",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: partying,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Prefer not to say",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.wine_bar, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'never', child: Text("Never")),
-                  const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
-                  const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
-                  const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    partying = value!;
-                  });
-                },
-                labelText: "Partying",
-              ),
+                CustomDropdown<String>(
+                  value: partying,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Prefer not to say",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.wine_bar, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'never', child: Text("Never")),
+                    const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
+                    const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
+                    const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      partying = value!;
+                    });
+                  },
+                  labelText: "Partying",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: dietary,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Prefer not to say",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'veg', child: Text("Vegetarian")),
-                  const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
-                  const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    dietary = value!;
-                  });
-                },
-                labelText: "Dietary",
-              ),
+                CustomDropdown<String>(
+                  value: dietary,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Prefer not to say",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'veg', child: Text("Vegetarian")),
+                    const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
+                    const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      dietary = value!;
+                    });
+                  },
+                  labelText: "Dietary",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: nationality,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Prefer not to say",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'indian', child: Text("Indian")),
-                  const DropdownMenuItem(value: 'korean', child: Text("Korean")),
-                  const DropdownMenuItem(value: 'chinese', child: Text("Chinese")),
-                  const DropdownMenuItem(value: 'american', child: Text("American")),
-                  const DropdownMenuItem(value: 'others', child: Text("Others")),
-                  const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    nationality = value!;
-                  });
-                },
-                labelText: "Nationality",
-              ),
+                CustomDropdown<String>(
+                  value: nationality,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Prefer not to say",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'indian', child: Text("Indian")),
+                    const DropdownMenuItem(value: 'korean', child: Text("Korean")),
+                    const DropdownMenuItem(value: 'chinese', child: Text("Chinese")),
+                    const DropdownMenuItem(value: 'american', child: Text("American")),
+                    const DropdownMenuItem(value: 'others', child: Text("Others")),
+                    const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      nationality = value!;
+                    });
+                  },
+                  labelText: "Nationality",
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              CustomDivider(
-                height: 1,
-                thickness: 0.5.h,
-                color: Kolors.kGrayLight,
-              ),
+                CustomDivider(
+                  height: 1,
+                  thickness: 0.5.h,
+                  color: Kolors.kGrayLight,
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              const SectionTitle(
-                title: "Preference (Optional)",
-              ),
+                const SectionTitle(
+                  title: "Preference (Optional)",
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              CustomDropdown<String>(
-                value: genderPreference,
-                items: [
-                  DropdownMenuItem(
-                    value: 'any',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Any",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.people, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'boys', child: Text("Boys Only")),
-                  const DropdownMenuItem(value: 'girls', child: Text("Girls Only")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    genderPreference = value!;
-                  });
-                },
-                labelText: "Gender Preference",
-              ),
+                CustomDropdown<String>(
+                  value: genderPreference,
+                  items: [
+                    DropdownMenuItem(
+                      value: 'any',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Any",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.people, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'boys', child: Text("Boys Only")),
+                    const DropdownMenuItem(value: 'girls', child: Text("Girls Only")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      genderPreference = value!;
+                    });
+                  },
+                  labelText: "Gender Preference",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: smokingPreference,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Doesn't Matter",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'never', child: Text("Never")),
-                  const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
-                  const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
-                  const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    smokingPreference = value!;
-                  });
-                },
-                labelText: "Smoking Preference",
-              ),
+                CustomDropdown<String>(
+                  value: smokingPreference,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Doesn't Matter",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.smoking_rooms, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'never', child: Text("Never")),
+                    const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
+                    const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
+                    const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      smokingPreference = value!;
+                    });
+                  },
+                  labelText: "Smoking Preference",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: partyingPreference,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Doesn't Matter",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.wine_bar, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'never', child: Text("Never")),
-                  const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
-                  const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
-                  const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    partyingPreference = value!;
-                  });
-                },
-                labelText: "Partying Preference",
-              ),
+                CustomDropdown<String>(
+                  value: partyingPreference,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Doesn't Matter",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.wine_bar, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'never', child: Text("Never")),
+                    const DropdownMenuItem(value: 'rarely', child: Text("Rarely")),
+                    const DropdownMenuItem(value: 'occasionally', child: Text("Occasionally")),
+                    const DropdownMenuItem(value: 'regularly', child: Text("Regularly")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      partyingPreference = value!;
+                    });
+                  },
+                  labelText: "Partying Preference",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: dietaryPreference,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Doesn't Matter",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'veg', child: Text("Vegetarian")),
-                  const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
-                  const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    dietaryPreference = value!;
-                  });
-                },
-                labelText: "Dietary Preference",
-              ),
+                CustomDropdown<String>(
+                  value: dietaryPreference,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Doesn't Matter",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.lunch_dining, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'veg', child: Text("Vegetarian")),
+                    const DropdownMenuItem(value: 'non_veg', child: Text("Non Vegetarian")),
+                    const DropdownMenuItem(value: 'vegan', child: Text("Vegan")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      dietaryPreference = value!;
+                    });
+                  },
+                  labelText: "Dietary Preference",
+                ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              CustomDropdown<String>(
-                value: nationalityPreference,
-                items: [
-                  DropdownMenuItem(
-                    value: '',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Doesn't Matter",
-                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
-                        ),
-                        SizedBox(width: 8.w),
-                        const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
-                      ],
-                    )
-                  ),
-                  const DropdownMenuItem(value: 'indian', child: Text("Indian")),
-                  const DropdownMenuItem(value: 'korean', child: Text("Korean")),
-                  const DropdownMenuItem(value: 'chinese', child: Text("Chinese")),
-                  const DropdownMenuItem(value: 'american', child: Text("American")),
-                  const DropdownMenuItem(value: 'others', child: Text("Others")),
-                  const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    nationalityPreference = value!;
-                  });
-                },
-                labelText: "Nationality Preference",
-              ),
+                CustomDropdown<String>(
+                  value: nationalityPreference,
+                  items: [
+                    DropdownMenuItem(
+                      value: '',
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Doesn't Matter",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.normal)
+                          ),
+                          SizedBox(width: 8.w),
+                          const Icon(Icons.groups_3_sharp, color: Colors.black, size: 16)
+                        ],
+                      )
+                    ),
+                    const DropdownMenuItem(value: 'indian', child: Text("Indian")),
+                    const DropdownMenuItem(value: 'korean', child: Text("Korean")),
+                    const DropdownMenuItem(value: 'chinese', child: Text("Chinese")),
+                    const DropdownMenuItem(value: 'american', child: Text("American")),
+                    const DropdownMenuItem(value: 'others', child: Text("Others")),
+                    const DropdownMenuItem(value: 'mixed', child: Text("Mixed")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      nationalityPreference = value!;
+                    });
+                  },
+                  labelText: "Nationality Preference",
+                ),
+              ],
 
               const SizedBox(height: 32),
 

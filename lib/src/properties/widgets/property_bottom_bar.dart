@@ -60,18 +60,22 @@ class PropertyBottomBar extends StatelessWidget {
                 );
               } else {
                 // Show message modal for new chat
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Container(
-                      padding: const EdgeInsets.all(24.0),
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (BuildContext context) {
+                    return Container(
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).viewInsets.bottom,
+                      ),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                       ),
                       child: MessageModalContent(senderId: senderId),
-                    ),
-                  ),
+                    );
+                  },
                 );
               }
             }

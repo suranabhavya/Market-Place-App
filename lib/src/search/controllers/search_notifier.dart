@@ -77,7 +77,7 @@ class SearchNotifier with ChangeNotifier {
     
     try {
       final response = await http.get(
-        Uri.parse('http://127.0.0.1:8000/api/autocomplete/?q=$query'),
+        Uri.parse('${Environment.iosAppBaseUrl}/api/autocomplete/?q=$query'),
       );
       
       if (response.statusCode == 200) {

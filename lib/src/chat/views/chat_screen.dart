@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
@@ -49,9 +50,12 @@ class _ChatPageState extends State<ChatPage> {
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
+
+    final wsUrl = Environment.iosWsBaseUrl;
+
     // Connect to the user chats WebSocket endpoint.
     channel = WebSocketChannel.connect(
-      Uri.parse("ws://127.0.0.1:8000/ws/user_chats/?token=$token"),
+      Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
     );
     channel.stream.listen((data) {
       try {
@@ -144,7 +148,10 @@ class _ChatPageState extends State<ChatPage> {
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        displayName,
+                        style: appStyle(15, Kolors.kPrimary, FontWeight.bold),
+                      ),
                       const SizedBox(width: 8),
                       if (unreadCount > 0)
                         Container(
@@ -155,7 +162,7 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                           child: Text(
                             "$unreadCount",
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: appStyle(12, Colors.white, FontWeight.bold),
                           ),
                         ),
                     ],
@@ -164,14 +171,20 @@ class _ChatPageState extends State<ChatPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(messagePreview, overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          messagePreview,
+                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                          overflow: TextOverflow.ellipsis
+                        ),
                       ),
                       if (lastUpdated.isNotEmpty)
-                        Text(lastUpdated, style: const TextStyle(fontSize: 10)),
+                        Text(
+                          lastUpdated,
+                          style: appStyle(10, Kolors.kPrimary, FontWeight.normal),
+                        ),
                     ],
                   ),
                   onTap: () async {
-                    print("other user id: ${chat['sender_id']}");
                     // Navigate to the MessagePage. (Marking messages as read will be handled there.)
                     await Navigator.push(
                       context,

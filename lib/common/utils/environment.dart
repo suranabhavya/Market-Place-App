@@ -22,6 +22,14 @@ class Environment {
     return dotenv.env['ANDROID_API_BASE_URL'] ?? 'ANDROID_API_BASE_URL not found';
   }
 
+  static String get iosWsBaseUrl {
+    return dotenv.env['IOS_WS_BASE_URL'] ?? 'IOS_WS_BASE_URL not found';
+  }
+
+  static String get androidWsBaseUrl {
+    return dotenv.env['ANDROID_WS_BASE_URL'] ?? 'ANDROID_WS_BASE_URL not found';
+  }
+
   static String get googleApiKey {
     return dotenv.env['MAPS_API_KEY'] ?? 'MAPS_API_KEY not found';
   }

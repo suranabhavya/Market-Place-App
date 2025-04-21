@@ -40,6 +40,7 @@ class PropertyNotifier extends ChangeNotifier {
   String? nextPageUrl;
   int totalPropertiesCount = 0;
   List<PropertyListModel> userProperties = [];
+  List<PropertyListModel> nearbyProperties = [];
 
   // Reset properties and pagination data
   void resetProperties() {
@@ -427,8 +428,6 @@ class PropertyNotifier extends ChangeNotifier {
         request.fields['preference'] = jsonEncode(propertyData['preference']);
       }
 
-
-
       var response = await request.send();
       var responseData = await http.Response.fromStream(response);
 
@@ -498,5 +497,39 @@ class PropertyNotifier extends ChangeNotifier {
       debugPrint(e.toString());
     }
     return null;
+  }
+
+  Future<void> fetchNearbyProperties(double latitude, double longitude) async {
+    if (isLoading) return; // Prevent multiple simultaneous fetches
+    
+    isLoading = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('${Environment.iosAppBaseUrl}/api/properties/?latitude=$latitude&longitude=$longitude&max_distance=2'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        nearbyProperties = (data['results'] as List)
+            .map((property) => PropertyListModel.fromJson(property))
+            .toList();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
+      } else {
+        debugPrint('Failed to fetch nearby properties: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching nearby properties: $e');
+    } finally {
+      isLoading = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    }
   }
 }

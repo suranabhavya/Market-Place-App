@@ -28,7 +28,7 @@ class CustomAppBar extends StatelessWidget {
       title: PreferredSize(
         preferredSize: Size.fromHeight(55.h),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 2.h, vertical: 8.h),
+          padding: EdgeInsets.symmetric(vertical: 8.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -37,10 +37,10 @@ class CustomAppBar extends StatelessWidget {
                   context.push('/search');
                 },
                 child: Padding(
-                  padding: EdgeInsets.only(left: 6.w),
+                  padding: EdgeInsets.only(left: 2.w,),
                   child: Container(
                     height: 40.h,
-                    width: ScreenUtil().screenWidth - 100,
+                    width: ScreenUtil().screenWidth - 80,
                     decoration: BoxDecoration(
                       border: Border.all(
                         width: 0.5,

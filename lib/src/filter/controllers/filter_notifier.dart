@@ -139,16 +139,16 @@ class FilterNotifier extends ChangeNotifier {
 
     // Add flatmate preferences
     if (smokingPreference.isNotEmpty) {
-      url += "smoking_preference=$smokingPreference&";
+      url += "smoking=$smokingPreference&";
     }
     if (partyingPreference.isNotEmpty) {
-      url += "partying_preference=$partyingPreference&";
+      url += "partying=$partyingPreference&";
     }
     if (dietaryPreference.isNotEmpty) {
-      url += "dietary_preference=$dietaryPreference&";
+      url += "dietary=$dietaryPreference&";
     }
     if (nationalityPreference.isNotEmpty) {
-      url += "nationality_preference=$nationalityPreference&";
+      url += "nationality=$nationalityPreference&";
     }
 
     // Add amenities
