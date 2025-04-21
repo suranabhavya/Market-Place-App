@@ -148,7 +148,10 @@ class _ChatPageState extends State<ChatPage> {
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        displayName,
+                        style: appStyle(15, Kolors.kPrimary, FontWeight.bold),
+                      ),
                       const SizedBox(width: 8),
                       if (unreadCount > 0)
                         Container(
@@ -159,7 +162,7 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                           child: Text(
                             "$unreadCount",
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: appStyle(12, Colors.white, FontWeight.bold),
                           ),
                         ),
                     ],
@@ -168,14 +171,20 @@ class _ChatPageState extends State<ChatPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                        child: Text(messagePreview, overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          messagePreview,
+                          style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                          overflow: TextOverflow.ellipsis
+                        ),
                       ),
                       if (lastUpdated.isNotEmpty)
-                        Text(lastUpdated, style: const TextStyle(fontSize: 10)),
+                        Text(
+                          lastUpdated,
+                          style: appStyle(10, Kolors.kPrimary, FontWeight.normal),
+                        ),
                     ],
                   ),
                   onTap: () async {
-                    print("other user id: ${chat['sender_id']}");
                     // Navigate to the MessagePage. (Marking messages as read will be handled there.)
                     await Navigator.push(
                       context,

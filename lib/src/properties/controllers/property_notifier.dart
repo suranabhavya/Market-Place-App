@@ -503,7 +503,9 @@ class PropertyNotifier extends ChangeNotifier {
     if (isLoading) return; // Prevent multiple simultaneous fetches
     
     isLoading = true;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
 
     try {
       final response = await http.get(
@@ -515,6 +517,9 @@ class PropertyNotifier extends ChangeNotifier {
         nearbyProperties = (data['results'] as List)
             .map((property) => PropertyListModel.fromJson(property))
             .toList();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          notifyListeners();
+        });
       } else {
         debugPrint('Failed to fetch nearby properties: ${response.statusCode}');
       }
@@ -522,7 +527,9 @@ class PropertyNotifier extends ChangeNotifier {
       debugPrint('Error fetching nearby properties: $e');
     } finally {
       isLoading = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
     }
   }
 }

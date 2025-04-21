@@ -373,10 +373,6 @@ class AuthNotifier with ChangeNotifier {
         Storage().setString('accessToken', authData.token);
         Storage().setString('user', jsonEncode(authData.user.toJson()));
         
-        if (context.mounted) {
-          // Redirect to home page after successful authentication
-          context.go('/home');
-        }
         return true;
       } else {
         if (context.mounted) {

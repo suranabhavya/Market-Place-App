@@ -87,85 +87,81 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         ),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey,
-                    backgroundImage: userProfile!["profile_photo"] != null
-                        ? NetworkImage(userProfile!["profile_photo"])
-                        : null,
-                    child: userProfile!["profile_photo"] == null
-                        ? const Icon(Icons.person, size: 50, color: Colors.white)
-                        : null,
-                  ),
-                  if (userProfile!["school_email_verified"] == true)
-                    const Icon(Icons.verified, color: Colors.blue, size: 24),
-                ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.grey,
+                      backgroundImage: userProfile!["profile_photo"] != null
+                          ? NetworkImage(userProfile!["profile_photo"])
+                          : null,
+                      child: userProfile!["profile_photo"] == null
+                          ? const Icon(Icons.person, size: 50, color: Colors.white)
+                          : null,
+                    ),
+                    if (userProfile!["school_email_verified"] == true)
+                      const Icon(Icons.verified, color: Colors.blue, size: 24),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Center(
-              child: ReusableText(
-                text: userProfile!["name"],
-                style: appStyle(18, Kolors.kGray, FontWeight.bold),
+              const SizedBox(height: 10),
+              Center(
+                child: ReusableText(
+                  text: userProfile!["name"],
+                  style: appStyle(18, Kolors.kGray, FontWeight.bold),
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            if (currentUser?.id != widget.userId) Center(
-              child: CustomButton(
-                text: 'Message',
-                onTap: () async {
-                  // Check if a chat already exists
-                  final chatId = await checkExistingChat(widget.userId);
-                  if (chatId != null) {
-                    // Navigate to the existing chat
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MessagePage(
-                          chatId: chatId,
-                          participants: userProfile!["name"],
-                          otherParticipantProfilePhoto: userProfile!["profile_photo"],
-                          otherParticipantId: widget.userId,
+              const SizedBox(height: 10),
+              if (currentUser?.id != widget.userId) Center(
+                child: CustomButton(
+                  text: 'Message',
+                  onTap: () async {
+                    // Check if a chat already exists
+                    final chatId = await checkExistingChat(widget.userId);
+                    if (chatId != null) {
+                      // Navigate to the existing chat
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MessagePage(
+                            chatId: chatId,
+                            participants: userProfile!["name"],
+                            otherParticipantProfilePhoto: userProfile!["profile_photo"],
+                            otherParticipantId: widget.userId,
+                          ),
                         ),
-                      ),
-                    );
-                  } else {
-                    // Navigate to a temporary message screen
-                    showMessageModal(context, widget.userId);
-                  }
-                },
-                btnWidth: 150.w,
-                btnHeight: 40.h,
-                textSize: 16,
-                radius: 24,
+                      );
+                    } else {
+                      // Navigate to a temporary message screen
+                      showMessageModal(context, widget.userId);
+                    }
+                  },
+                  btnWidth: 150.w,
+                  btnHeight: 40.h,
+                  textSize: 16,
+                  radius: 24,
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            const Divider(thickness: 0.5),
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
+              const Divider(thickness: 0.5),
+              const SizedBox(height: 10),
 
-            ReusableText(text: "Listings", style: appStyle(16, Kolors.kDark, FontWeight.bold)),
-            // ...userProfile!["properties"].map<Widget>((property) {
-            //   return ListTile(
-            //     title: Text(property["title"]),
-            //     subtitle: Text("${property["bedrooms"]} BR • ${property["bathrooms"]} BA"),
-            //   );
-            // }).toList(),
-            const SizedBox(height: 10),
+              ReusableText(text: "Listings", style: appStyle(16, Kolors.kDark, FontWeight.bold)),
+              const SizedBox(height: 10),
 
-            Expanded(
-              child: Consumer<WishlistNotifier>(
+              Consumer<WishlistNotifier>(
                 builder: (context, wishlistNotifier, child) {
                   return MasonryGridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     crossAxisCount: 1,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
@@ -206,8 +202,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -16,6 +16,7 @@ import 'package:marketplace_app/src/properties/views/public_profile_screen.dart'
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 
 class MessagePage extends StatefulWidget {
   final int chatId;
@@ -189,16 +190,18 @@ class _MessagePageState extends State<MessagePage> {
             TextButton(
               onPressed: () => _scheduleTour(),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                 backgroundColor: Kolors.kPrimaryLight,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25),
                 ),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
                 "Schedule Tour",
-                style: appStyle(14, Colors.white, FontWeight.bold),
+                style: appStyle(12, Colors.white, FontWeight.bold),
               ),
             ),
           ],
@@ -208,7 +211,7 @@ class _MessagePageState extends State<MessagePage> {
         children: [
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const ListShimmer()
                 : ListView.builder(
                     controller: _scrollController,
                     reverse: true,
@@ -289,14 +292,14 @@ class _MessagePageState extends State<MessagePage> {
                                     FontWeight.normal,
                                   ),
                                 ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 2.h),
                               Text(
                                 timeDisplay,
                                 style: appStyle(
-                                  14,
+                                  10,
                                   isMine ? Colors.white.withOpacity(0.7) : Kolors.kPrimary,
                                   FontWeight.normal
-                                )
+                                ),
                               ),
                             ],
                           ),

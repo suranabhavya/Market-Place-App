@@ -49,7 +49,7 @@ class _SelectDateSectionState extends State<SelectDateSection> {
         : "Move-Out";
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 8.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

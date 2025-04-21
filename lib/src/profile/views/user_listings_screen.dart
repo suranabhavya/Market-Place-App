@@ -163,16 +163,19 @@ class _UserListingsPageState extends State<UserListingsPage> {
                             ),
                             SizedBox(height: 20.h),
                             ElevatedButton(
-                              onPressed: () => context.push('/listing/create'),
+                              onPressed: () => context.push('/property/create'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Kolors.kPrimaryLight,
                                 foregroundColor: Kolors.kWhite,
                                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(25),
                                 ),
                               ),
-                              child: const Text('Create Listing'),
+                              child: Text(
+                                'Create Listing',
+                                style: appStyle(14, Kolors.kWhite, FontWeight.bold),
+                              ),
                             ),
                           ],
                         ],
