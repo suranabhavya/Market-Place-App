@@ -30,6 +30,7 @@ class AppText {
   static const String kViewAll = 'See All';
   static const String kFlash = 'Flash Sales';
   static const String kWishlist = 'Wishlist';
+  static const String kMarketplace = 'Move-Out Marketplace';
   static const String kPDetails = 'Product Details';
   static const String kConfirm = 'Confirm Payment';
   static const String kTrack = 'Track Order';

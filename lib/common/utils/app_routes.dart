@@ -8,6 +8,7 @@ import 'package:marketplace_app/src/auth/views/registration_screen.dart';
 import 'package:marketplace_app/src/categories/views/categories_screen.dart';
 import 'package:marketplace_app/src/entrypoint/views/entrypoint.dart';
 import 'package:marketplace_app/src/filter/views/filter_screen.dart';
+import 'package:marketplace_app/src/marketplace/views/create_marketplace_screen.dart';
 import 'package:marketplace_app/src/notifications/views/notification_screen.dart';
 import 'package:marketplace_app/src/onboarding/views/onboarding_screen.dart';
 import 'package:marketplace_app/src/profile/views/account_screen.dart';
@@ -139,6 +140,20 @@ final GoRouter _router = GoRouter(
       builder: (context, state) {
         final propertyId = state.pathParameters['propertyId']!;
         return PropertyEditPage(propertyId: propertyId);
+      },
+    ),
+    GoRoute(
+      path: '/marketplace/create',
+      builder: (context, state) => const CreateMarketplacePage(),
+    ),
+    GoRoute(
+      path: '/marketplace/edit/:itemId',
+      builder: (context, state) {
+        final itemId = state.pathParameters['itemId']!;
+        return CreateMarketplacePage(
+          isEditing: true,
+          itemId: itemId,
+        );
       },
     ),
   ],

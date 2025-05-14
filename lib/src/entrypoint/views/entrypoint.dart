@@ -8,8 +8,10 @@ import 'package:marketplace_app/src/chat/views/chat_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/home/views/home_screen.dart';
+import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/profile/views/profile_screen.dart';
 import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
+import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatelessWidget {
@@ -17,6 +19,7 @@ class AppEntryPoint extends StatelessWidget {
 
   final List<Widget> pageList = [
     const HomePage(),
+    const MarketplacePage(),
     const WishListPage(),
     const ChatPage(),
     const ProfilePage(),
@@ -29,6 +32,7 @@ class AppEntryPoint extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
+        ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
         if (token != null)
           ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
       ],
@@ -75,6 +79,18 @@ class AppEntryPoint extends StatelessWidget {
 
                             BottomNavigationBarItem(
                               icon: tabIndexNotifier.index == 1 ? const Icon(
+                                MaterialCommunityIcons.store,
+                                color: Kolors.kPrimary,
+                                size: 24
+                              ) : const Icon(
+                                MaterialCommunityIcons.store_outline,
+                                size: 24
+                              ),
+                              label: "Marketplace"
+                            ),
+
+                            BottomNavigationBarItem(
+                              icon: tabIndexNotifier.index == 2 ? const Icon(
                                 MaterialCommunityIcons.heart,
                                 color: Kolors.kPrimary,
                                 size: 24
@@ -85,7 +101,7 @@ class AppEntryPoint extends StatelessWidget {
                             ),
                             
                             BottomNavigationBarItem(
-                              icon: tabIndexNotifier.index == 2 
+                              icon: tabIndexNotifier.index == 3 
                                 ? (unreadNotifier.globalUnreadCount > 0 
                                     ? Badge(
                                         label: Text('${unreadNotifier.globalUnreadCount}'),
@@ -109,7 +125,7 @@ class AppEntryPoint extends StatelessWidget {
                             ),
                             
                             BottomNavigationBarItem(
-                              icon: tabIndexNotifier.index == 3 ? const Icon(
+                              icon: tabIndexNotifier.index == 4 ? const Icon(
                                 MaterialCommunityIcons.account_circle,
                                 color: Kolors.kPrimary,
                                 size: 24
