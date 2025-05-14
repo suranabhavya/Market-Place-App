@@ -12,6 +12,7 @@ import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.d
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
+import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/onboarding/controllers/onboarding_notifier.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
@@ -34,6 +35,7 @@ void main() async {
       ChangeNotifierProvider(create: (_) => PasswordNotifier()),
       ChangeNotifierProvider(create: (_) => HomeTabNotifier()),
       ChangeNotifierProvider(create: (_) => PropertyNotifier()),
+      ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
       ChangeNotifierProvider(create: (_) => AuthNotifier()),
       ChangeNotifierProvider(create: (_) => SearchNotifier()),
       ChangeNotifierProvider(create: (_) => FilterNotifier()),
