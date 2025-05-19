@@ -18,6 +18,7 @@ import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/custom_text_field.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
 import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
@@ -63,6 +64,16 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   final TextEditingController _longitudeController = TextEditingController();
   final TextEditingController _availabilityDateController = TextEditingController();
 
+  // School-related fields
+  String _lastSearchQuery = '';
+  final Map<String, Map<String, String>> _selectedSchoolsMap = {};
+  List<Map<String, String>> schoolOptions = [];
+  List<String> selectedSchoolIds = [];
+  final ScrollController _schoolScrollController = ScrollController();
+  int _currentPage = 1;
+  bool _hasMoreSchools = true;
+  bool _isLoadingMoreSchools = false;
+
   // List to store selected images
   final List<File> _images = [];
   List<AutocompletePrediction>? placePredictions = [];
@@ -98,6 +109,157 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     'poor': 'Poor',
   };
 
+  Future<void> _fetchNearbySchools(double lat, double lng) async {
+    String url = "${Environment.iosAppBaseUrl}/api/school/nearby/?lat=$lat&lng=$lng";
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          // Clear previous selections
+          selectedSchoolIds = [];
+          _selectedSchoolsMap.clear();
+
+          // Update selected schools and map
+          for (var school in data) {
+            String id = school['id'] as String;
+            selectedSchoolIds.add(id);
+            _selectedSchoolsMap[id] = {
+              'id': id,
+              'name': school['name'] as String
+            };
+          }
+
+          // Fetch full school details to ensure we have them in schoolOptions
+          _fetchSchools();
+        });
+      } else {
+        throw Exception("Failed to load nearby schools");
+      }
+    } catch (e) {
+      print("Error fetching nearby schools: $e");
+    }
+  }
+
+  Future<void> _fetchSchools() async {
+    if (!_hasMoreSchools || _isLoadingMoreSchools) return;
+
+    setState(() {
+      _isLoadingMoreSchools = true;
+    });
+
+    String url = "${Environment.iosAppBaseUrl}/api/school/lite/?page=$_currentPage";
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> results = data['results'];
+        final bool hasNext = data['next'] != null;
+
+        setState(() {
+          if (_currentPage == 1) {
+            schoolOptions = results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }).toList();
+          } else {
+            schoolOptions.addAll(results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }));
+          }
+          _hasMoreSchools = hasNext;
+          if (hasNext) _currentPage++;
+          _isLoadingMoreSchools = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingMoreSchools = false;
+        });
+        throw Exception("Failed to load schools");
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingMoreSchools = false;
+      });
+      print("Error fetching schools: $e");
+    }  
+  }
+
+  Future<void> _searchSchools(String query) async {
+    // Reset pagination when a new search is initiated
+    if (_lastSearchQuery != query) {
+      setState(() {
+        _currentPage = 1;
+        _hasMoreSchools = true;
+        _lastSearchQuery = query;
+      });
+    }
+
+    if (!_hasMoreSchools || _isLoadingMoreSchools) return;
+
+    setState(() {
+      _isLoadingMoreSchools = true;
+    });
+
+    if (query.isEmpty && _currentPage == 1) {
+      await _fetchSchools();
+      return;
+    }
+
+    String url = "${Environment.iosAppBaseUrl}/api/school/lite/?name=$query&page=$_currentPage";
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> results = data['results'];
+        final bool hasNext = data['next'] != null;
+
+        setState(() {
+          if (_currentPage == 1) {
+            // Create a new list with both API results and selected schools
+            List<Map<String, String>> newOptions = results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }).toList();
+
+            // Add selected schools that aren't in the search results
+            for (String id in selectedSchoolIds) {
+              if (!newOptions.any((school) => school['id'] == id) && _selectedSchoolsMap.containsKey(id)) {
+                newOptions.add(_selectedSchoolsMap[id]!);
+              }
+            }
+            schoolOptions = newOptions;
+          } else {
+            // For pagination, only add new schools from API that aren't already in the list
+            List<Map<String, String>> newSchools = results.map<Map<String, String>>((school) => {
+              'id': school['id'].toString(),
+              'name': school['name'].toString()
+            }).where((school) => !schoolOptions.any((existing) => existing['id'] == school['id'])).toList();
+            schoolOptions.addAll(newSchools);
+          }
+          _hasMoreSchools = hasNext;
+          if (hasNext) _currentPage++;
+          _isLoadingMoreSchools = false;
+        });
+      } else {
+        setState(() {
+          _isLoadingMoreSchools = false;
+        });
+        throw Exception("Failed to search schools");
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingMoreSchools = false;
+      });
+      print("Error searching schools: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -110,6 +272,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     // Fetch user properties for the dropdown
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MarketplaceNotifier>().fetchUserProperties();
+      _fetchSchools(); // Fetch initial schools
     });
 
     // If editing, populate form with initial data
@@ -141,7 +304,34 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       _city = data['city'];
       _state = data['state'];
       _country = data['country'];
+
+      // Handle schools
+      if (data['school_ids'] != null) {
+        selectedSchoolIds = List<String>.from(data['school_ids']);
+        // We'll need to fetch school details to populate the map
+        for (String id in selectedSchoolIds) {
+          _selectedSchoolsMap[id] = {
+            'id': id,
+            'name': 'Loading...' // This will be updated when schools are fetched
+          };
+        }
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _originalPriceController.dispose();
+    _addressController.dispose();
+    _unitController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
+    _availabilityDateController.dispose();
+    _schoolScrollController.dispose();
+    super.dispose();
   }
 
   Future<void> placeAutocomplete(String query) async {
@@ -208,6 +398,9 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           _latitudeController.text = lat.toString();
           _longitudeController.text = lng.toString();
         });
+
+        // Fetch nearby schools after getting location
+        _fetchNearbySchools(lat, lng);
       }
     }
   }
@@ -249,6 +442,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         'availability_date': _availabilityDateController.text,
         'original_receipt_available': originalReceiptAvailable,
         'images': _images.map((file) => file.path).toList(),
+        if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds,
       };
 
       if (_selectedPropertyId != null) {
@@ -625,6 +819,66 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                   });
                 },
                 label: "Hide Address",
+              ),
+
+              const SizedBox(height: 16),
+
+              // Add Schools Section
+              Text(
+                "Nearby Schools", 
+                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+              ),
+
+              const SizedBox(height: 8),
+
+              SearchableMultiSelectDropdown(
+                title: "Schools",
+                options: schoolOptions.map((school) => school['name']!).toList(),
+                selectedValues: selectedSchoolIds.map((id) =>
+                  schoolOptions.firstWhere((school) => school['id'] == id, orElse: () => _selectedSchoolsMap[id] ?? {'name': '', 'id': id})['name']!
+                ).toList(),
+                hintText: "Select Nearby Schools",
+                onSelectionChanged: (List<String> selectedNames) {
+                  setState(() {
+                    // Create a new map of name to ID for quick lookup
+                    Map<String, String> nameToIdMap = {};
+                    for (var school in schoolOptions) {
+                      nameToIdMap[school['name']!] = school['id']!;
+                    }
+                    // Also add from selected schools map for schools not in options
+                    for (var entry in _selectedSchoolsMap.entries) {
+                      nameToIdMap[entry.value['name']!] = entry.value['id']!;
+                    }
+
+                    // Clear existing selections
+                    selectedSchoolIds = [];
+                    Map<String, Map<String, String>> newSelectedSchoolsMap = {};
+
+                    // Update selections based on selected names
+                    for (String name in selectedNames) {
+                      String? id = nameToIdMap[name];
+                      if (id != null) {
+                        selectedSchoolIds.add(id);
+                        // Keep or add to selected schools map
+                        if (_selectedSchoolsMap.containsKey(id)) {
+                          newSelectedSchoolsMap[id] = _selectedSchoolsMap[id]!;
+                        } else {
+                          newSelectedSchoolsMap[id] = {
+                            'id': id,
+                            'name': name
+                          };
+                        }
+                      }
+                    }
+
+                    // Update the selected schools map
+                    _selectedSchoolsMap.clear();
+                    _selectedSchoolsMap.addAll(newSelectedSchoolsMap);
+                  });
+                },
+                onSearch: _searchSchools,
+                scrollController: _schoolScrollController,
+                isLoading: _isLoadingMoreSchools,
               ),
 
               const SizedBox(height: 16),
