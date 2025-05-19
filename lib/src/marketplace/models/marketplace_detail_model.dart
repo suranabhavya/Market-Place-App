@@ -37,6 +37,8 @@ class MarketplaceDetailModel {
   bool isSold;
   DateTime? soldAt;
   List<MarketplaceImage> images;
+  List<String>? schoolIds;
+  List<Map<String, dynamic>>? schoolsNearby;
 
   MarketplaceDetailModel({
     required this.id,
@@ -68,6 +70,8 @@ class MarketplaceDetailModel {
     required this.isSold,
     this.soldAt,
     required this.images,
+    this.schoolIds,
+    this.schoolsNearby,
   });
 
   factory MarketplaceDetailModel.fromJson(Map<String, dynamic> json) =>
@@ -106,6 +110,10 @@ class MarketplaceDetailModel {
             ? List<MarketplaceImage>.from(
                 json["images"].map((x) => MarketplaceImage.fromJson(x)))
             : [],
+        schoolIds: json["school_ids"] != null ? List<String>.from(json["school_ids"]) : null,
+        schoolsNearby: json["schools_nearby"] != null 
+            ? List<Map<String, dynamic>>.from(json["schools_nearby"])
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -138,5 +146,7 @@ class MarketplaceDetailModel {
         "is_sold": isSold,
         "sold_at": soldAt?.toIso8601String(),
         "images": List<dynamic>.from(images.map((x) => x.toJson())),
+        "school_ids": schoolIds,
+        "schools_nearby": schoolsNearby,
       };
 } 
