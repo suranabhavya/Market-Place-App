@@ -15,6 +15,7 @@ import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
+import 'package:marketplace_app/common/widgets/custom_dropdown.dart';
 import 'package:marketplace_app/common/widgets/custom_text_field.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
@@ -25,7 +26,6 @@ import 'package:marketplace_app/src/properties/models/place_autocomplete_respons
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
 
-import '../../../common/widgets/custom_dropdown.dart';
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_date_picker.dart';
 import '../../../common/widgets/custom_switch.dart';
@@ -93,7 +93,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   String? _selectedPropertyId;
 
   Map<String, List<String>> itemSubtypes = {
-    'furniture': ['sofa', 'cot', 'mattress', 'table', 'chair', 'wardrobe', 'dresser', 'bookshelf', 'desk', 'dining_table', 'coffee_table', 'other'],
+    'furniture': ['sofa', 'cot', 'mattress', 'table', 'chair', 'wardrobe', 'dresser', 'bookshelf', 'desk', 'other'],
     'electronics': ['tv', 'computer', 'accessories', 'printer', 'monitor', 'speaker', 'gaming_console', 'camera', 'phone', 'other'],
     'appliance': ['refrigerator', 'washing_machine', 'dryer', 'microwave', 'oven', 'toaster', 'coffee_maker', 'blender', 'fan', 'heater' 'other'],
     'kitchen': ['cookware', 'utensils', 'dishes', 'cutlery', 'other'],
@@ -458,7 +458,6 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
               const SnackBar(content: Text("Item created successfully!")),
             );
             context.pop();
-            context.read<MarketplaceNotifier>().applyFilters(context);
           }
         },
         onError: () {
@@ -493,7 +492,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           onTap: () => context.pop(),
         ),
         title: ReusableText(
-          text: widget.isEditing ? "Edit Item" : "Create Listing",
+          text: widget.isEditing ? "Edit Item" : "Create Marketplace Item",
           style: appStyle(15, Kolors.kPrimary, FontWeight.bold)
         ),
       ),
@@ -730,9 +729,17 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
               const SizedBox(height: 16),
 
-              ReusableText(
-                text: "Address",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+              RichText(
+                text: TextSpan(
+                  text: "Address",
+                  style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+                  children: const [
+                    TextSpan(
+                      text: " *",
+                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -882,52 +889,29 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
               ),
 
               const SizedBox(height: 16),
-
-              if (userProperties.isNotEmpty) ...[
-                ReusableText(
-                  text: "Associate with a Property",
-                  style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                DropdownButtonFormField<String?>(
-                  value: _selectedPropertyId,
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text("-- None --"),
-                    ),
-                    ...userProperties.map((property) => DropdownMenuItem<String?>(
-                      value: property.id,
-                      child: Text(property.title),
-                    )).toList(),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedPropertyId = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Your Property Listings",
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade400),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade400),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                    ),
+              
+              CustomDropdown<String?>(
+                value: _selectedPropertyId,
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text("-- None --"),
                   ),
-                ),
-                
-                const SizedBox(height: 16),
-              ],
+                  ...userProperties.map((property) => DropdownMenuItem<String?>(
+                    value: property.id,
+                    child: Text(property.title),
+                  )).toList(),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPropertyId = value;
+                  });
+                },
+                labelText: "Associate with a Property",
+                hintText: "Select a property",
+              ),
+              
+              const SizedBox(height: 16),
 
               CustomButton(
                 onTap: _isLoading ? null : _handleSubmit,

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "814527696303",
+    "project_id": "homiswap-ffb6b",
+    "storage_bucket": "homiswap-ffb6b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:814527696303:android:2517bbba7a4a9dfed2b35a",
+        "android_client_info": {
+          "package_name": "com.surana.homiswap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANgnPJqY0HUaJau-eMoiqWrFYesqme01s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

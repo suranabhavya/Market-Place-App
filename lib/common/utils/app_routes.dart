@@ -9,6 +9,8 @@ import 'package:marketplace_app/src/categories/views/categories_screen.dart';
 import 'package:marketplace_app/src/entrypoint/views/entrypoint.dart';
 import 'package:marketplace_app/src/filter/views/filter_screen.dart';
 import 'package:marketplace_app/src/marketplace/views/create_marketplace_screen.dart';
+import 'package:marketplace_app/src/marketplace/views/marketplace_filter_screen.dart';
+import 'package:marketplace_app/src/marketplace/views/marketplace_search_screen.dart';
 import 'package:marketplace_app/src/notifications/views/notification_screen.dart';
 import 'package:marketplace_app/src/onboarding/views/onboarding_screen.dart';
 import 'package:marketplace_app/src/profile/views/account_screen.dart';
@@ -25,7 +27,6 @@ import 'package:marketplace_app/src/search/views/search_screen.dart';
 import 'package:marketplace_app/src/splashscreen/views/splashscreen_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 
 final GoRouter _router = GoRouter(
    navigatorKey: navigatorKey,
@@ -155,6 +156,14 @@ final GoRouter _router = GoRouter(
           itemId: itemId,
         );
       },
+    ),
+    GoRoute(
+      path: '/marketplace/search',
+      builder: (context, state) => const MarketplaceSearchPage(),
+    ),
+    GoRoute(
+      path: '/marketplace/filter',
+      builder: (context, state) => const MarketplaceFilterPage(),
     ),
   ],
 );

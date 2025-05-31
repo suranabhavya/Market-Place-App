@@ -74,28 +74,42 @@ class SearchNotifier with ChangeNotifier {
     }
     
     setAutocompleteLoading(true);
+    debugPrint('Fetching autocomplete for query: $query');
     
     try {
+      final url = '${Environment.iosAppBaseUrl}/api/autocomplete/?q=$query';
+      debugPrint('Autocomplete URL: $url');
+      
       final response = await http.get(
-        Uri.parse('${Environment.iosAppBaseUrl}/api/autocomplete/?q=$query'),
+        Uri.parse(url),
       );
       
       if (response.statusCode == 200) {
+        debugPrint('Autocomplete response: ${response.body}');
         final Map<String, dynamic> data = json.decode(response.body);
         
         // Convert the dynamic values to List<String>
         Map<String, List<String>> results = {};
         data.forEach((key, value) {
           if (value is List) {
-            results[key] = List<String>.from(value);
+            // Filter out null values and convert everything to strings
+            results[key] = value
+                .where((item) => item != null)
+                .map<String>((item) => item?.toString() ?? '')
+                .where((item) => item.isNotEmpty)
+                .toList();
+            
+            debugPrint('Category $key has ${results[key]?.length ?? 0} items');
           }
         });
         
         setAutocompleteResults(results);
       } else {
+        debugPrint('Failed to fetch autocomplete: ${response.statusCode} - ${response.body}');
         setError('Failed to fetch autocomplete results');
       }
     } catch (e) {
+      debugPrint('Error fetching autocomplete: $e');
       setError(e.toString());
     } finally {
       setAutocompleteLoading(false);

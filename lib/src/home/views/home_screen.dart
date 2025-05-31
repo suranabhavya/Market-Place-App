@@ -9,6 +9,7 @@ import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:provider/provider.dart';
+import 'package:marketplace_app/common/services/push_notification_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,6 +22,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    PushNotificationService().requestPermissionIfNeeded();
     // Apply filters when the page initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<FilterNotifier>().applyFilters(context);

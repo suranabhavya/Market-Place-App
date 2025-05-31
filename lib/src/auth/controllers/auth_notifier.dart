@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/push_notification_service.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/error_modal.dart';
@@ -64,8 +65,15 @@ class AuthNotifier with ChangeNotifier {
 
         // Store token and user details
         Storage().setString('accessToken', authData.token);
-        print("logged in user is: ${jsonEncode(authData.user.toJson())}");
         Storage().setString('user', jsonEncode(authData.user.toJson()));
+
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          print('Push notification setup skipped: $e');
+        }
 
         if (ctx.mounted) {
           ctx.go('/home');
@@ -105,6 +113,14 @@ class AuthNotifier with ChangeNotifier {
         // Store token and user details
         Storage().setString('accessToken', authData.token);
         Storage().setString('user', jsonEncode(authData.user.toJson()));
+
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          print('Push notification setup skipped: $e');
+        }
 
         if (ctx.mounted) {
           ctx.go('/home');
@@ -262,7 +278,15 @@ class AuthNotifier with ChangeNotifier {
       if (response.statusCode == 200) {
         String accessToken = jsonDecode(response.body)['auth_token'];
         Storage().setString('accessToken', accessToken);
-        // getuser(accessToken, ctx);
+        
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          print('Push notification setup skipped: $e');
+        }
+        
         return true;
       } else {
         print("Failed to verify OTP: ${response.body}");

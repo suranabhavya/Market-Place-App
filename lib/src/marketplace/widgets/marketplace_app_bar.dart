@@ -5,17 +5,27 @@ import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
+import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
+import 'package:marketplace_app/src/marketplace/views/marketplace_filter_screen.dart';
+import 'package:marketplace_app/src/marketplace/views/marketplace_search_screen.dart';
 import 'package:provider/provider.dart';
 
 class MarketplaceAppBar extends StatelessWidget {
-  const MarketplaceAppBar({super.key});
+  final Function(List<MarketplaceListModel>)? onFilterApplied;
+  
+  const MarketplaceAppBar({
+    super.key,
+    this.onFilterApplied,
+  });
 
   @override
   Widget build(BuildContext context) {
     final marketplaceNotifier = Provider.of<MarketplaceNotifier>(context);
     final String searchText = marketplaceNotifier.searchKey.isNotEmpty 
         ? marketplaceNotifier.searchKey 
-        : "Search address, furniture, electronics, appliances...";
+        : "Search items, furniture, electronics...";
+    
+    print("MarketplaceAppBar - searchText: '$searchText', searchKey: '${marketplaceNotifier.searchKey}'");
     
     return AppBar(
       elevation: 0,
@@ -28,8 +38,17 @@ class MarketplaceAppBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () {
-                  context.push('/marketplace/search');
+                onTap: () async {
+                  // Open search screen
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MarketplaceSearchPage()),
+                  );
+                  
+                  // If we got filtered items back and we have a callback, use it
+                  if (result != null && result is List<MarketplaceListModel> && onFilterApplied != null) {
+                    onFilterApplied!(result);
+                  }
                 },
                 child: Padding(
                   padding: EdgeInsets.only(left: 2.w,),
@@ -58,7 +77,11 @@ class MarketplaceAppBar extends StatelessWidget {
                           Expanded(
                             child: Text(
                               searchText,
-                              style: appStyle(14, Kolors.kGray, FontWeight.w400),
+                              style: appStyle(14, 
+                                marketplaceNotifier.searchKey.isNotEmpty 
+                                  ? Kolors.kPrimary 
+                                  : Kolors.kGray, 
+                                FontWeight.w400),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -67,8 +90,14 @@ class MarketplaceAppBar extends StatelessWidget {
                           if (marketplaceNotifier.searchKey.isNotEmpty)
                             GestureDetector(
                               onTap: () {
+                                // Clear search and apply filters
                                 marketplaceNotifier.clearSearch();
                                 marketplaceNotifier.applyFilters(context);
+                                
+                                // If we have a callback, call it with empty list to reset the view
+                                if (onFilterApplied != null) {
+                                  onFilterApplied!(marketplaceNotifier.marketplaceItems);
+                                }
                               },
                               child: const Icon(
                                 Icons.close,
@@ -83,8 +112,17 @@ class MarketplaceAppBar extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {
-                  context.push('/marketplace/filter');
+                onTap: () async {
+                  // Open filter screen
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MarketplaceFilterPage()),
+                  );
+                  
+                  // If we got filtered items back and we have a callback, use it
+                  if (result != null && result is List<MarketplaceListModel> && onFilterApplied != null) {
+                    onFilterApplied!(result);
+                  }
                 },
                 child: Container(
                   height: 40.h,

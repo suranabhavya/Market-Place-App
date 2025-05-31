@@ -7,11 +7,31 @@ import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/auth/views/login_screen.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/wishlist/widgets/wishlist.dart';
+import 'package:provider/provider.dart';
 
-class WishListPage extends StatelessWidget {
+class WishListPage extends StatefulWidget {
   const WishListPage({super.key});
 
+  @override
+  State<WishListPage> createState() => _WishListPageState();
+}
+
+class _WishListPageState extends State<WishListPage> {
+  @override
+  void initState() {
+    super.initState();
+    
+    // Load wishlist data when the screen is first displayed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final accessToken = Storage().getString('accessToken');
+      if (accessToken != null) {
+        context.read<WishlistNotifier>().fetchWishlist();
+      }
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString('accessToken');
@@ -31,7 +51,14 @@ class WishListPage extends StatelessWidget {
       body: const Padding(
         padding: EdgeInsets.all(8.0),
         child: SingleChildScrollView(
-          child: WishlistWidget(),
+          physics: BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              WishlistWidget(),
+              // Add extra padding at the bottom to prevent tiles from being cut off
+              SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );
