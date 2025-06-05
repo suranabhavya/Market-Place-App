@@ -42,18 +42,23 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
     'Appliance',
     'Decor',
   ];
+  
+  // Store reference to notifier to avoid accessing Provider in dispose
+  MarketplaceNotifier? _marketplaceNotifier;
 
   @override
   void initState() {
     super.initState();
     
+    // Store reference to notifier
+    _marketplaceNotifier = context.read<MarketplaceNotifier>();
+    
     // Initialize the search controller with any existing search query
-    final marketplaceNotifier = context.read<MarketplaceNotifier>();
-    if (marketplaceNotifier.searchKey.isNotEmpty) {
-      _searchController.text = marketplaceNotifier.searchKey;
+    if (_marketplaceNotifier!.searchKey.isNotEmpty) {
+      _searchController.text = _marketplaceNotifier!.searchKey;
       // Trigger autocomplete for existing search term
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        marketplaceNotifier.fetchAutocomplete(_searchController.text);
+        _marketplaceNotifier!.fetchAutocomplete(_searchController.text);
       });
     }
     
@@ -71,11 +76,8 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
 
   @override
   void dispose() {
-    // Make sure to update the search key in the notifier with the current search text
-    // This ensures the search text persists even if the user navigates back without searching
-    if (_searchController.text.isNotEmpty) {
-      context.read<MarketplaceNotifier>().setSearchKey(_searchController.text);
-    }
+    // Don't try to update the notifier in dispose as it causes errors
+    // The search key is already set in _performSearch when needed
     
     _focusNode.dispose();
     _searchController.removeListener(_onSearchChanged);
@@ -93,11 +95,11 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
       if (_searchController.text.isNotEmpty) {
         // Only call fetchAutocomplete, don't update the search key here
         // since we're already updating it in the onChanged handler
-        context.read<MarketplaceNotifier>().fetchAutocomplete(_searchController.text);
+        _marketplaceNotifier!.fetchAutocomplete(_searchController.text);
       } else {
-        context.read<MarketplaceNotifier>().clearAutocompleteResults();
+        _marketplaceNotifier!.clearAutocompleteResults();
         // Clear the search key if the search field is empty
-        context.read<MarketplaceNotifier>().clearSearch();
+        _marketplaceNotifier!.clearSearch();
       }
     });
   }
@@ -137,23 +139,24 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
       // Save to recent searches
       _saveSearch(query);
       
-      // Update the search key in MarketplaceNotifier
-      final marketplaceNotifier = context.read<MarketplaceNotifier>();
-      marketplaceNotifier.setSearchKey(query);
+      // Clear autocomplete results first
+      _marketplaceNotifier!.clearAutocompleteResults();
       
-      // Clear autocomplete results
-      marketplaceNotifier.clearAutocompleteResults();
-      
-      // Apply filters with the search term - this will make the API request with the search parameter
-      await marketplaceNotifier.applyFilters(context);
+      // Use the new method to set search key and apply filters in one go
+      await _marketplaceNotifier!.setSearchKeyAndApplyFilters(query, context);
       
       // Get the filtered items from the notifier after API call
-      final filteredItems = marketplaceNotifier.marketplaceItems;
+      final filteredItems = _marketplaceNotifier!.marketplaceItems;
       
-      // Navigate back to marketplace screen with filtered results
+      print('About to navigate back with ${filteredItems.length} items and searchKey: ${_marketplaceNotifier!.searchKey}');
+      
+      // Navigate back to marketplace screen with both filtered results and search term
       if (mounted) {
-        // Pop back with the filtered items as a result
-        Navigator.of(context).pop(filteredItems);
+        // Pop back with a map containing both the search term and filtered items
+        Navigator.of(context).pop({
+          'searchTerm': query,
+          'filteredItems': filteredItems,
+        });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,13 +174,9 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
       appBar: AppBar(
         leading: AppBackButton(
           onTap: () {
-            // Update the search key in the notifier with the current search text
-            if (_searchController.text.isNotEmpty) {
-              context.read<MarketplaceNotifier>().setSearchKey(_searchController.text);
-            }
-            
             // Clear autocomplete results when going back
-            context.read<MarketplaceNotifier>().clearAutocompleteResults();
+            _marketplaceNotifier!.clearAutocompleteResults();
+            // Don't clear the search key if user has searched - let them keep their search
             Navigator.of(context).pop();
           },
         ),
@@ -202,7 +201,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                       textInputAction: TextInputAction.search,
                       onChanged: (value) {
                         // Update the search key in the notifier in real-time
-                        context.read<MarketplaceNotifier>().setSearchKey(value);
+                        _marketplaceNotifier!.setSearchKey(value);
                         // The autocomplete API call is handled by the debounce timer
                       },
                       onSubmitted: (value) {
@@ -226,7 +225,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                           ? GestureDetector(
                               onTap: () {
                                 _searchController.clear();
-                                marketplaceNotifier.clearAutocompleteResults();
+                                _marketplaceNotifier!.clearAutocompleteResults();
                               },
                               child: const Icon(
                                 Icons.close,
@@ -468,7 +467,9 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () {
+                      // Set the search controller text first
                       _searchController.text = value;
+                      // Then perform the search
                       _performSearch(value);
                     },
                     borderRadius: BorderRadius.circular(4),

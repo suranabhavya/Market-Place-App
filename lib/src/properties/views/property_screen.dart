@@ -137,7 +137,7 @@ class _PropertyPageState extends State<PropertyPage> {
       return fromDate; // Return only the from date if availableTo is null
     }
 
-    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)} ${availableFrom.year}";
+    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)} ${availableTo.year}";
     return "$fromDate - $toDate";
   }
 
@@ -1038,7 +1038,7 @@ class _PropertyPageState extends State<PropertyPage> {
                             scrollDirection: Axis.horizontal,
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 1,
-                              childAspectRatio: 0.8,
+                              childAspectRatio: 1.2,
                               crossAxisSpacing: 10.w,
                               mainAxisSpacing: 10.h,
                             ),
@@ -1048,7 +1048,7 @@ class _PropertyPageState extends State<PropertyPage> {
                               final String? imageUrl = item.images.isNotEmpty ? item.images.first.image : null;
 
                               return GestureDetector(
-                                onTap: () => context.push('/marketplace/item/${item.id}'),
+                                onTap: () => context.push('/marketplace/${item.id}'),
                                 child: Card(
                                   elevation: 2,
                                   shape: RoundedRectangleBorder(
@@ -1114,7 +1114,7 @@ class _PropertyPageState extends State<PropertyPage> {
                                                       style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
                                                     ),
                                                     SizedBox(width: 4.w),
-                                                    if (item.originalPrice > item.price)
+                                                    if (item.originalPrice != null && item.originalPrice! > item.price)
                                                       Text(
                                                         '\$${item.originalPrice}',
                                                         style: appStyle(12, Kolors.kGray, FontWeight.w400).copyWith(

@@ -67,18 +67,6 @@ class WishlistWidget extends HookWidget {
                     ...propertyItems.map((item) {
                       final property = item.item as PropertyListModel;
                       return StaggeredTileWidget(
-                        onTap: () {
-                          final accessToken = Storage().getString('accessToken');
-                          if (accessToken == null) {
-                            loginBottomSheet(context);
-                          } else {
-                            context.read<WishlistNotifier>().toggleWishlist(
-                                  property.id,
-                                  refetch,
-                                  type: 'property',
-                                );
-                          }
-                        },
                         property: property,
                       );
                     }).toList(),
@@ -109,7 +97,9 @@ class WishlistWidget extends HookWidget {
     final String id = rawItem['id'] ?? '';
     final String title = rawItem['title'] ?? '';
     final double price = double.tryParse(rawItem['price']?.toString() ?? '0') ?? 0;
-    final double originalPrice = double.tryParse(rawItem['original_price']?.toString() ?? '0') ?? 0;
+    final double? originalPrice = rawItem['original_price'] != null 
+        ? double.tryParse(rawItem['original_price'].toString()) 
+        : null;
     final String itemType = rawItem['item_type'] ?? '';
     final String itemSubtype = rawItem['item_subtype'] ?? '';
     final String address = rawItem['address'] ?? '';
@@ -117,8 +107,8 @@ class WishlistWidget extends HookWidget {
     
     return GestureDetector(
       onTap: () {
-        // Navigate to marketplace item detail when available
-        // context.push('/marketplace/item/$id');
+        // Navigate to marketplace item detail
+        context.push('/marketplace/$id');
       },
       child: Card(
         margin: EdgeInsets.symmetric(vertical: 8.h),
@@ -232,7 +222,7 @@ class WishlistWidget extends HookWidget {
                             '\$${price.toStringAsFixed(0)}',
                             style: appStyle(14.sp, Kolors.kDark, FontWeight.w600),
                           ),
-                          if (originalPrice > price && originalPrice > 0) ...[
+                          if (originalPrice != null && originalPrice > price) ...[
                             SizedBox(width: 4.w),
                             Text(
                               '\$${originalPrice.toStringAsFixed(0)}',

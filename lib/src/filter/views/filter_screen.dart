@@ -15,6 +15,7 @@ import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:get_storage/get_storage.dart';
 
 import '../../../common/widgets/custom_dropdown.dart';
 import '../../../common/widgets/custom_checkbox.dart';
@@ -53,8 +54,56 @@ class _FilterPageState extends State<FilterPage> {
     final filterNotifier = Provider.of<FilterNotifier>(context, listen: false);
     _minRentController = TextEditingController(text: filterNotifier.priceRange.start.toInt().toString());
     _maxRentController = TextEditingController(text: filterNotifier.priceRange.end.toInt().toString());
-    _fetchSchools();
+    
+    // Initialize selected values from notifier state
+    selectedBedrooms = List.from(filterNotifier.selectedBedrooms);
+    selectedBathrooms = List.from(filterNotifier.selectedBathrooms);
+    selectedSchoolIds = List.from(filterNotifier.selectedSchools);
+    
+    // Load previously selected schools from local storage
+    _loadSelectedSchoolsFromStorage();
+    
+    _fetchSchools().then((_) {
+      // Force a rebuild to update the school dropdown with all data
+      if (mounted) setState(() {});
+    });
+    
     _fetchAmenities();
+  }
+
+  void _loadSelectedSchoolsFromStorage() {
+    final box = GetStorage();
+    final storedSchools = box.read('selected_schools');
+    
+    if (storedSchools != null) {
+      Map<String, dynamic> schoolsMap = Map<String, dynamic>.from(storedSchools);
+      
+      for (String schoolId in selectedSchoolIds) {
+        if (schoolsMap.containsKey(schoolId)) {
+          _selectedSchoolsMap[schoolId] = Map<String, String>.from(schoolsMap[schoolId]);
+        }
+      }
+    }
+  }
+
+  void _saveSelectedSchoolsToStorage() {
+    final box = GetStorage();
+    Map<String, Map<String, String>> currentStored = {};
+    
+    // Load existing stored schools
+    final storedSchools = box.read('selected_schools');
+    if (storedSchools != null) {
+      Map<String, dynamic> schoolsMap = Map<String, dynamic>.from(storedSchools);
+      for (var entry in schoolsMap.entries) {
+        currentStored[entry.key] = Map<String, String>.from(entry.value);
+      }
+    }
+    
+    // Add new selected schools
+    currentStored.addAll(_selectedSchoolsMap);
+    
+    // Save back to storage
+    box.write('selected_schools', currentStored);
   }
 
   @override
@@ -87,6 +136,17 @@ class _FilterPageState extends State<FilterPage> {
               'id': school['id'].toString(),
               'name': school['name'].toString()
             }).toList();
+            
+            // Add selected schools from local storage that aren't in the first page results
+            for (String id in selectedSchoolIds) {
+              if (!schoolOptions.any((school) => school['id'] == id) && _selectedSchoolsMap.containsKey(id)) {
+                schoolOptions.add(_selectedSchoolsMap[id]!);
+              } else if (schoolOptions.any((school) => school['id'] == id)) {
+                // Update the selected schools map with the fetched data
+                var school = schoolOptions.firstWhere((s) => s['id'] == id);
+                _selectedSchoolsMap[id] = school;
+              }
+            }
           } else {
             schoolOptions.addAll(results.map<Map<String, String>>((school) => {
               'id': school['id'].toString(),
@@ -367,6 +427,9 @@ class _FilterPageState extends State<FilterPage> {
                           return school['id']!;
                         }).toList();
                         filterNotifier.setSchools(selectedSchoolIds);
+                        
+                        // Save selected schools to local storage
+                        _saveSelectedSchoolsToStorage();
                       });
                     },
                     onSearch: _searchSchools,

@@ -162,10 +162,10 @@ class FilterNotifier extends ChangeNotifier {
 
     // Add price range
     if (priceRange.start > 0) {
-      url += "min_price=${priceRange.start.toInt()}&";
+      url += "min_rent=${priceRange.start.toInt()}&";
     }
     if (priceRange.end < 50000) {
-      url += "max_price=${priceRange.end.toInt()}&";
+      url += "max_rent=${priceRange.end.toInt()}&";
     }
 
     // Add other filters

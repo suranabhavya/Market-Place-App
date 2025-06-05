@@ -41,7 +41,11 @@ class _MarketplacePageState extends State<MarketplacePage> {
       
       // Only fetch items if we don't have filtered items
       if (_currentItems == null) {
-        context.read<MarketplaceNotifier>().applyFilters(context);
+        final marketplaceNotifier = context.read<MarketplaceNotifier>();
+        print('MarketplacePage initState - About to call applyFilters, current searchKey: ${marketplaceNotifier.searchKey}');
+        marketplaceNotifier.applyFilters(context);
+      } else {
+        print('MarketplacePage initState - Using filtered items, not calling applyFilters');
       }
     });
   }
@@ -51,11 +55,36 @@ class _MarketplacePageState extends State<MarketplacePage> {
     setState(() {
       _currentItems = filteredItems;
     });
+    // Force a rebuild to ensure the app bar reflects any search changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
   
   // Refresh the current items display
   void _refreshItems() {
     setState(() {});
+  }
+
+  // Handle refresh from pull-to-refresh
+  Future<void> _handleRefresh() async {
+    final marketplaceNotifier = context.read<MarketplaceNotifier>();
+    
+    // Clear any filtered items to show all items after refresh
+    setState(() {
+      _currentItems = null;
+    });
+    
+    // Refresh marketplace items
+    await marketplaceNotifier.applyFilters(context);
+    
+    // Also refresh wishlist if user is logged in
+    final accessToken = Storage().getString('accessToken');
+    if (accessToken != null) {
+      await context.read<WishlistNotifier>().fetchWishlist();
+    }
   }
 
   @override
@@ -77,7 +106,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: isLoading
             ? const Center(
                 child: CircularProgressIndicator(
@@ -120,6 +149,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
               : ExploreMarketplace(
                   marketplaceItems: items,
                   onWishlistUpdated: _refreshItems,
+                  onRefresh: _handleRefresh,
                 ),
         ),
       ),
@@ -130,13 +160,25 @@ class _MarketplacePageState extends State<MarketplacePage> {
             if (accessToken == null) {
               loginBottomSheet(context);
             } else {
-              // Navigate to create screen with a simple callback when returning
-              context.push("/marketplace/create").then((_) {
+              // Navigate to create screen with a callback when returning
+              context.push("/marketplace/create").then((_) async {
                 // Refresh the marketplace items when returning from create screen
+                print('Returned from create screen, refreshing items...');
+                
+                // Clear any filtered items to show all items including the new one
                 setState(() {
-                  _currentItems = null; // Clear any filtered items
+                  _currentItems = null;
                 });
-                marketplaceNotifier.applyFilters(context);
+                
+                // Force refresh of marketplace items
+                await marketplaceNotifier.applyFilters(context);
+                
+                // Also refresh wishlist in case the new item was added to wishlist
+                if (accessToken != null) {
+                  await context.read<WishlistNotifier>().fetchWishlist();
+                }
+                
+                print('Refresh completed after create');
               });
             }
           },
