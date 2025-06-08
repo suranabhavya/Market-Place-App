@@ -199,6 +199,15 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       ),
                     );
+                    
+                    // Refresh unread count when returning from message screen
+                    if (mounted) {
+                      try {
+                        context.read<UnreadCountNotifier>().refreshUnreadCount();
+                      } catch (e) {
+                        debugPrint('Error refreshing unread count: $e');
+                      }
+                    }
                   },
                 );
               },
