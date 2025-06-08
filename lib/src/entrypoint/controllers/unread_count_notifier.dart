@@ -58,6 +58,9 @@ class UnreadCountNotifier with ChangeNotifier {
         (!_isConnected || currentToken != _token)) {
       disposeChannel();
       _initializeConnection();
+    } else if (currentToken == null || currentToken.isEmpty || currentToken == 'null') {
+      // If token is null/empty, reset count and disconnect
+      resetUnreadCount();
     }
   }
 
@@ -77,6 +80,12 @@ class UnreadCountNotifier with ChangeNotifier {
 
   void setGlobalUnreadCount(int count) {
     _globalUnreadCount = count;
+    notifyListeners();
+  }
+  
+  void resetUnreadCount() {
+    _globalUnreadCount = 0;
+    disposeChannel();
     notifyListeners();
   }
   

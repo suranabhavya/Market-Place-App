@@ -11,6 +11,7 @@ import 'package:marketplace_app/common/widgets/help_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
+import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/profile/widgets/tile_widget.dart';
 import 'package:provider/provider.dart';
@@ -82,6 +83,13 @@ class _ProfilePageState extends State<ProfilePage> {
               // Clear user data
               Storage().removeKey('accessToken');
               Storage().removeKey('user');
+              
+              // Reset unread count and disconnect WebSocket
+              try {
+                rootContext.read<UnreadCountNotifier>().resetUnreadCount();
+              } catch (e) {
+                debugPrint('Error resetting unread count: $e');
+              }
               
               // Use root context for navigation
               rootContext.read<TabIndexNotifier>().setIndex(0);
@@ -244,11 +252,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               onTap: () => showHelpCenterBottomSheet(context),
                             ),
                             
-                            ProfileTileWidget(
-                              title: 'Settings',
-                              leading: MaterialIcons.settings,
-                              onTap: () => context.push('/settings'),
-                            ),
+                            // ProfileTileWidget(
+                            //   title: 'Settings',
+                            //   leading: MaterialIcons.settings,
+                            //   onTap: () => context.push('/settings'),
+                            // ),
                           ],
                         ),
                       ),
