@@ -5,6 +5,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/custom_text.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
+import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:provider/provider.dart';
 
 class MobileOtpPage extends StatefulWidget {
@@ -43,6 +44,15 @@ class _MobileOtpPageState extends State<MobileOtpPage> {
     if (success) {
       final exists = await authNotifier.checkMobile(widget.mobileNumber);
       if (exists) {
+        // Reconnect WebSocket for unread messages
+        try {
+          final unreadNotifier = context.read<UnreadCountNotifier>();
+          unreadNotifier.reconnectIfNeeded();
+        } catch (e) {
+          // UnreadCountNotifier might not be available in all contexts
+          debugPrint('UnreadCountNotifier not available: $e');
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Login Successful"), backgroundColor: Colors.green),
         );

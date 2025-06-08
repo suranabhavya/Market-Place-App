@@ -207,13 +207,14 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
       final success = await authNotifier.signInWithGoogle(context);
       
       if (success && mounted) {
-        // If sign-in was successful, navigate to home screen
+        // Add a small delay to ensure Google Sign-In flow is complete
+        await Future.delayed(const Duration(milliseconds: 300));
         if (mounted) {
-          GoRouter.of(context).pushReplacement('/home');
+          // Force a complete navigation reset to ensure proper UI update
+          context.go('/');
+          await Future.delayed(const Duration(milliseconds: 100));
+          context.go('/home');
         }
-      } else if (!success && mounted) {
-        // User canceled or sign-in failed silently
-        // No need to show an error as the Google Sign-In UI handles most errors
       }
     } catch (e) {
       if (mounted) {
