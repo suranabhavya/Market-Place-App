@@ -15,6 +15,7 @@ import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
+import 'package:marketplace_app/common/widgets/custom_dropdown.dart';
 import 'package:marketplace_app/common/widgets/custom_text_field.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
@@ -25,7 +26,6 @@ import 'package:marketplace_app/src/properties/models/place_autocomplete_respons
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
 
-import '../../../common/widgets/custom_dropdown.dart';
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_date_picker.dart';
 import '../../../common/widgets/custom_switch.dart';
@@ -93,7 +93,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   String? _selectedPropertyId;
 
   Map<String, List<String>> itemSubtypes = {
-    'furniture': ['sofa', 'cot', 'mattress', 'table', 'chair', 'wardrobe', 'dresser', 'bookshelf', 'desk', 'dining_table', 'coffee_table', 'other'],
+    'furniture': ['sofa', 'cot', 'mattress', 'table', 'chair', 'wardrobe', 'dresser', 'bookshelf', 'desk', 'other'],
     'electronics': ['tv', 'computer', 'accessories', 'printer', 'monitor', 'speaker', 'gaming_console', 'camera', 'phone', 'other'],
     'appliance': ['refrigerator', 'washing_machine', 'dryer', 'microwave', 'oven', 'toaster', 'coffee_maker', 'blender', 'fan', 'heater' 'other'],
     'kitchen': ['cookware', 'utensils', 'dishes', 'cutlery', 'other'],
@@ -273,24 +273,68 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MarketplaceNotifier>().fetchUserProperties();
       _fetchSchools(); // Fetch initial schools
+      
+      // If editing, fetch item data
+      if (widget.isEditing && widget.itemId != null) {
+        _fetchItemData();
+      }
     });
 
-    // If editing, populate form with initial data
+    // If editing, populate form with initial data (fallback)
     if (widget.isEditing && widget.initialData != null) {
-      final data = widget.initialData!;
-      _titleController.text = data['title'] ?? '';
-      _descriptionController.text = data['description'] ?? '';
-      _addressController.text = data['address'] ?? '';
-      _unitController.text = data['unit'] ?? '';
-      _priceController.text = data['price']?.toString() ?? '';
-      _originalPriceController.text = data['original_price']?.toString() ?? '';
-      _latitudeController.text = data['latitude']?.toString() ?? '';
-      _longitudeController.text = data['longitude']?.toString() ?? '';
-      _availabilityDateController.text = data['availability_date'] ?? '';
+      _populateFormData(widget.initialData!);
+    }
+  }
+
+  Future<void> _fetchItemData() async {
+    if (widget.itemId == null) return;
+    
+    try {
+      final marketplaceNotifier = context.read<MarketplaceNotifier>();
+      final item = await marketplaceNotifier.fetchMarketplaceDetail(widget.itemId!);
       
-      itemType = data['item_type'] ?? 'electronics';
-      itemSubtype = data['item_subtype'] ?? 'phone';
-      condition = data['condition'] ?? 'like_new';
+      if (item != null && mounted) {
+        _populateFormData({
+          'title': item.title,
+          'description': item.description,
+          'price': item.price,
+          'original_price': item.originalPrice,
+          'item_type': item.itemType,
+          'item_subtype': item.itemSubtype,
+          'condition': item.condition,
+          'negotiable': item.negotiable,
+          'delivery_available': item.deliveryAvailable,
+          'address': item.address,
+          'unit': item.unit,
+          'latitude': item.latitude,
+          'longitude': item.longitude,
+          'availability_date': item.availabilityDate?.toIso8601String().split('T')[0],
+          'original_receipt_available': item.originalReceiptAvailable,
+          'hide_address': item.hideAddress,
+          'property_id': item.property?.id,
+          'school_ids': item.schoolsNearby.map((s) => s.id).toList(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching item data: $e');
+    }
+  }
+
+  void _populateFormData(Map<String, dynamic> data) {
+    _titleController.text = data['title'] ?? '';
+    _descriptionController.text = data['description'] ?? '';
+    _addressController.text = data['address'] ?? '';
+    _unitController.text = data['unit'] ?? '';
+    _priceController.text = data['price']?.toString() ?? '';
+    _originalPriceController.text = data['original_price']?.toString() ?? '';
+    _latitudeController.text = data['latitude']?.toString() ?? '';
+    _longitudeController.text = data['longitude']?.toString() ?? '';
+    _availabilityDateController.text = data['availability_date'] ?? '';
+    
+    setState(() {
+      itemType = data['item_type'] ?? 'furniture';
+      itemSubtype = data['item_subtype'] ?? 'table';
+      condition = data['condition'] ?? 'good';
       negotiable = data['negotiable'] ?? false;
       deliveryAvailable = data['delivery_available'] ?? false;
       hideAddress = data['hide_address'] ?? false;
@@ -300,11 +344,6 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         _selectedPropertyId = data['property_id'].toString();
       }
       
-      _pincode = data['pincode'];
-      _city = data['city'];
-      _state = data['state'];
-      _country = data['country'];
-
       // Handle schools
       if (data['school_ids'] != null) {
         selectedSchoolIds = List<String>.from(data['school_ids']);
@@ -316,7 +355,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           };
         }
       }
-    }
+    });
   }
 
   @override
@@ -424,7 +463,6 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         'title': _titleController.text,
         'description': _descriptionController.text,
         'price': _priceController.text,
-        'original_price': _originalPriceController.text,
         'item_type': itemType,
         'item_subtype': itemSubtype,
         'condition': condition,
@@ -445,30 +483,61 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds,
       };
 
+      // Only include original_price if it's not empty, otherwise send null
+      if (_originalPriceController.text.isNotEmpty) {
+        marketplaceData['original_price'] = _originalPriceController.text;
+      } else {
+        marketplaceData['original_price'] = null;
+      }
+
       if (_selectedPropertyId != null) {
         marketplaceData['property_id'] = _selectedPropertyId;
       }
 
-      await context.read<MarketplaceNotifier>().createMarketplaceItem(
-        token: token,
-        marketplaceData: marketplaceData,
-        onSuccess: () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Item created successfully!")),
-            );
-            context.pop();
-            context.read<MarketplaceNotifier>().applyFilters(context);
-          }
-        },
-        onError: () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Failed to create item. Please try again.")),
-            );
-          }
-        },
-      );
+      if (widget.isEditing && widget.itemId != null) {
+        // Update existing item
+        await context.read<MarketplaceNotifier>().updateMarketplaceItem(
+          token: token,
+          itemId: widget.itemId!,
+          marketplaceData: marketplaceData,
+          onSuccess: () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Item updated successfully!")),
+              );
+              context.pop();
+            }
+          },
+          onError: () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Failed to update item. Please try again.")),
+              );
+            }
+          },
+        );
+      } else {
+        // Create new item
+        await context.read<MarketplaceNotifier>().createMarketplaceItem(
+          token: token,
+          marketplaceData: marketplaceData,
+          onSuccess: () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Item created successfully!")),
+              );
+              context.pop();
+            }
+          },
+          onError: () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Failed to create item. Please try again.")),
+              );
+            }
+          },
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -493,7 +562,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           onTap: () => context.pop(),
         ),
         title: ReusableText(
-          text: widget.isEditing ? "Edit Item" : "Create Listing",
+          text: widget.isEditing ? "Edit Item" : "Create Marketplace Item",
           style: appStyle(15, Kolors.kPrimary, FontWeight.bold)
         ),
       ),
@@ -607,20 +676,23 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                     child: CustomTextField(
                       controller: _originalPriceController,
                       labelText: "Original Price",
-                      isRequired: true,
-                      hintText: "Original Price",
+                      isRequired: false,
+                      hintText: "Original Price (Optional)",
                       keyboardType: TextInputType.number,
                       prefixIcon: const Icon(
                         CupertinoIcons.money_dollar,
                         size: 20,
                         color: Kolors.kGray
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Original price is required";
-                        }
-                        return null;
-                      },
+                      // validator: (value) {
+                      //   if (value != null && value.isNotEmpty) {
+                      //     final price = double.tryParse(value);
+                      //     if (price == null) {
+                      //       return "Please enter a valid price";
+                      //     }
+                      //   }
+                      //   return null;
+                      // },
                     ),
                   ),
                 ],
@@ -730,9 +802,17 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
               const SizedBox(height: 16),
 
-              ReusableText(
-                text: "Address",
-                style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+              RichText(
+                text: TextSpan(
+                  text: "Address",
+                  style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+                  children: const [
+                    TextSpan(
+                      text: " *",
+                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -882,52 +962,29 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
               ),
 
               const SizedBox(height: 16),
-
-              if (userProperties.isNotEmpty) ...[
-                ReusableText(
-                  text: "Associate with a Property",
-                  style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                DropdownButtonFormField<String?>(
-                  value: _selectedPropertyId,
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text("-- None --"),
-                    ),
-                    ...userProperties.map((property) => DropdownMenuItem<String?>(
-                      value: property.id,
-                      child: Text(property.title),
-                    )).toList(),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedPropertyId = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Your Property Listings",
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade400),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade400),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Kolors.kPrimary, width: 1.5),
-                    ),
+              
+              CustomDropdown<String?>(
+                value: _selectedPropertyId,
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text("-- None --"),
                   ),
-                ),
-                
-                const SizedBox(height: 16),
-              ],
+                  ...userProperties.map((property) => DropdownMenuItem<String?>(
+                    value: property.id,
+                    child: Text(property.title),
+                  )).toList(),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPropertyId = value;
+                  });
+                },
+                labelText: "Associate with a Property",
+                hintText: "Select a property",
+              ),
+              
+              const SizedBox(height: 16),
 
               CustomButton(
                 onTap: _isLoading ? null : _handleSubmit,

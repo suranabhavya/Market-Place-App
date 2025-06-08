@@ -1,129 +1,262 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
+import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
+import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
+import 'package:provider/provider.dart';
 
-class ExploreMarketplace extends StatelessWidget {
+class ExploreMarketplace extends StatefulWidget {
   final List<MarketplaceListModel> marketplaceItems;
+  final Function? onWishlistUpdated;
+  final Function? onRefresh;
 
   const ExploreMarketplace({
     super.key,
     required this.marketplaceItems,
+    this.onWishlistUpdated,
+    this.onRefresh,
   });
 
   @override
+  State<ExploreMarketplace> createState() => _ExploreMarketplaceState();
+}
+
+class _ExploreMarketplaceState extends State<ExploreMarketplace> {
+  final ScrollController _scrollController = ScrollController();
+  
+  @override
+  void initState() {
+    super.initState();
+    // Add scroll listener for infinite scrolling (if needed in future)
+    _scrollController.addListener(_scrollListener);
+  }
+  
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
+  // Handle scroll events for potential infinite loading in the future
+  void _scrollListener() {
+    // This can be implemented later if pagination is added to marketplace
+    // Currently marketplace doesn't have pagination like properties
+  }
+
+  Future<void> _handleRefresh() async {
+    // Call the refresh callback if provided
+    if (widget.onRefresh != null) {
+      await widget.onRefresh!();
+    } else {
+      // Fallback: refresh marketplace items directly
+      final marketplaceNotifier = context.read<MarketplaceNotifier>();
+      await marketplaceNotifier.applyFilters(context);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (marketplaceItems.isEmpty) {
-      return Center(
-        child: ReusableText(
-          text: "No items found",
-          style: appStyle(14, Kolors.kGray, FontWeight.w500),
+    if (widget.marketplaceItems.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: Kolors.kPrimary,
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              child: Center(
+                child: ReusableText(
+                  text: "No items found",
+                  style: appStyle(14, Kolors.kGray, FontWeight.w500),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
-    return GridView.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: 10.w,
-        mainAxisSpacing: 10.h,
-      ),
-      itemCount: marketplaceItems.length,
-      itemBuilder: (context, index) {
-        final item = marketplaceItems[index];
-        final String? imageUrl = item.images.isNotEmpty ? item.images.first.image : null;
-
-        return GestureDetector(
-          onTap: () => context.push('/marketplace/item/${item.id}'),
-          child: Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    color: Colors.grey[200],
-                    child: imageUrl != null && imageUrl.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    color: Kolors.kGray,
-                                    size: 32,
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        : const Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              color: Kolors.kGray,
-                              size: 32,
-                            ),
-                          ),
-                  ),
-                ),
-                
-                // Item details
-                Padding(
-                  padding: EdgeInsets.all(8.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 4.h),
-                      Row(
-                        children: [
-                          Text(
-                            '\$${item.price}',
-                            style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
-                          ),
-                          SizedBox(width: 4.w),
-                          if (item.originalPrice > item.price)
-                            Text(
-                              '\$${item.originalPrice}',
-                              style: appStyle(12, Kolors.kGray, FontWeight.w400).copyWith(
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        item.itemType,
-                        style: appStyle(12, Kolors.kGray, FontWeight.w400),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      color: Kolors.kPrimary,
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Items count header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              child: Text(
+                "Showing ${widget.marketplaceItems.length} items",
+                style: appStyle(16, Kolors.kDark, FontWeight.w600),
+              ),
             ),
           ),
-        );
-      },
+          
+          // Grid of marketplace items
+          SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.8,
+              crossAxisSpacing: 10.w,
+              mainAxisSpacing: 10.h,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final item = widget.marketplaceItems[index];
+                final String? imageUrl = item.images.isNotEmpty ? item.images.first.image : null;
+
+                return GestureDetector(
+                  onTap: () => context.push('/marketplace/${item.id}'),
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Image
+                            Expanded(
+                              child: Container(
+                                width: double.infinity,
+                                color: Colors.grey[200],
+                                child: imageUrl != null && imageUrl.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                        child: Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Center(
+                                              child: Icon(
+                                                Icons.image_not_supported,
+                                                color: Kolors.kGray,
+                                                size: 32,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    : const Center(
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          color: Kolors.kGray,
+                                          size: 32,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            
+                            // Item details
+                            Padding(
+                              padding: EdgeInsets.all(8.w),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '\$${item.price}',
+                                        style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+                                      ),
+                                      SizedBox(width: 4.w),
+                                      if (item.originalPrice != null && item.originalPrice! > item.price)
+                                        Text(
+                                          '\$${item.originalPrice}',
+                                          style: appStyle(12, Kolors.kGray, FontWeight.w400).copyWith(
+                                            decoration: TextDecoration.lineThrough,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    item.itemType,
+                                    style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        
+                        // Wishlist button
+                        Positioned(
+                          right: 8.h,
+                          top: 8.h,
+                          child: Consumer<WishlistNotifier>(
+                            builder: (context, wishlistNotifier, child) {
+                              final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
+                              
+                              return GestureDetector(
+                                onTap: () {
+                                  final accessToken = Storage().getString('accessToken');
+                                  if (accessToken == null) {
+                                    loginBottomSheet(context);
+                                  } else {
+                                    wishlistNotifier.toggleWishlist(
+                                      item.id,
+                                      () {
+                                        // Refetch callback
+                                        if (widget.onWishlistUpdated != null) {
+                                          widget.onWishlistUpdated!();
+                                        }
+                                      },
+                                      type: 'marketplace', // Specify that this is a marketplace item
+                                    );
+                                  }
+                                },
+                                child: CircleAvatar(
+                                  radius: 15.r,
+                                  backgroundColor: Kolors.kSecondaryLight,
+                                  child: Icon(
+                                    isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                    color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                    size: 15.r,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              childCount: widget.marketplaceItems.length,
+            ),
+          ),
+          
+          // Add extra space at the bottom to ensure we can scroll past the last item
+          SliverToBoxAdapter(
+            child: SizedBox(height: 100.h),
+          ),
+        ],
+      ),
     );
   }
 }

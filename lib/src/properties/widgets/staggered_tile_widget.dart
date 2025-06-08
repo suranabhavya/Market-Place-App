@@ -8,6 +8,7 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/app_routes.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
+import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
@@ -211,7 +212,18 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                   child: Consumer<WishlistNotifier>(
                     builder: (context, wishlistNotifier, child) {
                       return GestureDetector(
-                        onTap: widget.onTap,
+                        onTap: widget.onTap ?? () {
+                          final accessToken = Storage().getString('accessToken');
+                          if (accessToken == null) {
+                            loginBottomSheet(context);
+                          } else {
+                            wishlistNotifier.toggleWishlist(
+                              widget.property.id,
+                              () => setState(() {}), // Simple refresh callback
+                              type: 'property', // Specify this is a property
+                            );
+                          }
+                        },
                         child: CircleAvatar(
                           radius: 15.r,
                           backgroundColor: Kolors.kSecondaryLight,

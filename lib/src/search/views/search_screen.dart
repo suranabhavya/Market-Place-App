@@ -321,57 +321,88 @@ class _SearchPageState extends State<SearchPage> {
   
   // Build the autocomplete results list
   Widget _buildAutocompleteResults(SearchNotifier searchNotifier) {
-    return ListView(
-      padding: EdgeInsets.only(top: 8.h),
-      physics: const BouncingScrollPhysics(),
-      children: searchNotifier.autocompleteResults.entries
-        // Filter out empty categories first
-        .where((entry) => entry.value.isNotEmpty)
-        .expand((entry) {
-          String displayName = _getDisplayName(entry.key);
-          return [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-              child: Text(
-                displayName,
-                style: appStyle(12, Kolors.kGray, FontWeight.w600),
-              ),
-            ),
-            const Divider(height: 1),
-            ...entry.value.map((value) => InkWell(
-              onTap: () {
-                _searchController.text = value;
-                _performSearch(value);
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                child: Row(
-                  children: [
-                    Icon(
-                      _getCategoryIcon(entry.key),
-                      size: 18, 
-                      color: Kolors.kGray
-                    ),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Text(
-                        value,
-                        style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Kolors.kWhite,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      margin: EdgeInsets.only(bottom: 16.h),
+      child: ListView(
+        padding: EdgeInsets.only(top: 8.h),
+        physics: const BouncingScrollPhysics(),
+        children: searchNotifier.autocompleteResults.entries
+          // Filter out empty categories first
+          .where((entry) => entry.value.isNotEmpty)
+          .expand((entry) {
+            String displayName = _getDisplayName(entry.key);
+            return [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                child: Text(
+                  displayName,
+                  style: appStyle(12, Kolors.kGray, FontWeight.w600),
                 ),
               ),
-            )).toList(),
-            // Add spacing after each category except the last one
-            if (entry.key != searchNotifier.autocompleteResults.entries
-                .where((e) => e.value.isNotEmpty)
-                .last.key)
-              SizedBox(height: 10.h),
-          ];
-      }).toList(),
+              const Divider(height: 1),
+              ...entry.value.map((value) {
+                // Skip empty values
+                if (value.isEmpty) return Container();
+                
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      _searchController.text = value;
+                      _performSearch(value);
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w, 
+                        vertical: entry.key == 'school_name' ? 14.h : 12.h, // More padding for school names
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getCategoryIcon(entry.key),
+                            size: 18, 
+                            color: Kolors.kGray
+                          ),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: Text(
+                              value,
+                              style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: entry.key == 'school_name' ? 2 : 1, // Allow school names to wrap to 2 lines
+                            ),
+                          ),
+                          // Add arrow icon to indicate this is selectable
+                          Icon(
+                            Icons.north_west,
+                            size: 14,
+                            color: Kolors.kGray.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+              // Add spacing after each category except the last one
+              if (entry.key != searchNotifier.autocompleteResults.entries
+                  .where((e) => e.value.isNotEmpty)
+                  .last.key)
+                SizedBox(height: 10.h),
+            ];
+        }).toList(),
+      ),
     );
   }
   

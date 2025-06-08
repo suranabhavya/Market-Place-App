@@ -14,9 +14,14 @@ import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
 import 'package:provider/provider.dart';
 
-class AppEntryPoint extends StatelessWidget {
+class AppEntryPoint extends StatefulWidget {
   AppEntryPoint({super.key});
 
+  @override
+  State<AppEntryPoint> createState() => _AppEntryPointState();
+}
+
+class _AppEntryPointState extends State<AppEntryPoint> {
   final List<Widget> pageList = [
     const HomePage(),
     const MarketplacePage(),
@@ -25,16 +30,40 @@ class AppEntryPoint extends StatelessWidget {
     const ProfilePage(),
   ];
   
+  String? _lastToken;
+  
+  @override
+  void initState() {
+    super.initState();
+    _lastToken = Storage().getString('accessToken');
+  }
+  
+  void _checkTokenChange() {
+    final currentToken = Storage().getString('accessToken');
+    if (currentToken != _lastToken) {
+      _lastToken = currentToken;
+      // Token changed, reconnect WebSocket if needed
+      try {
+        final unreadNotifier = context.read<UnreadCountNotifier>();
+        unreadNotifier.reconnectIfNeeded();
+      } catch (e) {
+        debugPrint('UnreadCountNotifier not available: $e');
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
-    final String? token = Storage().getString('accessToken');
+    // Check for token changes on each build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTokenChange();
+    });
 
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
         ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
-        if (token != null)
-          ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
+        ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
       ],
       child: Consumer<TabIndexNotifier>(
         builder: (context, tabIndexNotifier, child) {

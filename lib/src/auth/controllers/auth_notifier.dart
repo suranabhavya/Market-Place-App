@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/push_notification_service.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/error_modal.dart';
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
 import 'package:marketplace_app/src/auth/models/check_email_model.dart';
+import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
 
 class AuthNotifier with ChangeNotifier {
   bool _isLoading = false;
@@ -43,6 +46,16 @@ class AuthNotifier with ChangeNotifier {
     showErrorPopup(context, errorMessage, null, null);
   }
   
+  void _reconnectUnreadNotifier(BuildContext context) {
+    try {
+      final unreadNotifier = context.read<UnreadCountNotifier>();
+      unreadNotifier.reconnectIfNeeded();
+    } catch (e) {
+      // UnreadCountNotifier might not be available in all contexts
+      debugPrint('UnreadCountNotifier not available: $e');
+    }
+  }
+  
   Future<void> loginFunc(String data, BuildContext ctx) async {
     setLoading(true);
 
@@ -64,10 +77,18 @@ class AuthNotifier with ChangeNotifier {
 
         // Store token and user details
         Storage().setString('accessToken', authData.token);
-        print("logged in user is: ${jsonEncode(authData.user.toJson())}");
         Storage().setString('user', jsonEncode(authData.user.toJson()));
 
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          print('Push notification setup skipped: $e');
+        }
+
         if (ctx.mounted) {
+          _reconnectUnreadNotifier(ctx);
           ctx.go('/home');
         }
       }
@@ -106,7 +127,16 @@ class AuthNotifier with ChangeNotifier {
         Storage().setString('accessToken', authData.token);
         Storage().setString('user', jsonEncode(authData.user.toJson()));
 
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          print('Push notification setup skipped: $e');
+        }
+
         if (ctx.mounted) {
+          _reconnectUnreadNotifier(ctx);
           ctx.go('/home');
         }
       } else if (ctx.mounted) {
@@ -262,7 +292,15 @@ class AuthNotifier with ChangeNotifier {
       if (response.statusCode == 200) {
         String accessToken = jsonDecode(response.body)['auth_token'];
         Storage().setString('accessToken', accessToken);
-        // getuser(accessToken, ctx);
+        
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          print('Push notification setup skipped: $e');
+        }
+        
         return true;
       } else {
         print("Failed to verify OTP: ${response.body}");
@@ -314,7 +352,7 @@ class AuthNotifier with ChangeNotifier {
       // Configure GoogleSignIn with proper scopes for ID token
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile', 'openid'],
-        serverClientId: '107746833938-9kdqfd5d7jrt2ksp2s9qkmo0sm5d82nf.apps.googleusercontent.com'
+        serverClientId: '814527696303-he00tpd1vk64daci92clbp7f72072jar.apps.googleusercontent.com'
       );
 
       // Sign out first to ensure a fresh authentication flow
@@ -372,6 +410,17 @@ class AuthNotifier with ChangeNotifier {
         // Store token and user details
         Storage().setString('accessToken', authData.token);
         Storage().setString('user', jsonEncode(authData.user.toJson()));
+        
+        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        try {
+          await PushNotificationService().updateUserAssociation();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          debugPrint('Push notification setup skipped: $e');
+        }
+        
+        // Reconnect WebSocket for unread messages
+        _reconnectUnreadNotifier(context);
         
         return true;
       } else {

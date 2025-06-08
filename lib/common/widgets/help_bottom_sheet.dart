@@ -9,7 +9,7 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
     context: context,
     builder: (BuildContext context) {
       return Container(
-        height: MediaQuery.of(context).size.height * 0.5,
+        height: MediaQuery.of(context).size.height * 0.3,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
@@ -39,35 +39,35 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
               SizedBox(height: 15.h),
 
               // FAQ Section (Replace with actual FAQs)
-              const Text(
-                'FAQs:',
-                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 5.0),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Can I return an item?'),
-                trailing: const Icon(
-                  Icons.keyboard_arrow_right,
-                  color: Kolors.kGray,
-                ),
-                onTap: () {
-                  // Handle FAQ tap (open details page or show answer)
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('How do I track my order?'),
-                trailing: const Icon(
-                  Icons.keyboard_arrow_right,
-                  color: Kolors.kGray,
-                ),
-                onTap: () {
-                  // Handle FAQ tap (open details page or show answer)
-                },
-              ),
+              // const Text(
+              //   'FAQs:',
+              //   style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              // ),
+              // const SizedBox(height: 5.0),
+              // ListTile(
+              //   contentPadding: EdgeInsets.zero,
+              //   title: const Text('Can I return an item?'),
+              //   trailing: const Icon(
+              //     Icons.keyboard_arrow_right,
+              //     color: Kolors.kGray,
+              //   ),
+              //   onTap: () {
+              //     // Handle FAQ tap (open details page or show answer)
+              //   },
+              // ),
+              // ListTile(
+              //   contentPadding: EdgeInsets.zero,
+              //   title: const Text('How do I track my order?'),
+              //   trailing: const Icon(
+              //     Icons.keyboard_arrow_right,
+              //     color: Kolors.kGray,
+              //   ),
+              //   onTap: () {
+              //     // Handle FAQ tap (open details page or show answer)
+              //   },
+              // ),
 
-              const SizedBox(height: 15.0),
+              // const SizedBox(height: 15.0),
 
               // Contact Section
               const Text(

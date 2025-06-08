@@ -18,6 +18,10 @@ import 'package:marketplace_app/src/properties/widgets/expandable_text.dart';
 import 'package:marketplace_app/src/properties/widgets/property_bottom_bar.dart';
 import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
+import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:provider/provider.dart';
 
 extension StringExtension on String {
@@ -80,6 +84,32 @@ class _PropertyPageState extends State<PropertyPage> {
     }
   }
 
+  // Fetch marketplace items for this property
+  Future<List<MarketplaceListModel>> _fetchPropertyMarketplaceItems(String propertyId) async {
+    try {
+      final String url = '${Environment.iosAppBaseUrl}/api/properties/$propertyId/marketplace/';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> results = data['results'];
+        
+        return results.map((item) => MarketplaceListModel.fromJson(item)).toList();
+      } else {
+        print('Failed to load marketplace items: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching marketplace items: $e');
+      return [];
+    }
+  }
+
   String getDaysAgo(DateTime createdAt) {
     final now = DateTime.now();
     final difference = now.difference(createdAt).inDays;
@@ -107,7 +137,7 @@ class _PropertyPageState extends State<PropertyPage> {
       return fromDate; // Return only the from date if availableTo is null
     }
 
-    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)} ${availableFrom.year}";
+    String toDate = "${availableTo.day} ${_getMonthName(availableTo.month)} ${availableTo.year}";
     return "$fromDate - $toDate";
   }
 
@@ -908,6 +938,57 @@ class _PropertyPageState extends State<PropertyPage> {
           ),
 
           // Similar Properties section (moved outside of conditions)
+          // SliverToBoxAdapter(
+          //   child: Padding(
+          //     padding: EdgeInsets.symmetric(horizontal: 16.w),
+          //     child: Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: [
+          //         ReusableText(
+          //           text: 'Nearby Properties',
+          //           style: appStyle(16, Kolors.kGray, FontWeight.bold)
+          //         ),
+          //         SizedBox(
+          //           height: 10.h,
+          //         ),
+          //         if (_isLoadingNearby)
+          //           const Center(child: CircularProgressIndicator())
+          //         else if (propertyNotifier.nearbyProperties.isNotEmpty)
+          //           Column(
+          //             children: propertyNotifier.nearbyProperties
+          //                 .where((p) => p.id != property.id) // Exclude current property
+          //                 .take(3) // Show only 3 nearby properties
+          //                 .map((nearbyProperty) => Padding(
+          //                       padding: EdgeInsets.only(bottom: 16.h),
+          //                       child: StaggeredTileWidget(
+          //                         onTap: () {
+          //                           if (accessToken == null) {
+          //                             loginBottomSheet(context);
+          //                           } else {
+          //                             context.read<WishlistNotifier>().toggleWishlist(
+          //                               nearbyProperty.id,
+          //                               () {},
+          //                             );
+          //                           }
+          //                         },
+          //                         property: nearbyProperty,
+          //                       ),
+          //                     ))
+          //                 .toList(),
+          //           )
+          //         else
+          //           Center(
+          //             child: Text(
+          //               "No nearby properties found",
+          //               style: appStyle(14, Kolors.kGray, FontWeight.normal),
+          //             ),
+          //           ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
+
+          // Marketplace Items from this Property
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -915,47 +996,199 @@ class _PropertyPageState extends State<PropertyPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ReusableText(
-                    text: 'Nearby Properties',
+                    text: 'Marketplace Items available here',
                     style: appStyle(16, Kolors.kGray, FontWeight.bold)
                   ),
-                  SizedBox(
-                    height: 10.h,
-                  ),
-                  if (_isLoadingNearby)
-                    const Center(child: CircularProgressIndicator())
-                  else if (propertyNotifier.nearbyProperties.isNotEmpty)
-                    Column(
-                      children: propertyNotifier.nearbyProperties
-                          .where((p) => p.id != property.id) // Exclude current property
-                          .take(3) // Show only 3 nearby properties
-                          .map((nearbyProperty) => Padding(
-                                padding: EdgeInsets.only(bottom: 16.h),
-                                child: StaggeredTileWidget(
-                                  onTap: () {
-                                    if (accessToken == null) {
-                                      loginBottomSheet(context);
-                                    } else {
-                                      context.read<WishlistNotifier>().toggleWishlist(
-                                        nearbyProperty.id,
-                                        () {},
-                                      );
-                                    }
-                                  },
-                                  property: nearbyProperty,
+                  SizedBox(height: 10.h),
+                  FutureBuilder<List<MarketplaceListModel>>(
+                    future: _fetchPropertyMarketplaceItems(property.id),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 20.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0),
+                            child: Text(
+                              "Failed to load marketplace items",
+                              style: appStyle(14, Kolors.kGray, FontWeight.normal),
+                            ),
+                          ),
+                        );
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0),
+                            child: Text(
+                              "No marketplace items found for this property",
+                              style: appStyle(14, Kolors.kGray, FontWeight.normal),
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Display the marketplace items in a grid
+                        return SizedBox(
+                          height: 260.h, // Fixed height for the grid view
+                          child: GridView.builder(
+                            scrollDirection: Axis.horizontal,
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 1,
+                              childAspectRatio: 1.2,
+                              crossAxisSpacing: 10.w,
+                              mainAxisSpacing: 10.h,
+                            ),
+                            itemCount: snapshot.data!.length,
+                            itemBuilder: (context, index) {
+                              final item = snapshot.data![index];
+                              final String? imageUrl = item.images.isNotEmpty ? item.images.first.image : null;
+
+                              return GestureDetector(
+                                onTap: () => context.push('/marketplace/${item.id}'),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: Stack(
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Image
+                                          Expanded(
+                                            child: Container(
+                                              width: double.infinity,
+                                              color: Colors.grey[200],
+                                              child: imageUrl != null && imageUrl.isNotEmpty
+                                                  ? ClipRRect(
+                                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                                      child: Image.network(
+                                                        imageUrl,
+                                                        fit: BoxFit.cover,
+                                                        width: double.infinity,
+                                                        height: double.infinity,
+                                                        errorBuilder: (context, error, stackTrace) {
+                                                          return const Center(
+                                                            child: Icon(
+                                                              Icons.image_not_supported,
+                                                              color: Kolors.kGray,
+                                                              size: 32,
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    )
+                                                  : const Center(
+                                                      child: Icon(
+                                                        Icons.image_not_supported,
+                                                        color: Kolors.kGray,
+                                                        size: 32,
+                                                      ),
+                                                    ),
+                                            ),
+                                          ),
+                                          
+                                          // Item details
+                                          Padding(
+                                            padding: EdgeInsets.all(8.w),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  item.title,
+                                                  style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                SizedBox(height: 4.h),
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      '\$${item.price}',
+                                                      style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+                                                    ),
+                                                    SizedBox(width: 4.w),
+                                                    if (item.originalPrice != null && item.originalPrice! > item.price)
+                                                      Text(
+                                                        '\$${item.originalPrice}',
+                                                        style: appStyle(12, Kolors.kGray, FontWeight.w400).copyWith(
+                                                          decoration: TextDecoration.lineThrough,
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 4.h),
+                                                Text(
+                                                  item.itemType,
+                                                  style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      
+                                      // Wishlist button
+                                      Positioned(
+                                        right: 8.h,
+                                        top: 8.h,
+                                        child: Consumer<WishlistNotifier>(
+                                          builder: (context, wishlistNotifier, child) {
+                                            final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
+                                            
+                                            return GestureDetector(
+                                              onTap: () {
+                                                final accessToken = Storage().getString('accessToken');
+                                                if (accessToken == null) {
+                                                  loginBottomSheet(context);
+                                                } else {
+                                                  wishlistNotifier.toggleWishlist(
+                                                    item.id,
+                                                    () {
+                                                      // Refetch callback
+                                                      setState(() {});
+                                                    },
+                                                    type: 'marketplace',
+                                                  );
+                                                }
+                                              },
+                                              child: CircleAvatar(
+                                                radius: 15.r,
+                                                backgroundColor: Kolors.kSecondaryLight,
+                                                child: Icon(
+                                                  isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                                  color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                                  size: 15.r,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ))
-                          .toList(),
-                    )
-                  else
-                    Center(
-                      child: Text(
-                        "No nearby properties found",
-                        style: appStyle(14, Kolors.kGray, FontWeight.normal),
-                      ),
-                    ),
+                              );
+                            },
+                          ),
+                        );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),
+          ),
+
+          // Add extra space at the bottom
+          SliverToBoxAdapter(
+            child: SizedBox(height: 60.h),
           ),
         ],
       ),

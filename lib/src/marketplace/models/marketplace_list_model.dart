@@ -66,7 +66,7 @@ class MarketplaceListModel {
   String id;
   String title;
   double price;
-  double originalPrice;
+  double? originalPrice;
   String itemType;
   String itemSubtype;
   String address;
@@ -80,7 +80,7 @@ class MarketplaceListModel {
     required this.id,
     required this.title,
     required this.price,
-    required this.originalPrice,
+    this.originalPrice,
     required this.itemType,
     required this.itemSubtype,
     required this.address,
@@ -95,7 +95,7 @@ class MarketplaceListModel {
     id: json["id"],
     title: json["title"],
     price: double.parse(json["price"]),
-    originalPrice: double.parse(json["original_price"]),
+    originalPrice: json["original_price"] != null ? double.parse(json["original_price"]) : null,
     itemType: json["item_type"],
     itemSubtype: json["item_subtype"],
     address: json["address"],
@@ -114,7 +114,7 @@ class MarketplaceListModel {
     "id": id,
     "title": title,
     "price": price.toString(),
-    "original_price": originalPrice.toString(),
+    "original_price": originalPrice?.toString(),
     "item_type": itemType,
     "item_subtype": itemSubtype,
     "address": address,

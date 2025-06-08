@@ -17,19 +17,21 @@ class PropertyBottomBar extends StatelessWidget {
     super.key,
     required this.senderId,
     required this.senderName,
-    this.senderProfilePhoto
+    this.senderProfilePhoto,
+    this.isMarketplaceItem = false,
   });
 
   final int senderId;
   final String senderName;
   final String? senderProfilePhoto;
+  final bool isMarketplaceItem;
 
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString('accessToken');
     final currentUser = context.read<AuthNotifier>().getUserData();
     
-    // Don't show the message button if the property is listed by the current user
+    // Don't show the message button if the item is listed by the current user
     if (currentUser?.id == senderId) {
       return const SizedBox.shrink();
     }
@@ -96,7 +98,7 @@ class PropertyBottomBar extends StatelessWidget {
                 width: 12.w,
               ),
               ReusableText(
-                text: 'Message',
+                text: isMarketplaceItem ? 'Message Seller' : 'Message',
                 style: appStyle(14, Kolors.kWhite, FontWeight.bold)
               ),
             ],

@@ -228,6 +228,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                 context.push('/my-listings/$userId');
                               },
                             ),
+
+                            ProfileTileWidget(
+                              title: 'My Marketplace',
+                              leading: CupertinoIcons.shopping_cart,
+                              onTap: () {
+                                final userId = user.id;
+                                context.push('/my-marketplace/$userId');
+                              },
+                            ),
                             
                             ProfileTileWidget(
                               title: 'Help Center',

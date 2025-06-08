@@ -1558,6 +1558,48 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 32),
 
+              // Info box about furniture attachment
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Kolors.kPrimaryLight.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: Kolors.kPrimaryLight.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Kolors.kPrimary,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "💡 Pro Tip: Sell Furniture with Your Property",
+                            style: appStyle(13, Kolors.kPrimary, FontWeight.w600),
+                          ),
+                          SizedBox(height: 6.h),
+                          Text(
+                            "Want to include furniture with your property? Simply list your furniture items in the Marketplace and link them to this property during the listing process. This helps tenants see exactly what's included!",
+                            style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Submit Button
               CustomButton(
                 onTap: _isLoading ? null : _handleSubmit,

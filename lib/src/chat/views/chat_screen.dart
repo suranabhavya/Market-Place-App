@@ -28,7 +28,7 @@ class _ChatPageState extends State<ChatPage> {
   List<dynamic> chats = [];
   bool isLoading = true;
   int? currentUserId;
-  late WebSocketChannel channel;
+  WebSocketChannel? channel;
 
   @override
   void initState() {
@@ -57,7 +57,7 @@ class _ChatPageState extends State<ChatPage> {
     channel = WebSocketChannel.connect(
       Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
     );
-    channel.stream.listen((data) {
+    channel!.stream.listen((data) {
       try {
         final decoded = jsonDecode(data);
         // If the payload contains the key "chats", update our local chat list.
@@ -82,7 +82,9 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   void dispose() {
-    channel.sink.close();
+    if (channel != null) {
+      channel!.sink.close();
+    }
     super.dispose();
   }
 
