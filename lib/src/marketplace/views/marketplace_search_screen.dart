@@ -176,8 +176,21 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
           onTap: () {
             // Clear autocomplete results when going back
             _marketplaceNotifier!.clearAutocompleteResults();
-            // Don't clear the search key if user has searched - let them keep their search
-            Navigator.of(context).pop();
+            
+            // Clear the search controller text
+            _searchController.clear();
+            
+            // Clear the search key and reset marketplace items to show all
+            _marketplaceNotifier!.clearSearch();
+            _marketplaceNotifier!.applyFilters(context).then((_) {
+              if (mounted) {
+                // Navigate back with cleared search
+                Navigator.of(context).pop({
+                  'searchTerm': '',
+                  'filteredItems': _marketplaceNotifier!.marketplaceItems,
+                });
+              }
+            });
           },
         ),
         title: ReusableText(
@@ -224,8 +237,15 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                       suffixIcon: _searchController.text.isNotEmpty 
                           ? GestureDetector(
                               onTap: () {
+                                // Clear the search controller text
                                 _searchController.clear();
+                                
+                                // Clear autocomplete results
                                 _marketplaceNotifier!.clearAutocompleteResults();
+                                
+                                // Clear the search key and reset marketplace items
+                                _marketplaceNotifier!.clearSearch();
+                                _marketplaceNotifier!.applyFilters(context);
                               },
                               child: const Icon(
                                 Icons.close,

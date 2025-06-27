@@ -169,6 +169,7 @@ List<PropertyListModel> properties = [
     rentFrequency: "Monthly",
     bedrooms: 1,
     bathrooms: 1,
+    hideAddress: false,
     images: [
       "https://imageio.forbes.com/specials-images/imageserve/64525acf1d511e01e8ee1aee/Airbnb-Rooms/1960x0.jpg?height=474&width=711&fit=bounds",
       "https://a0.muscache.com/im/pictures/b59084da-fa5e-49b7-bb22-5534654377ca.jpg"
@@ -187,6 +188,7 @@ List<PropertyListModel> properties = [
     rentFrequency: "Monthly",
     bedrooms: 2,
     bathrooms: 2,
+    hideAddress: false,
     images: [
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQopNAigGHDCSfu_pIf1k3_iguagCjspB-hQB6QTFIx3p-szIlJCiN8n0Qh4zG2SvzSQfo&usqp=CAU",
       "https://a0.muscache.com/im/pictures/be8420b1-ba98-440a-a83f-acfaffa3ca81.jpg"
@@ -205,6 +207,7 @@ List<PropertyListModel> properties = [
     rentFrequency: "Monthly",
     bedrooms: 3,
     bathrooms: 3,
+    hideAddress: false,
     images: [
       "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQofYq41udw-qlDe47B8J3Oo_JxwC2XKPKSDfC1P8zFrfqEK1Pg2ckvWff2mdCsOrPplsI&usqp=CAU",
       "https://images.unsplash.com/photo-1647996179012-66b87eba3d17?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fHJvb20lMjBmb3IlMjByZW50fGVufDB8fDB8fHww"
@@ -223,6 +226,7 @@ List<PropertyListModel> properties = [
     rentFrequency: "Monthly",
     bedrooms: 1,
     bathrooms: 1,
+    hideAddress: true,
     images: ["https://images.unsplash.com/photo-1560185009-5bf9f2849488?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"],
     createdAt: DateTime.parse("2024-04-01T08:00:00Z"),
     updatedAt: DateTime.parse("2024-04-05T12:00:00Z"),
@@ -238,6 +242,7 @@ List<PropertyListModel> properties = [
     rentFrequency: "Monthly",
     bedrooms: 4,
     bathrooms: 3,
+    hideAddress: false,
     images: [
       "https://media.istockphoto.com/id/2104606940/photo/interior-photographs-of-a-luxurious-residential-home-den-study-dining-room-kitchen-living.jpg?b=1&s=612x612&w=0&k=20&c=hp4NDX8Nc2K96E67z5vFX3VwzlxPUFIqYTNP5V6GLTM=",
       "https://media.istockphoto.com/id/1456467041/photo/beautiful-kitchen-in-new-farmhouse-style-luxury-home-with-island-pendant-lights-and-hardwood.jpg?s=612x612&w=0&k=20&c=wwlKjbAsf_xBveRuqMV2fCJ8cpED0CoXE4GdIUSxpW8="

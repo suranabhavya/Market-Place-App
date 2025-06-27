@@ -8,6 +8,7 @@ class WishlistNotifier with ChangeNotifier {
   String? error;
   List<String> _wishlist = [];
   bool _isLoading = false;
+  String? _currentAccessToken;
 
   List<String> get wishlist => _wishlist;
   bool get isLoading => _isLoading;
@@ -17,9 +18,43 @@ class WishlistNotifier with ChangeNotifier {
     notifyListeners();
   }
 
+  // Clear wishlist data (called on logout)
+  void clearWishlist() {
+    _wishlist.clear();
+    _currentAccessToken = null;
+    error = null;
+    notifyListeners();
+    debugPrint('Wishlist cleared');
+  }
+
+  // Check if user changed and handle accordingly
+  void _checkUserChange() {
+    final accessToken = Storage().getString('accessToken');
+    
+    // If token changed (user logged out or different user logged in)
+    if (_currentAccessToken != accessToken) {
+      if (accessToken == null) {
+        // User logged out - clear wishlist
+        clearWishlist();
+      } else {
+        // Different user or new login - load their wishlist
+        _currentAccessToken = accessToken;
+        fetchWishlist();
+      }
+    }
+  }
+
   Future<void> fetchWishlist() async {
     final accessToken = Storage().getString('accessToken');
-    if (accessToken == null) return;
+    
+    // If no access token, clear wishlist and return
+    if (accessToken == null) {
+      clearWishlist();
+      return;
+    }
+
+    // Check if user changed
+    _checkUserChange();
 
     _isLoading = true;
     notifyListeners();
@@ -37,7 +72,8 @@ class WishlistNotifier with ChangeNotifier {
         final List<dynamic> data = json.decode(response.body);
         _wishlist = data.map((item) => item['id'].toString()).toList();
         Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
-        debugPrint('Fetched ${_wishlist.length} wishlist items');
+        _currentAccessToken = accessToken;
+        debugPrint('Fetched ${_wishlist.length} wishlist items for user');
       } else {
         error = 'Failed to fetch wishlist: ${response.reasonPhrase}';
         debugPrint('Failed to fetch wishlist: ${response.statusCode} ${response.reasonPhrase}');
@@ -53,7 +89,15 @@ class WishlistNotifier with ChangeNotifier {
 
   void toggleWishlist(String id, Function refetch, {String type = 'property'}) async {
     final accessToken = Storage().getString('accessToken');
-    if (accessToken == null) return;
+    
+    // If no access token, clear wishlist and return
+    if (accessToken == null) {
+      clearWishlist();
+      return;
+    }
+
+    // Check if user changed
+    _checkUserChange();
 
     _isLoading = true;
     notifyListeners();
@@ -82,7 +126,11 @@ class WishlistNotifier with ChangeNotifier {
         debugPrint('Error toggling wishlist: ${response.statusCode} ${response.body}');
       }
 
-      Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
+      // Only save to storage if we have a valid access token
+      if (accessToken != null) {
+        Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
+      }
+      
       notifyListeners();
       refetch();
     } catch (e) {
@@ -92,5 +140,33 @@ class WishlistNotifier with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Load wishlist from local storage for the current user
+  void loadWishlistFromStorage() {
+    final accessToken = Storage().getString('accessToken');
+    
+    if (accessToken == null) {
+      clearWishlist();
+      return;
+    }
+
+    final storedWishlist = Storage().getString('${accessToken}_wishlist');
+    if (storedWishlist != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(storedWishlist);
+        _wishlist = decoded.map((item) => item.toString()).toList();
+        _currentAccessToken = accessToken;
+        notifyListeners();
+        debugPrint('Loaded ${_wishlist.length} wishlist items from storage');
+      } catch (e) {
+        debugPrint('Error loading wishlist from storage: $e');
+        _wishlist = [];
+      }
+    } else {
+      _wishlist = [];
+    }
+    
+    notifyListeners();
   }
 }

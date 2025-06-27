@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
@@ -59,6 +60,24 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       });
       print('Error fetching profile: $e');
     }
+  }
+
+  String _getCityStatePostcode(Map<String, dynamic> item) {
+    List<String> locationParts = [];
+    
+    if (item['city'] != null && item['city'].toString().isNotEmpty) {
+      locationParts.add(item['city'].toString());
+    }
+    
+    if (item['state'] != null && item['state'].toString().isNotEmpty) {
+      locationParts.add(item['state'].toString());
+    }
+    
+    if (item['pincode'] != null && item['pincode'].toString().isNotEmpty) {
+      locationParts.add(item['pincode'].toString());
+    }
+    
+    return locationParts.isEmpty ? 'Location not available' : locationParts.join(', ');
   }
 
   @override
@@ -124,24 +143,44 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 child: CustomButton(
                   text: 'Message',
                   onTap: () async {
-                    // Check if a chat already exists
-                    final chatId = await checkExistingChat(widget.userId);
-                    if (chatId != null) {
-                      // Navigate to the existing chat
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MessagePage(
-                            chatId: chatId,
-                            participants: userProfile!["name"],
-                            otherParticipantProfilePhoto: userProfile!["profile_photo"],
-                            otherParticipantId: widget.userId,
-                          ),
-                        ),
-                      );
+                    String? accessToken = Storage().getString('accessToken');
+                    if(accessToken == null) {
+                      loginBottomSheet(context);
                     } else {
-                      // Navigate to a temporary message screen
-                      showMessageModal(context, widget.userId);
+                      final chatId = await checkExistingChat(widget.userId);
+                      if (chatId != null) {
+                        // Navigate to the existing chat
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MessagePage(
+                              chatId: chatId,
+                              participants: userProfile!["name"],
+                              otherParticipantId: widget.userId,
+                              otherParticipantProfilePhoto: userProfile!["profile_photo"],
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Show message modal for new chat using the same pattern as PropertyBottomBar
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (BuildContext context) {
+                            return Container(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(context).viewInsets.bottom,
+                              ),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              child: MessageModalContent(senderId: widget.userId),
+                            );
+                          },
+                        );
+                      }
                     }
                   },
                   btnWidth: 150.w,
@@ -154,54 +193,236 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               const Divider(thickness: 0.5),
               const SizedBox(height: 10),
 
-              ReusableText(text: "Listings", style: appStyle(16, Kolors.kDark, FontWeight.bold)),
-              const SizedBox(height: 10),
+              // Properties Section
+              if (userProfile!["properties"] != null && userProfile!["properties"].isNotEmpty) ...[
+                ReusableText(text: "Property Listings", style: appStyle(16, Kolors.kDark, FontWeight.bold)),
+                const SizedBox(height: 10),
 
-              Consumer<WishlistNotifier>(
-                builder: (context, wishlistNotifier, child) {
-                  return MasonryGridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 1,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    itemCount: userProfile!["properties"].length,
-                    itemBuilder: (context, index) {
-                      final property = userProfile!["properties"][index];
+                Consumer<WishlistNotifier>(
+                  builder: (context, wishlistNotifier, child) {
+                    return MasonryGridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 1,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      itemCount: userProfile!["properties"].length,
+                      itemBuilder: (context, index) {
+                        final property = userProfile!["properties"][index];
 
-                      return StaggeredTileWidget(
-                        property: PropertyListModel(
-                          id: property["id"],
-                          title: property["title"],
-                          rent: property["rent"],
-                          rentFrequency: property["rent_frequency"],
-                          bedrooms: property["bedrooms"],
-                          bathrooms: property["bathrooms"],
-                          address: property["address"],
-                          latitude: property["latitude"],
-                          longitude: property["longitude"],
-                          images: List<String>.from(property["images"] ?? []),
-                          createdAt: DateTime.parse(property["created_at"]),
-                          updatedAt: DateTime.parse(property["updated_at"]),
-                          isActive: property["is_active"],
-                        ),
-                        onTap: () {
-                          if (accessToken == null) {
-                            loginBottomSheet(context);
-                          } else {
-                            wishlistNotifier.toggleWishlist(
-                              property["id"],
-                              () {
-                                setState(() {});
-                              },
-                            );
-                          }
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
+                        return StaggeredTileWidget(
+                          property: PropertyListModel(
+                            id: property["id"],
+                            title: property["title"],
+                            rent: property["rent"],
+                            rentFrequency: property["rent_frequency"],
+                            bedrooms: property["bedrooms"],
+                            bathrooms: property["bathrooms"],
+                            address: property["address"],
+                            city: property["city"],
+                            state: property["state"],
+                            pincode: property["pincode"],
+                            hideAddress: property["hide_address"] ?? false,
+                            latitude: property["latitude"],
+                            longitude: property["longitude"],
+                            images: List<String>.from(property["images"] ?? []),
+                            createdAt: DateTime.parse(property["created_at"]),
+                            updatedAt: DateTime.parse(property["updated_at"]),
+                            isActive: property["is_active"],
+                          ),
+                          onTap: () {
+                            if (accessToken == null) {
+                              loginBottomSheet(context);
+                            } else {
+                              wishlistNotifier.toggleWishlist(
+                                property["id"],
+                                () {
+                                  setState(() {});
+                                },
+                              );
+                            }
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 20),
+              ],
+
+              // Marketplace Items Section
+              if (userProfile!["move_out_sale_items"] != null && userProfile!["move_out_sale_items"].isNotEmpty) ...[
+                ReusableText(text: "Marketplace Items", style: appStyle(16, Kolors.kDark, FontWeight.bold)),
+                const SizedBox(height: 10),
+
+                Consumer<WishlistNotifier>(
+                  builder: (context, wishlistNotifier, child) {
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.8,
+                        crossAxisSpacing: 10.w,
+                        mainAxisSpacing: 10.h,
+                      ),
+                      itemCount: userProfile!["move_out_sale_items"].length,
+                      itemBuilder: (context, index) {
+                        final item = userProfile!["move_out_sale_items"][index];
+                        final String? imageUrl = item["images"] != null && item["images"].isNotEmpty 
+                            ? item["images"][0]["image"] 
+                            : null;
+
+                        return GestureDetector(
+                          onTap: () => context.push('/marketplace/${item["id"]}'),
+                          child: Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Image
+                                    Expanded(
+                                      child: Container(
+                                        width: double.infinity,
+                                        color: Colors.grey[200],
+                                        child: imageUrl != null && imageUrl.isNotEmpty
+                                            ? ClipRRect(
+                                                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                                                child: Image.network(
+                                                  imageUrl,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return const Center(
+                                                      child: Icon(
+                                                        Icons.image_not_supported,
+                                                        color: Kolors.kGray,
+                                                        size: 32,
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              )
+                                            : const Center(
+                                                child: Icon(
+                                                  Icons.image_not_supported,
+                                                  color: Kolors.kGray,
+                                                  size: 32,
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                    
+                                    // Item details
+                                    Padding(
+                                      padding: EdgeInsets.all(8.w),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item["title"],
+                                            style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '\$${item["price"]}',
+                                                style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+                                              ),
+                                              SizedBox(width: 4.w),
+                                              if (item["original_price"] != null && 
+                                                  double.parse(item["original_price"]) > double.parse(item["price"]))
+                                                Text(
+                                                  '\$${item["original_price"]}',
+                                                  style: appStyle(12, Kolors.kGray, FontWeight.w400).copyWith(
+                                                    decoration: TextDecoration.lineThrough,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          Text(
+                                            (item["hide_address"] ?? false)
+                                                ? _getCityStatePostcode(item)
+                                                : item["address"] ?? 'Address not available',
+                                            style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                
+                                // Wishlist button
+                                Positioned(
+                                  right: 8.h,
+                                  top: 8.h,
+                                  child: Consumer<WishlistNotifier>(
+                                    builder: (context, wishlistNotifier, child) {
+                                      final isInWishlist = wishlistNotifier.wishlist.contains(item["id"]);
+                                      
+                                      return GestureDetector(
+                                        onTap: () {
+                                          if (accessToken == null) {
+                                            loginBottomSheet(context);
+                                          } else {
+                                            wishlistNotifier.toggleWishlist(
+                                              item["id"],
+                                              () {
+                                                setState(() {});
+                                              },
+                                              type: 'marketplace',
+                                            );
+                                          }
+                                        },
+                                        child: CircleAvatar(
+                                          radius: 15.r,
+                                          backgroundColor: Kolors.kSecondaryLight,
+                                          child: Icon(
+                                            isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                            color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                            size: 15.r,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+
+              // Show message if no listings found
+              if ((userProfile!["properties"] == null || userProfile!["properties"].isEmpty) &&
+                  (userProfile!["move_out_sale_items"] == null || userProfile!["move_out_sale_items"].isEmpty))
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40.h),
+                    child: ReusableText(
+                      text: "No listings found",
+                      style: appStyle(14, Kolors.kGray, FontWeight.w500),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

@@ -15,6 +15,7 @@ import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:get_storage/get_storage.dart';
 
 import '../../../common/widgets/custom_dropdown.dart';
 import '../../../common/widgets/custom_checkbox.dart';
@@ -36,9 +37,13 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
   List<String> selectedItemTypes = [];
   List<String> selectedItemSubtypes = [];
   List<String> selectedSchoolIds = [];
+  List<String> selectedConditions = [];
   
   // Define item type options
   final List<String> itemTypeOptions = ['furniture', 'electronics', 'appliance', 'kitchen', 'decor', 'other'];
+  
+  // Define condition options
+  final List<String> conditionOptions = ['new', 'like_new', 'good', 'fair', 'poor'];
   
   // Define item subtype options for each item type
   final Map<String, List<String>> itemSubtypeOptions = {
@@ -83,21 +88,110 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
     selectedItemTypes = List.from(marketplaceNotifier.selectedItemTypes);
     selectedItemSubtypes = List.from(marketplaceNotifier.selectedItemSubtypes);
     selectedSchoolIds = List.from(marketplaceNotifier.selectedSchoolIds);
+    selectedConditions = List.from(marketplaceNotifier.selectedConditions);
+    
+    // Load previously selected schools from local storage
+    _loadSelectedSchoolsFromStorage();
     
     _fetchSchools().then((_) {
-      // After fetching schools, populate selected schools map
+      // After fetching schools, ensure selected schools are available
       if (selectedSchoolIds.isNotEmpty) {
-        for (var id in selectedSchoolIds) {
-          var school = schoolOptions.firstWhere(
-            (s) => s['id'] == id, 
-            orElse: () => {'id': id, 'name': 'School $id'}
-          );
-          _selectedSchoolsMap[id] = school;
-        }
-        // Force a rebuild to update the school dropdown
-        if (mounted) setState(() {});
+        _ensureSelectedSchoolsAvailable();
       }
     });
+  }
+
+  void _loadSelectedSchoolsFromStorage() {
+    final box = GetStorage();
+    final storedSchools = box.read('marketplace_selected_schools');
+    
+    if (storedSchools != null) {
+      Map<String, dynamic> schoolsMap = Map<String, dynamic>.from(storedSchools);
+      
+      for (String schoolId in selectedSchoolIds) {
+        if (schoolsMap.containsKey(schoolId)) {
+          _selectedSchoolsMap[schoolId] = Map<String, String>.from(schoolsMap[schoolId]);
+        }
+      }
+    }
+  }
+
+  void _saveSelectedSchoolsToStorage() {
+    final box = GetStorage();
+    Map<String, Map<String, String>> currentStored = {};
+    
+    // Load existing stored schools
+    final storedSchools = box.read('marketplace_selected_schools');
+    if (storedSchools != null) {
+      Map<String, dynamic> schoolsMap = Map<String, dynamic>.from(storedSchools);
+      for (var entry in schoolsMap.entries) {
+        currentStored[entry.key] = Map<String, String>.from(entry.value);
+      }
+    }
+    
+    // Add new selected schools
+    currentStored.addAll(_selectedSchoolsMap);
+    
+    // Save back to storage
+    box.write('marketplace_selected_schools', currentStored);
+  }
+
+  // Ensure selected schools are available in schoolOptions and _selectedSchoolsMap
+  Future<void> _ensureSelectedSchoolsAvailable() async {
+    List<String> missingSchoolIds = [];
+    
+    // Check which selected schools are missing from schoolOptions
+    for (String id in selectedSchoolIds) {
+      bool foundInOptions = schoolOptions.any((school) => school['id'] == id);
+      if (!foundInOptions && !_selectedSchoolsMap.containsKey(id)) {
+        missingSchoolIds.add(id);
+      } else if (foundInOptions) {
+        // If found in options, update the selected schools map
+        var school = schoolOptions.firstWhere((s) => s['id'] == id);
+        _selectedSchoolsMap[id] = school;
+      }
+    }
+    
+    // Fetch missing school details
+    if (missingSchoolIds.isNotEmpty) {
+      await _fetchMissingSchools(missingSchoolIds);
+    }
+    
+    // Force a rebuild to update the dropdown
+    if (mounted) setState(() {});
+  }
+
+  // Fetch specific schools by searching for them by ID using the existing search API
+  Future<void> _fetchMissingSchools(List<String> schoolIds) async {
+    // Simple approach: create placeholders with stored names if available
+    for (String schoolId in schoolIds) {
+      if (!_selectedSchoolsMap.containsKey(schoolId)) {
+        // Check if we have this school name in storage
+        final box = GetStorage();
+        final storedSchools = box.read('marketplace_selected_schools');
+        
+        Map<String, String> schoolEntry;
+        if (storedSchools != null) {
+          Map<String, dynamic> schoolsMap = Map<String, dynamic>.from(storedSchools);
+          if (schoolsMap.containsKey(schoolId)) {
+            schoolEntry = Map<String, String>.from(schoolsMap[schoolId]);
+          } else {
+            schoolEntry = {
+              'id': schoolId,
+              'name': 'School (ID: $schoolId)'
+            };
+          }
+        } else {
+          schoolEntry = {
+            'id': schoolId,
+            'name': 'School (ID: $schoolId)'
+          };
+        }
+        
+        schoolOptions.add(schoolEntry);
+        _selectedSchoolsMap[schoolId] = schoolEntry;
+      }
+    }
   }
 
   @override
@@ -130,6 +224,17 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
               'id': school['id'].toString(),
               'name': school['name'].toString()
             }).toList();
+            
+            // Add selected schools from local storage that aren't in the first page results
+            for (String id in selectedSchoolIds) {
+              if (!schoolOptions.any((school) => school['id'] == id) && _selectedSchoolsMap.containsKey(id)) {
+                schoolOptions.add(_selectedSchoolsMap[id]!);
+              } else if (schoolOptions.any((school) => school['id'] == id)) {
+                // Update the selected schools map with the fetched data
+                var school = schoolOptions.firstWhere((s) => s['id'] == id);
+                _selectedSchoolsMap[id] = school;
+              }
+            }
           } else {
             schoolOptions.addAll(results.map<Map<String, String>>((school) => {
               'id': school['id'].toString(),
@@ -235,6 +340,7 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
     marketplaceNotifier.setPriceRange(minPrice, maxPrice);
     marketplaceNotifier.setSelectedItemTypes(selectedItemTypes);
     marketplaceNotifier.setSelectedItemSubtypes(selectedItemSubtypes);
+    marketplaceNotifier.setSelectedConditions(selectedConditions);
     marketplaceNotifier.setSelectedSchoolIds(selectedSchoolIds);
     
     // Apply filters and navigate back with filtered items
@@ -260,6 +366,7 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
     setState(() {
       selectedItemTypes = [];
       selectedItemSubtypes = [];
+      selectedConditions = [];
       selectedSchoolIds = [];
       _selectedSchoolsMap.clear();
       _minPriceController.text = '0';
@@ -381,20 +488,48 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
                   SizedBox(height: 16.h),
 
                   // Condition Section
-                  CustomDropdown<String>(
-                    value: marketplaceNotifier.condition ?? '',
-                    items: const [
-                      DropdownMenuItem(value: '', child: Text("Select Condition")),
-                      DropdownMenuItem(value: 'new', child: Text("New")),
-                      DropdownMenuItem(value: 'like_new', child: Text("Like New")),
-                      DropdownMenuItem(value: 'good', child: Text("Good")),
-                      DropdownMenuItem(value: 'fair', child: Text("Fair")),
-                      DropdownMenuItem(value: 'poor', child: Text("Poor")),
-                    ],
-                    onChanged: (value) {
-                      marketplaceNotifier.setCondition(value);
+                  const SectionTitle(
+                    title: "Condition",
+                  ),
+                  SizedBox(height: 8.h),
+                  MultiSelectDropdown(
+                    title: "Conditions",
+                    options: conditionOptions.map((condition) {
+                      switch (condition) {
+                        case 'new': return 'New';
+                        case 'like_new': return 'Like New';
+                        case 'good': return 'Good';
+                        case 'fair': return 'Fair';
+                        case 'poor': return 'Poor';
+                        default: return condition;
+                      }
+                    }).toList(),
+                    selectedValues: selectedConditions.map((condition) {
+                      switch (condition) {
+                        case 'new': return 'New';
+                        case 'like_new': return 'Like New';
+                        case 'good': return 'Good';
+                        case 'fair': return 'Fair';
+                        case 'poor': return 'Poor';
+                        default: return condition;
+                      }
+                    }).toList(),
+                    hintText: "Select Conditions",
+                    onSelectionChanged: (List<String> newSelection) {
+                      setState(() {
+                        selectedConditions = newSelection.map((displayName) {
+                          switch (displayName) {
+                            case 'New': return 'new';
+                            case 'Like New': return 'like_new';
+                            case 'Good': return 'good';
+                            case 'Fair': return 'fair';
+                            case 'Poor': return 'poor';
+                            default: return displayName.toLowerCase();
+                          }
+                        }).toList();
+                        marketplaceNotifier.setSelectedConditions(selectedConditions);
+                      });
                     },
-                    labelText: "Condition",
                   ),
 
                   SizedBox(height: 16.h),
@@ -413,40 +548,48 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
                     hintText: "Select Nearby Schools",
                     onSelectionChanged: (List<String> selectedNames) {
                       setState(() {
-                        selectedSchoolIds = selectedNames.map((name) {
-                          var school = schoolOptions.firstWhere((s) => s['name'] == name);
-                          _selectedSchoolsMap[school['id']!] = school;
-                          return school['id']!;
-                        }).toList();
+                        // Create a new map of name to ID for quick lookup
+                        Map<String, String> nameToIdMap = {};
+                        for (var school in schoolOptions) {
+                          nameToIdMap[school['name']!] = school['id']!;
+                        }
+                        // Also add from selected schools map for schools not in options
+                        for (var entry in _selectedSchoolsMap.entries) {
+                          nameToIdMap[entry.value['name']!] = entry.value['id']!;
+                        }
+
+                        // Clear existing selections
+                        selectedSchoolIds = [];
+                        Map<String, Map<String, String>> newSelectedSchoolsMap = {};
+
+                        // Update selections based on selected names
+                        for (String name in selectedNames) {
+                          String? id = nameToIdMap[name];
+                          if (id != null) {
+                            selectedSchoolIds.add(id);
+                            // Keep or add to selected schools map
+                            if (_selectedSchoolsMap.containsKey(id)) {
+                              newSelectedSchoolsMap[id] = _selectedSchoolsMap[id]!;
+                            } else {
+                              newSelectedSchoolsMap[id] = {
+                                'id': id,
+                                'name': name
+                              };
+                            }
+                          }
+                        }
+
+                        // Update the selected schools map
+                        _selectedSchoolsMap.clear();
+                        _selectedSchoolsMap.addAll(newSelectedSchoolsMap);
+                        
+                        // Save selected schools to local storage
+                        _saveSelectedSchoolsToStorage();
                       });
                     },
                     onSearch: _searchSchools,
                     scrollController: _schoolScrollController,
                     isLoading: _isLoadingMoreSchools,
-                  ),
-                  SizedBox(height: 8.h),
-                  CustomSwitch(
-                    label: "Negotiable",
-                    value: marketplaceNotifier.negotiable ?? false,
-                    onChanged: (value) {
-                      marketplaceNotifier.setNegotiable(value);
-                    },
-                  ),
-                  SizedBox(height: 8.h),
-                  CustomSwitch(
-                    label: "Delivery Available",
-                    value: marketplaceNotifier.deliveryAvailable ?? false,
-                    onChanged: (value) {
-                      marketplaceNotifier.setDeliveryAvailable(value);
-                    },
-                  ),
-                  SizedBox(height: 8.h),
-                  CustomSwitch(
-                    label: "Original Receipt Available",
-                    value: marketplaceNotifier.originalReceiptAvailable ?? false,
-                    onChanged: (value) {
-                      marketplaceNotifier.setOriginalReceiptAvailable(value);
-                    },
                   ),
                 ],
               ),

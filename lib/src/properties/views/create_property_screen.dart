@@ -26,6 +26,7 @@ import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:marketplace_app/common/utils/image_compression_util.dart';
 
 import '../../../common/widgets/custom_text.dart' as custom_text;
 import '../../../common/widgets/custom_dropdown.dart';
@@ -122,9 +123,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     try {
       if (source == ImageSource.gallery) {
         final List<XFile>? pickedImages = await _picker.pickMultiImage(
-          maxWidth: 1200,
-          maxHeight: 1200,
-          imageQuality: 70, // Reduced quality for better compression
+          maxWidth: 800,  // Reduced from 1200
+          maxHeight: 800, // Reduced from 1200
+          imageQuality: 50, // Reduced from 70 for better compression
         );
         
         if (pickedImages != null) {
@@ -136,9 +137,9 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         // For camera, we can't use pickMultiImage
         final XFile? pickedImage = await _picker.pickImage(
           source: source,
-          maxWidth: 1200,
-          maxHeight: 1200,
-          imageQuality: 70, // Reduced quality for better compression
+          maxWidth: 800,  // Reduced from 1200
+          maxHeight: 800, // Reduced from 1200
+          imageQuality: 50, // Reduced from 70 for better compression
         );
         
         if (pickedImage != null) {
@@ -151,6 +152,34 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       print("Error picking images: $e");
     }
   }
+
+  // Alternative method using advanced compression (uncomment to use)
+  // Future<void> _pickImageAdvanced(ImageSource source) async {
+  //   try {
+  //     if (source == ImageSource.gallery) {
+  //       final List<File> compressedImages = await ImageCompressionUtil.pickAndCompressFromGallery(
+  //         multiple: true,
+  //         maxImages: 10, // Limit to 10 images
+  //       );
+  //       
+  //       if (compressedImages.isNotEmpty) {
+  //         setState(() {
+  //           _images.addAll(compressedImages);
+  //         });
+  //       }
+  //     } else {
+  //       final File? compressedImage = await ImageCompressionUtil.pickAndCompressFromCamera();
+  //       
+  //       if (compressedImage != null) {
+  //         setState(() {
+  //           _images.add(compressedImage);
+  //         });
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print("Error picking and compressing images: $e");
+  //   }
+  // }
 
   // Method to remove an image
   void _removeImage(int index) {
@@ -749,7 +778,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                   const SnackBar(content: Text("Property created successfully!")),
                 );
                 context.pop();
-                context.read<PropertyNotifier>().fetchProperties();
               }
             },
             onError: () {
@@ -1224,16 +1252,15 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                     runSpacing: 8,
                     children: amenities.keys.map((String key) {
                       bool isSelected = amenities[key]!;
-                      return AmenityChip(
-                        label: key,
-                        isSelected: isSelected,
-                        onTap: () {
-                          setState(() {
-                            amenities[key] = !isSelected;
-                          });
-                        },
-                        icon: Icons.check,
-                      );
+                                              return AmenityChip(
+                          label: key,
+                          isSelected: isSelected,
+                          onTap: () {
+                            setState(() {
+                              amenities[key] = !isSelected;
+                            });
+                          },
+                        );
                     }).toList(),
                   ),
 

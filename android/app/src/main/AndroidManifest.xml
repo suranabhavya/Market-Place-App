@@ -44,7 +44,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.googleusercontent.apps.107746833938-pb8th10816t98skh0v2vkfs0g0086ams" />
+                <data android:scheme="${appAuthRedirectScheme}" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

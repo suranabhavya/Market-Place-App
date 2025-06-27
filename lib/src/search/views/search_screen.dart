@@ -173,9 +173,23 @@ class _SearchPageState extends State<SearchPage> {
       appBar: AppBar(
         leading: AppBackButton(
           onTap: () {
-            // Clear search results when going back
+            // Clear search results and reset filters when going back
             context.read<SearchNotifier>().clearResults();
-            context.pop();
+            
+            // Clear the search controller text
+            _searchController.clear();
+            
+            // Reset the search key and filters in FilterNotifier
+            final filterNotifier = context.read<FilterNotifier>();
+            filterNotifier.setSearchKey(''); // Clear search keyword
+            filterNotifier.resetLocation(); // Clear location if set
+            
+            // Apply filters (which will show all properties since search key is empty)
+            filterNotifier.applyFilters(context).then((_) {
+              if (mounted) {
+                context.pop();
+              }
+            });
           },
         ),
         title: ReusableText(
@@ -217,8 +231,17 @@ class _SearchPageState extends State<SearchPage> {
                       suffixIcon: _searchController.text.isNotEmpty 
                           ? GestureDetector(
                               onTap: () {
+                                // Clear the search controller text
                                 _searchController.clear();
+                                
+                                // Clear autocomplete results
                                 context.read<SearchNotifier>().clearAutocompleteResults();
+                                
+                                // Clear the search key in FilterNotifier but don't apply filters yet
+                                // The user stays on the search screen
+                                final filterNotifier = context.read<FilterNotifier>();
+                                filterNotifier.setSearchKey(''); // Clear search keyword
+                                filterNotifier.resetLocation(); // Clear location if set
                               },
                               child: const Icon(
                                 Icons.close,

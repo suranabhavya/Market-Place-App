@@ -14,6 +14,7 @@ import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.d
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/profile/widgets/tile_widget.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -54,6 +55,27 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
+
+  Future<void> _updateProfilePhoto() async {
+    final profileNotifier = context.read<ProfileNotifier>();
+    bool success = await profileNotifier.updateProfilePhoto();
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile photo updated successfully"), 
+          backgroundColor: Colors.green
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to update profile photo"), 
+          backgroundColor: Colors.red
+        ),
+      );
+    }
+  }
   
   Future<void> _logout(BuildContext rootContext) async {
     showDialog(
@@ -83,6 +105,13 @@ class _ProfilePageState extends State<ProfilePage> {
               // Clear user data
               Storage().removeKey('accessToken');
               Storage().removeKey('user');
+              
+              // Clear wishlist data
+              try {
+                rootContext.read<WishlistNotifier>().clearWishlist();
+              } catch (e) {
+                debugPrint('Error clearing wishlist: $e');
+              }
               
               // Reset unread count and disconnect WebSocket
               try {
@@ -143,15 +172,18 @@ class _ProfilePageState extends State<ProfilePage> {
                           // Profile Picture with Verification Badge
                           Stack(
                             children: [
-                              CircleAvatar(
-                                radius: 40,
-                                backgroundColor: Colors.grey,
-                                backgroundImage: user.profilePhoto?.isNotEmpty == true
-                                    ? NetworkImage(user.profilePhoto!)
-                                    : null,
-                                child: user.profilePhoto?.isEmpty ?? true
-                                    ? const Icon(Icons.person, size: 50, color: Colors.white)
-                                    : null,
+                              GestureDetector(
+                                onTap: _updateProfilePhoto,
+                                child: CircleAvatar(
+                                  radius: 40,
+                                  backgroundColor: Colors.grey,
+                                  backgroundImage: user.profilePhoto?.isNotEmpty == true
+                                      ? NetworkImage(user.profilePhoto!)
+                                      : null,
+                                  child: user.profilePhoto?.isEmpty ?? true
+                                      ? const Icon(Icons.person, size: 50, color: Colors.white)
+                                      : null,
+                                ),
                               ),
                               
                               if (user.schoolEmailVerified == true)

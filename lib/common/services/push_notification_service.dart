@@ -237,10 +237,10 @@ class PushNotificationService {
 
       debugPrint('Done Saving device ID');
 
-      String base_url = Environment.iosAppBaseUrl;
+      String base_url = Environment.baseUrl;
       debugPrint('base_url: $base_url');
 
-      String url = '${Environment.iosAppBaseUrl}/api/notifications/devices/';
+      String url = '${Environment.baseUrl}/api/notifications/devices/';
       debugPrint('URL: $url');
       final response = await http.post(
         Uri.parse(url),

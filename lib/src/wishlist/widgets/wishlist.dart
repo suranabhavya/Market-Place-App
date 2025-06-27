@@ -13,6 +13,7 @@ import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dar
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/wishlist/hooks/fetch_wishlist.dart';
+import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:provider/provider.dart';
 
 class WishlistWidget extends HookWidget {
@@ -145,36 +146,90 @@ class WishlistWidget extends HookWidget {
                       ),
                 ),
                 
-                // Wishlist button
+                // Share and Wishlist buttons
                 Positioned(
                   right: 10.h,
                   top: 10.h,
-                  child: Consumer<WishlistNotifier>(
-                    builder: (context, wishlistNotifier, child) {
-                      return GestureDetector(
-                        onTap: () {
-                          final accessToken = Storage().getString('accessToken');
-                          if (accessToken == null) {
-                            loginBottomSheet(context);
-                          } else {
-                            wishlistNotifier.toggleWishlist(
-                              id,
-                              refetch,
-                              type: 'marketplace',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Share button
+                      GestureDetector(
+                        onTap: () async {
+                          try {
+                            // Create a marketplace list model from the raw data for sharing
+                            final marketplaceItem = MarketplaceListModel(
+                              id: id,
+                              title: title,
+                              price: price,
+                              originalPrice: originalPrice,
+                              itemType: itemType,
+                              itemSubtype: itemSubtype,
+                              address: address,
+                              hideAddress: false, // Default value
+                              city: rawItem['city'] ?? '',
+                              state: rawItem['state'] ?? '',
+                              createdAt: DateTime.now(), // Default value
+                              updatedAt: DateTime.now(), // Default value
+                              isActive: true, // Default value
+                              images: item.images.map((img) => MarketplaceImage(
+                                id: '', // Default empty ID
+                                image: img,
+                                uploadedAt: DateTime.now(), // Default timestamp
+                              )).toList(),
                             );
+                            await ShareUtils.shareMarketplaceItemFromList(marketplaceItem);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error sharing item: $e'),
+                                  backgroundColor: Kolors.kRed,
+                                ),
+                              );
+                            }
                           }
                         },
                         child: CircleAvatar(
                           radius: 15.r,
                           backgroundColor: Kolors.kSecondaryLight,
                           child: Icon(
-                            Icons.favorite,
-                            color: Kolors.kRed,
+                            Icons.share,
+                            color: Kolors.kGray,
                             size: 15.r,
                           ),
                         ),
-                      );
-                    },
+                      ),
+                      SizedBox(width: 8.w),
+                      // Wishlist button
+                      Consumer<WishlistNotifier>(
+                        builder: (context, wishlistNotifier, child) {
+                          return GestureDetector(
+                            onTap: () {
+                              final accessToken = Storage().getString('accessToken');
+                              if (accessToken == null) {
+                                loginBottomSheet(context);
+                              } else {
+                                wishlistNotifier.toggleWishlist(
+                                  id,
+                                  refetch,
+                                  type: 'marketplace',
+                                );
+                              }
+                            },
+                            child: CircleAvatar(
+                              radius: 15.r,
+                              backgroundColor: Kolors.kSecondaryLight,
+                              child: Icon(
+                                Icons.favorite,
+                                color: Kolors.kRed,
+                                size: 15.r,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],

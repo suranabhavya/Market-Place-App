@@ -56,6 +56,11 @@ class ProfileNotifier with ChangeNotifier {
     }
   }
 
+  // Force refresh user data and notify listeners
+  void refreshUserData() {
+    loadUserFromStorage();
+  }
+
   // Update user profile details (name, email, password, mobile)
   Future<bool> updateUserDetails(Map<String, dynamic> updateData) async {
     final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
@@ -77,7 +82,6 @@ class ProfileNotifier with ChangeNotifier {
       
       if (response.statusCode == 200) {
         // Update the user in storage
-        final updatedUser = jsonDecode(response.body);
         final userJson = Storage().getString('user');
         
         if (userJson != null) {
@@ -108,7 +112,7 @@ class ProfileNotifier with ChangeNotifier {
 
   // Update profile photo
   Future<bool> updateProfilePhoto() async {
-    final String url = '${Environment.iosAppBaseUrl}/accounts/upload-profile-photo/';
+    final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
     final String? token = Storage().getString('accessToken');
     
     if (token == null) return false;
@@ -117,7 +121,12 @@ class ProfileNotifier with ChangeNotifier {
       setUpdating(true);
       
       final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,  // Add compression
+        maxHeight: 800, // Add compression
+        imageQuality: 50, // Add compression
+      );
       
       if (image == null) {
         setUpdating(false);
@@ -127,7 +136,7 @@ class ProfileNotifier with ChangeNotifier {
       File imageFile = File(image.path);
       String fileName = path.basename(imageFile.path);
       
-      var request = http.MultipartRequest('POST', Uri.parse(url));
+      var request = http.MultipartRequest('PUT', Uri.parse(url)); // Changed to PUT
       request.headers.addAll({'Authorization': 'Token $token'});
       
       request.files.add(
@@ -140,16 +149,25 @@ class ProfileNotifier with ChangeNotifier {
       setUpdating(false);
       
       if (response.statusCode == 200) {
-        // Update the user in storage
+        // Update the entire user data from response
         final responseData = jsonDecode(response.body);
-        final profilePhotoUrl = responseData['profile_photo'];
         
+        // Get existing user data and merge with response
         final userJson = Storage().getString('user');
         if (userJson != null) {
-          Map<String, dynamic> userData = jsonDecode(userJson);
-          userData['profile_photo'] = profilePhotoUrl;
-          Storage().setString('user', jsonEncode(userData));
-          loadUserFromStorage();
+          Map<String, dynamic> existingUserData = jsonDecode(userJson);
+          
+          // Merge the response data with existing user data
+          responseData.forEach((key, value) {
+            existingUserData[key] = value;
+          });
+          
+          // Store the merged user data
+          Storage().setString('user', jsonEncode(existingUserData));
+          
+          // Update the current user object and notify listeners
+          _user = User.fromJson(existingUserData);
+          notifyListeners();
         }
         
         return true;

@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
+import 'package:marketplace_app/common/utils/amenity_emoji_map.dart';
 
 class AmenityChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  final IconData icon;
+  final IconData? icon; // Made optional since we'll use emoji
 
   const AmenityChip({
     super.key,
     required this.label,
     required this.isSelected,
     required this.onTap,
-    required this.icon,
+    this.icon, // Made optional
   });
 
   @override
@@ -33,12 +34,11 @@ class AmenityChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Kolors.kPrimary : Colors.grey,
+            Text(
+              AmenityEmojiMap.getEmoji(label),
+              style: const TextStyle(fontSize: 16),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
             Text(
               label,
               style: appStyle(

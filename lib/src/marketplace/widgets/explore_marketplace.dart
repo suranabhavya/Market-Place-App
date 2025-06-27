@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
@@ -62,6 +62,24 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
     }
   }
 
+  String _getCityStatePostcode(MarketplaceListModel item) {
+    List<String> locationParts = [];
+    
+    if (item.city != null && item.city!.isNotEmpty) {
+      locationParts.add(item.city!);
+    }
+    
+    if (item.state != null && item.state!.isNotEmpty) {
+      locationParts.add(item.state!);
+    }
+    
+    if (item.pincode != null && item.pincode!.isNotEmpty) {
+      locationParts.add(item.pincode!);
+    }
+    
+    return locationParts.isNotEmpty ? locationParts.join(', ') : 'Location not available';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.marketplaceItems.isEmpty) {
@@ -96,9 +114,17 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 12.h),
-              child: Text(
-                "Showing ${widget.marketplaceItems.length} items",
-                style: appStyle(16, Kolors.kDark, FontWeight.w600),
+              child: Consumer<MarketplaceNotifier>(
+                builder: (context, marketplaceNotifier, child) {
+                  final bool hasSearchTerm = marketplaceNotifier.searchKey.isNotEmpty;
+                  
+                  return Text(
+                    hasSearchTerm 
+                        ? "Found ${widget.marketplaceItems.length} items for '${marketplaceNotifier.searchKey}'"
+                        : "Showing ${widget.marketplaceItems.length} items",
+                    style: appStyle(16, Kolors.kDark, FontWeight.w600),
+                  );
+                },
               ),
             ),
           ),
@@ -194,7 +220,9 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
                                   ),
                                   SizedBox(height: 4.h),
                                   Text(
-                                    item.itemType,
+                                    item.hideAddress
+                                        ? _getCityStatePostcode(item)
+                                        : item.address,
                                     style: appStyle(12, Kolors.kGray, FontWeight.w400),
                                   ),
                                 ],
@@ -203,43 +231,77 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
                           ],
                         ),
                         
-                        // Wishlist button
+                        // Action buttons
                         Positioned(
                           right: 8.h,
                           top: 8.h,
-                          child: Consumer<WishlistNotifier>(
-                            builder: (context, wishlistNotifier, child) {
-                              final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
-                              
-                              return GestureDetector(
-                                onTap: () {
-                                  final accessToken = Storage().getString('accessToken');
-                                  if (accessToken == null) {
-                                    loginBottomSheet(context);
-                                  } else {
-                                    wishlistNotifier.toggleWishlist(
-                                      item.id,
-                                      () {
-                                        // Refetch callback
-                                        if (widget.onWishlistUpdated != null) {
-                                          widget.onWishlistUpdated!();
-                                        }
-                                      },
-                                      type: 'marketplace', // Specify that this is a marketplace item
-                                    );
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Share button
+                              GestureDetector(
+                                onTap: () async {
+                                  try {
+                                    await ShareUtils.shareMarketplaceItemFromList(item);
+                                  } catch (e) {
+                                    debugPrint('Error sharing marketplace item: $e');
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Failed to share item. Please try again.'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
                                   }
                                 },
                                 child: CircleAvatar(
                                   radius: 15.r,
                                   backgroundColor: Kolors.kSecondaryLight,
                                   child: Icon(
-                                    isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                    color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                    Icons.share,
+                                    color: Kolors.kGray,
                                     size: 15.r,
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                              SizedBox(width: 8.w),
+                              // Wishlist button
+                              Consumer<WishlistNotifier>(
+                                builder: (context, wishlistNotifier, child) {
+                                  final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
+                                  
+                                  return GestureDetector(
+                                    onTap: () {
+                                      final accessToken = Storage().getString('accessToken');
+                                      if (accessToken == null) {
+                                        loginBottomSheet(context);
+                                      } else {
+                                        wishlistNotifier.toggleWishlist(
+                                          item.id,
+                                          () {
+                                            // Refetch callback
+                                            if (widget.onWishlistUpdated != null) {
+                                              widget.onWishlistUpdated!();
+                                            }
+                                          },
+                                          type: 'marketplace', // Specify that this is a marketplace item
+                                        );
+                                      }
+                                    },
+                                    child: CircleAvatar(
+                                      radius: 15.r,
+                                      backgroundColor: Kolors.kSecondaryLight,
+                                      child: Icon(
+                                        isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                        color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                        size: 15.r,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ),
                       ],

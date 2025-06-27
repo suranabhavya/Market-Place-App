@@ -30,9 +30,31 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
     
     if (widget.filteredProperties == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        context.read<PropertyNotifier>().fetchProperties();
+        final propertyNotifier = context.read<PropertyNotifier>();
+        // Only fetch properties if they haven't been loaded yet (e.g., from splash screen)
+        if (propertyNotifier.properties.isEmpty && !propertyNotifier.isLoading) {
+          debugPrint("ExploreProperties: Properties not preloaded, fetching now...");
+          propertyNotifier.fetchProperties();
+        } else if (propertyNotifier.properties.isNotEmpty) {
+          debugPrint("ExploreProperties: Properties already loaded (${propertyNotifier.properties.length} items)");
+        }
       });
     }
+    
+    // Initialize wishlist state when component loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final accessToken = Storage().getString('accessToken');
+      final wishlistNotifier = context.read<WishlistNotifier>();
+      
+      if (accessToken != null) {
+        // User is logged in - load their wishlist to ensure proper state
+        wishlistNotifier.loadWishlistFromStorage();
+        wishlistNotifier.fetchWishlist();
+      } else {
+        // No user logged in - clear wishlist
+        wishlistNotifier.clearWishlist();
+      }
+    });
     
     // Add scroll listener for infinite scrolling
     _scrollController.addListener(_scrollListener);
@@ -115,9 +137,20 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 12.h),
-              child: Text(
-                "Showing $totalCount properties",
-                style: appStyle(16, Kolors.kDark, FontWeight.w600),
+              child: Consumer<FilterNotifier>(
+                builder: (context, filterNotifier, child) {
+                  String headerText;
+                  if (filterNotifier.searchKey.isNotEmpty) {
+                    headerText = "Found $totalCount properties for \"${filterNotifier.searchKey}\"";
+                  } else {
+                    headerText = "Showing $totalCount properties";
+                  }
+                  
+                  return Text(
+                    headerText,
+                    style: appStyle(16, Kolors.kDark, FontWeight.w600),
+                  );
+                },
               ),
             ),
           ),
