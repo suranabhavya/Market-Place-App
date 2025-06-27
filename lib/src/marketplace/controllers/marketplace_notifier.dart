@@ -42,7 +42,7 @@ class MarketplaceNotifier extends ChangeNotifier {
   };
 
   // Filter properties
-  String? _condition;
+  List<String> _selectedConditions = [];
   bool? _negotiable;
   bool? _deliveryAvailable;
   bool? _originalReceiptAvailable;
@@ -63,7 +63,7 @@ class MarketplaceNotifier extends ChangeNotifier {
   Map<String, List<String>> get autocompleteResults => _autocompleteResults;
 
   // Filter getters
-  String? get condition => _condition;
+  List<String> get selectedConditions => _selectedConditions;
   bool? get negotiable => _negotiable;
   bool? get deliveryAvailable => _deliveryAvailable;
   bool? get originalReceiptAvailable => _originalReceiptAvailable;
@@ -163,8 +163,8 @@ class MarketplaceNotifier extends ChangeNotifier {
   }
 
   // Filter setters
-  void setCondition(String? value) {
-    _condition = value;
+  void setSelectedConditions(List<String> conditions) {
+    _selectedConditions = conditions;
     notifyListeners();
   }
 
@@ -205,7 +205,7 @@ class MarketplaceNotifier extends ChangeNotifier {
   }
 
   void resetFilters() {
-    _condition = null;
+    _selectedConditions = [];
     _negotiable = null;
     _deliveryAvailable = null;
     _originalReceiptAvailable = null;
@@ -263,9 +263,9 @@ class MarketplaceNotifier extends ChangeNotifier {
         }
       }
       
-      // Add condition if selected
-      if (_condition != null && _condition!.isNotEmpty) {
-        queryParams['condition'] = _condition!;
+      // Add conditions if selected
+      if (_selectedConditions.isNotEmpty) {
+        queryParams['condition'] = _selectedConditions.join(',');
       }
       
       // Add boolean filters
@@ -329,6 +329,7 @@ class MarketplaceNotifier extends ChangeNotifier {
     }
   }
 
+  // Create marketplace item
   Future<void> createMarketplaceItem({
     required String token,
     required Map<String, dynamic> marketplaceData,
@@ -338,9 +339,8 @@ class MarketplaceNotifier extends ChangeNotifier {
     String apiUrl = '${Environment.iosAppBaseUrl}/api/marketplace/';
 
     try {
-      // Debug print the incoming data
-      print('Creating marketplace item with data:');
-      print('Raw marketplaceData: $marketplaceData');
+      debugPrint('Creating marketplace item');
+      debugPrint('Marketplace data: $marketplaceData');
       
       var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
       request.headers['Authorization'] = 'Token $token';
@@ -348,7 +348,7 @@ class MarketplaceNotifier extends ChangeNotifier {
       // Handle images
       List<String>? imagePaths = marketplaceData['images'] as List<String>?;
       if (imagePaths != null && imagePaths.isNotEmpty) {
-        print('📸 Adding ${imagePaths.length} images');
+        debugPrint('Adding ${imagePaths.length} images');
         for (var imagePath in imagePaths) {
           File imageFile = File(imagePath);
           request.files.add(
@@ -371,9 +371,6 @@ class MarketplaceNotifier extends ChangeNotifier {
       // Handle original_price properly - only add if not null
       if (marketplaceData['original_price'] != null) {
         request.fields['original_price'] = marketplaceData['original_price'].toString();
-        print('original_price: ${marketplaceData['original_price']}');
-      } else {
-        print('original_price: null (not included in request)');
       }
       
       request.fields['item_type'] = marketplaceData['item_type'] ?? '';
@@ -399,6 +396,23 @@ class MarketplaceNotifier extends ChangeNotifier {
         request.fields['longitude'] = marketplaceData['longitude'].toString();
       }
       
+      // Add address components
+      if (marketplaceData['city'] != null && marketplaceData['city'].toString().isNotEmpty) {
+        request.fields['city'] = marketplaceData['city'].toString();
+      }
+      
+      if (marketplaceData['state'] != null && marketplaceData['state'].toString().isNotEmpty) {
+        request.fields['state'] = marketplaceData['state'].toString();
+      }
+      
+      if (marketplaceData['pincode'] != null && marketplaceData['pincode'].toString().isNotEmpty) {
+        request.fields['pincode'] = marketplaceData['pincode'].toString();
+      }
+      
+      if (marketplaceData['country'] != null && marketplaceData['country'].toString().isNotEmpty) {
+        request.fields['country'] = marketplaceData['country'].toString();
+      }
+      
       request.fields['hide_address'] = marketplaceData['hide_address'].toString();
       
       if (marketplaceData['availability_date'] != null) {
@@ -409,30 +423,18 @@ class MarketplaceNotifier extends ChangeNotifier {
 
       // Add school_ids if present
       if (marketplaceData['school_ids'] != null && marketplaceData['school_ids'].isNotEmpty) {
-        // Join the list into a comma-separated string
         String schoolIdsString = marketplaceData['school_ids'].join(',');
         request.fields['school_ids'] = schoolIdsString;
       }
 
-      // Debug print the final request fields
-      print('📋 Final request fields:');
-      request.fields.forEach((key, value) {
-        print('  $key: $value');
-      });
-      print('📁 Files count: ${request.files.length}');
-
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
 
-      print('📡 API Response Status: ${response.statusCode}');
-      print('📡 API Response Body: $responseBody');
+      debugPrint('Create API Response Status: ${response.statusCode}');
+      debugPrint('Create API Response Body: $responseBody');
 
       if (response.statusCode == 201) {
         debugPrint('✅ Successfully created marketplace item');
-        
-        // Don't reset filters or clear items here - let the parent screen handle refresh
-        // This ensures that any active filters or search terms are preserved
-        
         onSuccess();
       } else {
         debugPrint('❌ Failed to create marketplace item: $responseBody');
@@ -444,18 +446,13 @@ class MarketplaceNotifier extends ChangeNotifier {
     }
   }
 
-  // Fetch marketplace item details
+  // Fetch marketplace detail
   Future<MarketplaceDetailModel?> fetchMarketplaceDetail(String itemId) async {
     try {
       final url = '${Environment.iosAppBaseUrl}/api/marketplace/$itemId/';
       debugPrint('Fetching marketplace detail from: $url');
       
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         debugPrint('Marketplace detail response: ${response.body}');
@@ -486,8 +483,20 @@ class MarketplaceNotifier extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         debugPrint('User marketplace listings response: ${response.body}');
-        final Map<String, dynamic> data = json.decode(response.body);
-        final List<dynamic> results = data['results'];
+        final responseData = json.decode(response.body);
+        
+        // Handle both paginated and non-paginated responses
+        List<dynamic> results;
+        if (responseData is Map<String, dynamic> && responseData.containsKey('results')) {
+          // Paginated response
+          results = responseData['results'];
+        } else if (responseData is List) {
+          // Direct list response
+          results = responseData;
+        } else {
+          debugPrint('Unexpected response format: $responseData');
+          return [];
+        }
         
         return results.map((item) => MarketplaceListModel.fromJson(item)).toList();
       } else {
@@ -517,10 +526,17 @@ class MarketplaceNotifier extends ChangeNotifier {
       var request = http.MultipartRequest("PUT", Uri.parse(apiUrl));
       request.headers['Authorization'] = 'Token $token';
 
-      // Handle images (only add new images if provided)
+      // Handle deleted_images first (this is important for your backend)
+      if (marketplaceData['deleted_images'] != null && (marketplaceData['deleted_images'] as List).isNotEmpty) {
+        List<String> deletedImages = List<String>.from(marketplaceData['deleted_images']);
+        request.fields['deleted_images'] = jsonEncode(deletedImages);
+        debugPrint('Adding deleted images: $deletedImages');
+      }
+
+      // Handle new images (only add new images if provided)
       List<String>? imagePaths = marketplaceData['images'] as List<String>?;
       if (imagePaths != null && imagePaths.isNotEmpty) {
-        debugPrint('Adding ${imagePaths.length} images for update');
+        debugPrint('Adding ${imagePaths.length} new images for update');
         for (var imagePath in imagePaths) {
           File imageFile = File(imagePath);
           request.files.add(
@@ -566,6 +582,23 @@ class MarketplaceNotifier extends ChangeNotifier {
       
       if (marketplaceData['longitude'] != null) {
         request.fields['longitude'] = marketplaceData['longitude'].toString();
+      }
+      
+      // Add address components
+      if (marketplaceData['city'] != null && marketplaceData['city'].toString().isNotEmpty) {
+        request.fields['city'] = marketplaceData['city'].toString();
+      }
+      
+      if (marketplaceData['state'] != null && marketplaceData['state'].toString().isNotEmpty) {
+        request.fields['state'] = marketplaceData['state'].toString();
+      }
+      
+      if (marketplaceData['pincode'] != null && marketplaceData['pincode'].toString().isNotEmpty) {
+        request.fields['pincode'] = marketplaceData['pincode'].toString();
+      }
+      
+      if (marketplaceData['country'] != null && marketplaceData['country'].toString().isNotEmpty) {
+        request.fields['country'] = marketplaceData['country'].toString();
       }
       
       request.fields['hide_address'] = marketplaceData['hide_address'].toString();

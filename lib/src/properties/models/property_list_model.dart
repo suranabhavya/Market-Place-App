@@ -54,6 +54,10 @@ class PropertyListModel {
   int? bedrooms;
   int? bathrooms;
   String address;
+  String? city;
+  String? state;
+  String? pincode;
+  bool hideAddress;
   double? latitude;
   double? longitude;
   List<String>? images;
@@ -69,6 +73,10 @@ class PropertyListModel {
     this.bedrooms,
     this.bathrooms,
     required this.address,
+    this.city,
+    this.state,
+    this.pincode,
+    required this.hideAddress,
     this.latitude,
     this.longitude,
     this.images,
@@ -85,6 +93,10 @@ class PropertyListModel {
         bedrooms: json["bedrooms"],
         bathrooms: json["bathrooms"],
         address: json["address"],
+        city: json["city"],
+        state: json["state"],
+        pincode: json["pincode"],
+        hideAddress: json["hide_address"] ?? false,
         latitude: json["latitude"]?.toDouble(),
         longitude: json["longitude"]?.toDouble(),
         images: json["images"] != null
@@ -103,6 +115,10 @@ class PropertyListModel {
         if (bedrooms != null) "bedrooms": bedrooms,
         if (bathrooms != null) "bathrooms": bathrooms,
         "address": address,
+        if (city != null) "city": city,
+        if (state != null) "state": state,
+        if (pincode != null) "pincode": pincode,
+        "hide_address": hideAddress,
         if (latitude != null) "latitude": latitude,
         if (longitude != null) "longitude": longitude,
         if (images != null) "images": List<String>.from(images!),

@@ -35,8 +35,15 @@ class _MarketplacePageState extends State<MarketplacePage> {
     // Load wishlist data and marketplace items on initial load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final accessToken = Storage().getString('accessToken');
+      final wishlistNotifier = context.read<WishlistNotifier>();
+      
       if (accessToken != null) {
-        context.read<WishlistNotifier>().fetchWishlist();
+        // User is logged in - load their wishlist
+        wishlistNotifier.loadWishlistFromStorage();
+        wishlistNotifier.fetchWishlist();
+      } else {
+        // No user logged in - clear wishlist
+        wishlistNotifier.clearWishlist();
       }
       
       // Only fetch items if we don't have filtered items
@@ -128,21 +135,6 @@ class _MarketplacePageState extends State<MarketplacePage> {
                           color: Kolors.kGray,
                         ),
                       ),
-                      if (widget.filteredItems != null || _currentItems != null) ...[
-                        SizedBox(height: 8.h),
-                        ElevatedButton(
-                          onPressed: () {
-                            // Reset filters and clear current items
-                            marketplaceNotifier.resetFilters();
-                            setState(() {
-                              _currentItems = null;
-                            });
-                            // Reload items
-                            marketplaceNotifier.applyFilters(context);
-                          },
-                          child: const Text("Clear Filters"),
-                        ),
-                      ],
                     ],
                   ),
                 )

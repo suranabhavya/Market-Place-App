@@ -170,6 +170,9 @@ class _AccountPageState extends State<AccountPage> {
                     bool success = await profileNotifier.updateProfilePhoto();
             
                     if (success && mounted) {
+                      // Force refresh the UI by calling loadUserFromStorage
+                      profileNotifier.refreshUserData();
+                      
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("Profile photo updated successfully"), backgroundColor: Colors.green),
                       );

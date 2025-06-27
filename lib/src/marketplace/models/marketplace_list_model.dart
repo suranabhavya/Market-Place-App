@@ -70,6 +70,10 @@ class MarketplaceListModel {
   String itemType;
   String itemSubtype;
   String address;
+  String? city;
+  String? state;
+  String? pincode;
+  bool hideAddress;
   DateTime createdAt;
   DateTime updatedAt;
   bool isActive;
@@ -84,6 +88,10 @@ class MarketplaceListModel {
     required this.itemType,
     required this.itemSubtype,
     required this.address,
+    this.city,
+    this.state,
+    this.pincode,
+    required this.hideAddress,
     required this.createdAt,
     required this.updatedAt,
     required this.isActive,
@@ -99,6 +107,10 @@ class MarketplaceListModel {
     itemType: json["item_type"],
     itemSubtype: json["item_subtype"],
     address: json["address"],
+    city: json["city"],
+    state: json["state"],
+    pincode: json["pincode"],
+    hideAddress: json["hide_address"] ?? false,
     createdAt: DateTime.parse(json["created_at"]),
     updatedAt: DateTime.parse(json["updated_at"]),
     isActive: json["is_active"],
@@ -118,6 +130,10 @@ class MarketplaceListModel {
     "item_type": itemType,
     "item_subtype": itemSubtype,
     "address": address,
+    if (city != null) "city": city,
+    if (state != null) "state": state,
+    if (pincode != null) "pincode": pincode,
+    "hide_address": hideAddress,
     "created_at": createdAt.toIso8601String(),
     "updated_at": updatedAt.toIso8601String(),
     "is_active": isActive,

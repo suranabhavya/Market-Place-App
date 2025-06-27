@@ -7,6 +7,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
+import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
@@ -184,6 +185,38 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
               ),
             ),
             actions: [
+              // Share Button
+              Container(
+                margin: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  onPressed: () async {
+                    if (_item != null) {
+                      try {
+                        await ShareUtils.shareMarketplaceItem(_item!);
+                      } catch (e) {
+                        debugPrint('Error sharing marketplace item: $e');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to share item. Please try again.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+                  icon: const Icon(
+                    MaterialCommunityIcons.share,
+                    color: Kolors.kWhite,
+                  ),
+                ),
+              ),
+              // Wishlist Button
               Container(
                 margin: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
@@ -417,49 +450,60 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                     style: appStyle(18, Kolors.kDark, FontWeight.w600),
                   ),
                   SizedBox(height: 12.h),
-                  Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Kolors.kGrayLight),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24.r,
-                          backgroundColor: Kolors.kPrimaryLight,
-                          backgroundImage: _item!.seller.profilePhoto != null
-                              ? NetworkImage(_item!.seller.profilePhoto!)
-                              : null,
-                          child: _item!.seller.profilePhoto == null
-                              ? Text(
-                                  _item!.seller.name.isNotEmpty 
-                                      ? _item!.seller.name[0].toUpperCase()
-                                      : _item!.seller.email[0].toUpperCase(),
-                                  style: appStyle(18, Kolors.kWhite, FontWeight.bold),
-                                )
-                              : null,
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _item!.seller.name.isNotEmpty 
-                                    ? _item!.seller.name 
-                                    : 'Anonymous Seller',
-                                style: appStyle(16, Kolors.kDark, FontWeight.w600),
-                              ),
-                              SizedBox(height: 4.h),
-                              Text(
-                                'Member since ${DateFormat('MMM yyyy').format(_item!.createdAt)}',
-                                style: appStyle(12, Kolors.kGray, FontWeight.w400),
-                              ),
-                            ],
+                  GestureDetector(
+                    onTap: () {
+                      context.push('/public-profile', extra: _item!.seller.id);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: Kolors.kOffWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Kolors.kGrayLight),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24.r,
+                            backgroundColor: Kolors.kPrimaryLight,
+                            backgroundImage: _item!.seller.profilePhoto != null
+                                ? NetworkImage(_item!.seller.profilePhoto!)
+                                : null,
+                            child: _item!.seller.profilePhoto == null
+                                ? Text(
+                                    _item!.seller.name.isNotEmpty 
+                                        ? _item!.seller.name[0].toUpperCase()
+                                        : _item!.seller.email[0].toUpperCase(),
+                                    style: appStyle(18, Kolors.kWhite, FontWeight.bold),
+                                  )
+                                : null,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _item!.seller.name.isNotEmpty 
+                                      ? _item!.seller.name 
+                                      : 'Anonymous Seller',
+                                  style: appStyle(16, Kolors.kDark, FontWeight.w600),
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  'Member since ${DateFormat('MMM yyyy').format(_item!.createdAt)}',
+                                  style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            AntDesign.right,
+                            size: 16,
+                            color: Kolors.kDark,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   

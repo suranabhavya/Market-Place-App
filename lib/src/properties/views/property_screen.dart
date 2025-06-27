@@ -6,23 +6,24 @@ import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/const/constants.dart';
+import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:marketplace_app/src/properties/widgets/expandable_text.dart';
 import 'package:marketplace_app/src/properties/widgets/property_bottom_bar.dart';
-import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
+import 'package:marketplace_app/common/utils/amenity_emoji_map.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 extension StringExtension on String {
   String capitalize() {
@@ -44,7 +45,6 @@ class _PropertyPageState extends State<PropertyPage> {
   // Add a key for the ExpandableText widget
   final GlobalKey<ExpandableTextState> _expandableTextKey = GlobalKey<ExpandableTextState>();
   bool _hasFetchedNearby = false;
-  bool _isLoadingNearby = false;
 
   @override
   void initState() {
@@ -66,7 +66,6 @@ class _PropertyPageState extends State<PropertyPage> {
     if (!_hasFetchedNearby && property.latitude != null && property.longitude != null) {
       setState(() {
         _hasFetchedNearby = true;
-        _isLoadingNearby = true;
       });
 
       try {
@@ -77,7 +76,7 @@ class _PropertyPageState extends State<PropertyPage> {
       } finally {
         if (mounted) {
           setState(() {
-            _isLoadingNearby = false;
+            _hasFetchedNearby = true;
           });
         }
       }
@@ -141,6 +140,24 @@ class _PropertyPageState extends State<PropertyPage> {
     return "$fromDate - $toDate";
   }
 
+  Future<void> _launchMaps(PropertyDetailModel property) async {
+    if (property.latitude != null && property.longitude != null) {
+      final Uri mapsUri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${property.latitude},${property.longitude}'
+      );
+      
+      if (await canLaunchUrl(mapsUri)) {
+        await launchUrl(mapsUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open maps')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString(('accessToken'));
@@ -178,8 +195,20 @@ class _PropertyPageState extends State<PropertyPage> {
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: GestureDetector(
-                  onTap: () {
-                    // TODO: Implement share functionality to share property details
+                  onTap: () async {
+                    try {
+                      await ShareUtils.shareProperty(property);
+                    } catch (e) {
+                      debugPrint('Error sharing property: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Failed to share property. Please try again.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
                   },
                   child: CircleAvatar(
                     backgroundColor: Kolors.kSecondaryLight,
@@ -355,35 +384,60 @@ class _PropertyPageState extends State<PropertyPage> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ReusableText(
-                    text: property.address,
-                    style: appStyle(14, Kolors.kGray, FontWeight.w600)
-                  ),
-                ],
+          // Location Section - only show if hideAddress is false
+          if (!property.hideAddress) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Location',
+                      style: appStyle(16, Kolors.kGray, FontWeight.bold),
+                    ),
+                    SizedBox(height: 8.h),
+                    GestureDetector(
+                      onTap: () => _launchMaps(property),
+                      child: Container(
+                        padding: EdgeInsets.all(12.w),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Kolors.kGrayLight),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.location_on, color: Kolors.kPrimary, size: 20),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(
+                                property.unit != null && property.unit!.isNotEmpty
+                                    ? '${property.address}, Unit ${property.unit}'
+                                    : property.address,
+                                style: appStyle(14, Kolors.kDark, FontWeight.w400),
+                              ),
+                            ),
+                            Icon(Icons.open_in_new, color: Kolors.kGray, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )
-          ),
-
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 12.h,
             ),
-          ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Divider(
-                thickness: .5.h,
+            SliverToBoxAdapter(
+              child: SizedBox(height: 12.h),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.w),
+                child: Divider(thickness: .5.h),
               ),
-            )
-          ),
+            ),
+          ],
 
           SliverToBoxAdapter(
             child: Padding(
@@ -567,9 +621,19 @@ class _PropertyPageState extends State<PropertyPage> {
                             borderRadius: BorderRadius.circular(20), // Circular shape
                             border: Border.all(color: Kolors.kPrimary, width: 1),
                           ),
-                          child: Text(
-                            amenity,
-                            style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                AmenityEmojiMap.getEmoji(amenity),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              SizedBox(width: 6.w),
+                              Text(
+                                amenity,
+                                style: appStyle(12, Kolors.kPrimary, FontWeight.w500),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),
@@ -881,34 +945,53 @@ class _PropertyPageState extends State<PropertyPage> {
                   SizedBox(
                     height: 10.h,
                   ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 35,
-                          backgroundColor: Colors.grey,
-                          backgroundImage: property.profilePhoto != null && property.profilePhoto!.isNotEmpty
-                              ? NetworkImage(property.profilePhoto!)
-                              : null,
-                          child: property.profilePhoto == null || property.profilePhoto!.isEmpty
-                              ? const Icon(Icons.person, size: 50, color: Colors.white)
-                              : null,
-                        ),
-                        SizedBox(width: 24.w),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[300],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
+                  GestureDetector(
+                    onTap: () {
+                      context.push('/public-profile', extra: property.userId);
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(16.w),
+                      decoration: BoxDecoration(
+                        color: Kolors.kOffWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Kolors.kGrayLight),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24.r,
+                            backgroundColor: Kolors.kPrimaryLight,
+                            backgroundImage: property.profilePhoto != null && property.profilePhoto!.isNotEmpty
+                                ? NetworkImage(property.profilePhoto!)
+                                : null,
+                            child: property.profilePhoto == null || property.profilePhoto!.isEmpty
+                                ? const Icon(Icons.person, size: 48, color: Colors.white)
+                                : null,
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  property.name,
+                                  style: appStyle(16, Kolors.kDark, FontWeight.w600),
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  'Member since ${DateFormat('MMM yyyy').format(property.createdAt)}',
+                                  style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                                ),
+                              ],
                             ),
                           ),
-                          onPressed: () {
-                            context.push('/public-profile', extra: property.userId);
-                          },
-                          child: Text(property.name, style: appStyle(14, Kolors.kPrimary, FontWeight.w500)),
-                        ),
-                      ],
+                          Icon(
+                            AntDesign.right,
+                            size: 16,
+                            color: Kolors.kDark,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

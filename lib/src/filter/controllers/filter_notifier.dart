@@ -17,7 +17,7 @@ class FilterNotifier extends ChangeNotifier {
   String get searchKey => _searchKey;
 
   // New state variables for property type and flatmate preferences
-  String propertyType = '';
+  List<String> selectedPropertyTypes = [];
   String smokingPreference = '';
   String partyingPreference = '';
   String dietaryPreference = '';
@@ -88,8 +88,8 @@ class FilterNotifier extends ChangeNotifier {
   }
 
   // New methods for property type and flatmate preferences
-  void setPropertyType(String type) {
-    propertyType = type;
+  void setPropertyTypes(List<String> types) {
+    selectedPropertyTypes = types;
     notifyListeners();
   }
 
@@ -132,9 +132,9 @@ class FilterNotifier extends ChangeNotifier {
       url += "latitude=$_latitude&longitude=$_longitude&";
     }
 
-    // Add property type
-    if (propertyType.isNotEmpty) {
-      url += "property_type=$propertyType&";
+    // Add property types
+    if (selectedPropertyTypes.isNotEmpty) {
+      url += "property_type=${selectedPropertyTypes.join(',')}&";
     }
 
     // Add flatmate preferences
@@ -277,7 +277,7 @@ class FilterNotifier extends ChangeNotifier {
     selectedSchools = [];
     availableFrom = null;
     availableTo = null;
-    propertyType = '';
+    selectedPropertyTypes = [];
     smokingPreference = '';
     partyingPreference = '';
     dietaryPreference = '';

@@ -116,7 +116,31 @@ class _ChatPageState extends State<ChatPage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
+          : chats.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 64,
+                        color: Kolors.kGray,
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        "No conversations yet",
+                        style: appStyle(18, Kolors.kDark, FontWeight.w600),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "Start messaging someone to begin a conversation",
+                        style: appStyle(14, Kolors.kGray, FontWeight.w400),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
               itemCount: chats.length,
               itemBuilder: (context, index) {
                 final chat = chats[index];

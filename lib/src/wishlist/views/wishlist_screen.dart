@@ -26,8 +26,15 @@ class _WishListPageState extends State<WishListPage> {
     // Load wishlist data when the screen is first displayed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final accessToken = Storage().getString('accessToken');
+      final wishlistNotifier = context.read<WishlistNotifier>();
+      
       if (accessToken != null) {
-        context.read<WishlistNotifier>().fetchWishlist();
+        // User is logged in - load their wishlist
+        wishlistNotifier.loadWishlistFromStorage();
+        wishlistNotifier.fetchWishlist();
+      } else {
+        // No user logged in - clear wishlist
+        wishlistNotifier.clearWishlist();
       }
     });
   }

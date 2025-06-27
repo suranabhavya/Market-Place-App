@@ -51,10 +51,10 @@ void main() async {
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "AIzaSyCjS8vkUpqajh7U3boFJYZ4cFDtdvPWPJ8",
-        appId: "1:814527696303:web:1aa6282e484f2947d2b35a",
-        messagingSenderId: "814527696303",
-        projectId: "homiswap-ffb6b",
+        apiKey: "AIzaSyAZ_iAD9FJeMVicdkSouosVrbKuIpG3yjQ",
+        appId: "1:767184260939:web:1c8a110b9b20860f7122ce",
+        messagingSenderId: "767184260939",
+        projectId: "homiswap-b0dcf",
       ),
     );
   } else {

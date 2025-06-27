@@ -11,6 +11,7 @@ import 'package:marketplace_app/common/widgets/error_modal.dart';
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
 import 'package:marketplace_app/src/auth/models/check_email_model.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 
@@ -56,11 +57,25 @@ class AuthNotifier with ChangeNotifier {
     }
   }
   
+  void _initializeUserState(BuildContext context) {
+    // Reconnect unread notifier
+    _reconnectUnreadNotifier(context);
+    
+    // Initialize wishlist for the newly logged in user
+    try {
+      final wishlistNotifier = context.read<WishlistNotifier>();
+      wishlistNotifier.loadWishlistFromStorage();
+      wishlistNotifier.fetchWishlist();
+    } catch (e) {
+      debugPrint('WishlistNotifier not available: $e');
+    }
+  }
+  
   Future<void> loginFunc(String data, BuildContext ctx) async {
     setLoading(true);
 
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/login/');
+      var url = Uri.parse('${Environment.baseUrl}/accounts/login/');
       var response = await http.post(
         url,
         headers: {
@@ -88,7 +103,7 @@ class AuthNotifier with ChangeNotifier {
         }
 
         if (ctx.mounted) {
-          _reconnectUnreadNotifier(ctx);
+          _initializeUserState(ctx);
           ctx.go('/home');
         }
       }
@@ -108,7 +123,7 @@ class AuthNotifier with ChangeNotifier {
     setRLoading(true);
 
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/register/');
+      var url = Uri.parse('${Environment.baseUrl}/accounts/register/');
       var response = await http.post(
         url,
         headers: {
@@ -136,7 +151,7 @@ class AuthNotifier with ChangeNotifier {
         }
 
         if (ctx.mounted) {
-          _reconnectUnreadNotifier(ctx);
+          _initializeUserState(ctx);
           ctx.go('/home');
         }
       } else if (ctx.mounted) {
@@ -173,7 +188,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/generate-otp/');
+      var url = Uri.parse('${Environment.baseUrl}/accounts/generate-otp/');
       var response = await http.post(
         url,
         headers: {
@@ -204,7 +219,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try {
-      final url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/check-email/');
+      final url = Uri.parse('${Environment.baseUrl}/accounts/check-email/');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -317,7 +332,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/check-mobile/');
+      var url = Uri.parse('${Environment.baseUrl}/accounts/check-mobile/');
       var response = await http.post(
         url,
         headers: {
@@ -349,25 +364,33 @@ class AuthNotifier with ChangeNotifier {
     setGoogleLoading(true);
     
     try {
+      debugPrint("Starting Google Sign-In process...");
+      
       // Configure GoogleSignIn with proper scopes for ID token
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        scopes: ['email', 'profile', 'openid'],
-        serverClientId: '814527696303-he00tpd1vk64daci92clbp7f72072jar.apps.googleusercontent.com'
+        scopes: ['email', 'profile'],
+        serverClientId: '236498773398-om4ilh99d8haq7hdr9vf3fvcmbkncbbd.apps.googleusercontent.com',
       );
 
       // Sign out first to ensure a fresh authentication flow
+      debugPrint("Signing out from previous session...");
       await googleSignIn.signOut();
       
       // Get Google user - this will show the Google account picker
+      debugPrint("Showing Google account picker...");
       final GoogleSignInAccount? user = await googleSignIn.signIn();
       
       // If user cancels the Google Sign-In flow
       if (user == null) {
+        debugPrint("User cancelled the Google Sign-In flow");
         setGoogleLoading(false);
         return false;
       }
       
+      debugPrint("User selected: ${user.email}");
+      
       // Explicitly request authentication to get tokens
+      debugPrint("Requesting authentication tokens...");
       final GoogleSignInAuthentication auth = await user.authentication;
       
       // If ID token is null, we can't proceed with server verification
@@ -380,8 +403,10 @@ class AuthNotifier with ChangeNotifier {
         return false;
       }
       
+      debugPrint("Successfully obtained ID token, proceeding with server authentication...");
+      
       // Send to Django backend for authentication/registration
-      final url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/google-auth/');
+      final url = Uri.parse('${Environment.baseUrl}/accounts/google-auth/');
       
       // Prepare data for Django backend with ID token for verification
       final requestData = {
@@ -391,6 +416,7 @@ class AuthNotifier with ChangeNotifier {
         "id_token": auth.idToken,
       };
       
+      debugPrint("Sending authentication request to server...");
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -400,6 +426,9 @@ class AuthNotifier with ChangeNotifier {
       setGoogleLoading(false);
       
       if (!context.mounted) return false;
+      
+      debugPrint("Server response status: ${response.statusCode}");
+      debugPrint("Server response body: ${response.body}");
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
@@ -420,7 +449,7 @@ class AuthNotifier with ChangeNotifier {
         }
         
         // Reconnect WebSocket for unread messages
-        _reconnectUnreadNotifier(context);
+        _initializeUserState(context);
         
         return true;
       } else {

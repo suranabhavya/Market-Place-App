@@ -265,6 +265,23 @@ class PropertyNotifier extends ChangeNotifier {
         request.fields['longitude'] = propertyData['longitude'].toString();
       }
       
+      // Add address components
+      if (propertyData['city'] != null && propertyData['city'].toString().isNotEmpty) {
+        request.fields['city'] = propertyData['city'].toString();
+      }
+      
+      if (propertyData['state'] != null && propertyData['state'].toString().isNotEmpty) {
+        request.fields['state'] = propertyData['state'].toString();
+      }
+      
+      if (propertyData['pincode'] != null && propertyData['pincode'].toString().isNotEmpty) {
+        request.fields['pincode'] = propertyData['pincode'].toString();
+      }
+      
+      if (propertyData['country'] != null && propertyData['country'].toString().isNotEmpty) {
+        request.fields['country'] = propertyData['country'].toString();
+      }
+      
       request.fields['hide_address'] = propertyData['hide_address'].toString();
       request.fields['property_type'] = propertyData['property_type'] ?? '';
       request.fields['listing_type'] = propertyData['listing_type'] ?? '';
@@ -315,6 +332,8 @@ class PropertyNotifier extends ChangeNotifier {
         final data = jsonDecode(responseData.body);
         PropertyListModel newProperty = PropertyListModel.fromJson(data);
         _properties.insert(0, newProperty);
+        totalPropertiesCount += 1;
+        
         notifyListeners();
         onSuccess();
       } else {
@@ -383,6 +402,23 @@ class PropertyNotifier extends ChangeNotifier {
       
       if (propertyData['longitude'] != null) {
         request.fields['longitude'] = propertyData['longitude'].toString();
+      }
+      
+      // Add address components
+      if (propertyData['city'] != null && propertyData['city'].toString().isNotEmpty) {
+        request.fields['city'] = propertyData['city'].toString();
+      }
+      
+      if (propertyData['state'] != null && propertyData['state'].toString().isNotEmpty) {
+        request.fields['state'] = propertyData['state'].toString();
+      }
+      
+      if (propertyData['pincode'] != null && propertyData['pincode'].toString().isNotEmpty) {
+        request.fields['pincode'] = propertyData['pincode'].toString();
+      }
+      
+      if (propertyData['country'] != null && propertyData['country'].toString().isNotEmpty) {
+        request.fields['country'] = propertyData['country'].toString();
       }
       
       request.fields['hide_address'] = propertyData['hide_address'].toString();

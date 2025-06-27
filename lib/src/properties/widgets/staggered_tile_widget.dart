@@ -1,21 +1,21 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
-import 'package:marketplace_app/common/utils/app_routes.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
-import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
-import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
-import 'package:flutter/material.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 
 
 class StaggeredTileWidget extends StatefulWidget {
@@ -114,6 +114,24 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
     );
   }
 
+  String _getCityStatePostcode() {
+    List<String> locationParts = [];
+    
+    if (widget.property.city != null && widget.property.city!.isNotEmpty) {
+      locationParts.add(widget.property.city!);
+    }
+    
+    if (widget.property.state != null && widget.property.state!.isNotEmpty) {
+      locationParts.add(widget.property.state!);
+    }
+    
+    if (widget.property.pincode != null && widget.property.pincode!.isNotEmpty) {
+      locationParts.add(widget.property.pincode!);
+    }
+    
+    return locationParts.isNotEmpty ? locationParts.join(', ') : 'Location not available';
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -149,14 +167,33 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           });
                         },
                         itemBuilder: (context, index) {
-                          return CachedNetworkImage(
-                            imageUrl: widget.property.images![index],
+                          return Image.network(
+                            widget.property.images![index],
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                            ),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.broken_image, size: 60, color: Kolors.kGray),
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Kolors.kGray,
+                                    size: 40,
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Kolors.kPrimary,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            },
                           );
                         },
                       )
@@ -209,33 +246,67 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                 Positioned(
                   right: 10.h,
                   top: 10.h,
-                  child: Consumer<WishlistNotifier>(
-                    builder: (context, wishlistNotifier, child) {
-                      return GestureDetector(
-                        onTap: widget.onTap ?? () {
-                          final accessToken = Storage().getString('accessToken');
-                          if (accessToken == null) {
-                            loginBottomSheet(context);
-                          } else {
-                            wishlistNotifier.toggleWishlist(
-                              widget.property.id,
-                              () => setState(() {}), // Simple refresh callback
-                              type: 'property', // Specify this is a property
-                            );
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Share button
+                      GestureDetector(
+                        onTap: () async {
+                          try {
+                            await ShareUtils.sharePropertyFromList(widget.property);
+                          } catch (e) {
+                            debugPrint('Error sharing property: $e');
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to share property. Please try again.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           }
                         },
                         child: CircleAvatar(
                           radius: 15.r,
                           backgroundColor: Kolors.kSecondaryLight,
                           child: Icon(
-                            AntDesign.heart,
-                            color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
+                            Icons.share,
+                            color: Kolors.kGray,
                             size: 15.r,
                           ),
                         ),
-                      );
-                    }
-                  )
+                      ),
+                      SizedBox(width: 8.w),
+                      // Wishlist button
+                      Consumer<WishlistNotifier>(
+                        builder: (context, wishlistNotifier, child) {
+                          return GestureDetector(
+                            onTap: widget.onTap ?? () {
+                              final accessToken = Storage().getString('accessToken');
+                              if (accessToken == null) {
+                                loginBottomSheet(context);
+                              } else {
+                                wishlistNotifier.toggleWishlist(
+                                  widget.property.id,
+                                  () => setState(() {}), // Simple refresh callback
+                                  type: 'property', // Specify this is a property
+                                );
+                              }
+                            },
+                            child: CircleAvatar(
+                              radius: 15.r,
+                              backgroundColor: Kolors.kSecondaryLight,
+                              child: Icon(
+                                AntDesign.heart,
+                                color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
+                                size: 15.r,
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                    ],
+                  ),
                 ),
                 
                 // Edit and Delete buttons - only show if onEdit is provided
@@ -298,7 +369,9 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                     children: [
                       Expanded(
                         child: Text(
-                          widget.property.address,
+                          widget.property.hideAddress
+                              ? _getCityStatePostcode()
+                              : widget.property.address,
                           style: appStyle(14.sp, Kolors.kGray, FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,

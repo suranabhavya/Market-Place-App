@@ -47,7 +47,10 @@ WishlistHookResult useFetchWishlist() {
     try {
       String? token = Storage().getString('accessToken');
       if (token == null) {
+        // Clear wishlist data if no user is logged in
+        wishlistItems.value = [];
         isLoading.value = false;
+        debugPrint('No user logged in - cleared wishlist');
         return;
       }
 
@@ -106,7 +109,7 @@ WishlistHookResult useFetchWishlist() {
         }
         
         wishlistItems.value = items;
-        debugPrint('Fetched ${items.length} wishlist items');
+        debugPrint('Fetched ${items.length} wishlist items for user');
       } else {
         error.value = 'Failed to fetch wishlist: ${response.reasonPhrase}';
         debugPrint('Failed to fetch wishlist: ${response.statusCode} ${response.reasonPhrase}');

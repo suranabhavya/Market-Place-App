@@ -24,7 +24,8 @@ import 'package:marketplace_app/src/properties/controllers/property_notifier.dar
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
 import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
-import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
+import 'package:marketplace_app/src/marketplace/widgets/marketplace_image_picker.dart';
+import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
 
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_date_picker.dart';
@@ -76,6 +77,10 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
   // List to store selected images
   final List<File> _images = [];
+  // List to store existing images when editing (URLs)
+  List<MarketplaceDetailImage> _existingImages = [];
+  // List to track removed image IDs
+  final List<String> _deletedImages = [];
   List<AutocompletePrediction>? placePredictions = [];
 
   // Form fields
@@ -294,6 +299,11 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       final item = await marketplaceNotifier.fetchMarketplaceDetail(widget.itemId!);
       
       if (item != null && mounted) {
+        debugPrint('📚 Schools nearby from API: ${item.schoolsNearby.length} schools');
+        for (var school in item.schoolsNearby) {
+          debugPrint('📚 School: ${school.id} - ${school.name}');
+        }
+        
         _populateFormData({
           'title': item.title,
           'description': item.description,
@@ -313,6 +323,8 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           'hide_address': item.hideAddress,
           'property_id': item.property?.id,
           'school_ids': item.schoolsNearby.map((s) => s.id).toList(),
+          'schools_nearby': item.schoolsNearby, // Pass full school objects
+          'images': item.images,
         });
       }
     } catch (e) {
@@ -347,13 +359,43 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       // Handle schools
       if (data['school_ids'] != null) {
         selectedSchoolIds = List<String>.from(data['school_ids']);
-        // We'll need to fetch school details to populate the map
-        for (String id in selectedSchoolIds) {
-          _selectedSchoolsMap[id] = {
-            'id': id,
-            'name': 'Loading...' // This will be updated when schools are fetched
-          };
+        
+        // If we have full school objects, use them directly
+        if (data['schools_nearby'] != null) {
+          debugPrint('📚 Processing ${data['schools_nearby'].length} schools from data');
+          _selectedSchoolsMap.clear();
+          for (var school in data['schools_nearby']) {
+            String id = school.id;
+            String name = school.name;
+            debugPrint('📚 Adding school to map: $id - $name');
+            _selectedSchoolsMap[id] = {
+              'id': id,
+              'name': name
+            };
+            
+            // Also add to schoolOptions if not already present
+            if (!schoolOptions.any((option) => option['id'] == id)) {
+              debugPrint('📚 Adding school to options: $id - $name');
+              schoolOptions.add({
+                'id': id,
+                'name': name
+              });
+            }
+          }
+        } else {
+          // Fallback: set loading state and fetch school details
+          for (String id in selectedSchoolIds) {
+            _selectedSchoolsMap[id] = {
+              'id': id,
+              'name': 'Loading...' // This will be updated when schools are fetched
+            };
+          }
         }
+      }
+      
+      // Handle existing images
+      if (data['images'] != null && data['images'] is List) {
+        _existingImages = (data['images'] as List<MarketplaceDetailImage>);
       }
     });
   }
@@ -414,28 +456,38 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         double lat = location['lat'];
         double lng = location['lng'];
 
+        // Extract address components
+        String? pincode;
+        String? city;
+        String? state;
+        String? country;
+
         List<dynamic> addressComponents = data['result']['address_components'];
         
         for (var component in addressComponents) {
           List types = component['types'];
 
           if (types.contains('postal_code')) {
-            _pincode = component['long_name'];
+            pincode = component['long_name'];
           }
           if (types.contains('locality')) {
-            _city = component['long_name'];
+            city = component['long_name'];
           }
           if (types.contains('administrative_area_level_1')) {
-            _state = component['long_name'];
+            state = component['long_name'];
           }
           if (types.contains('country')) {
-            _country = component['long_name'];
+            country = component['long_name'];
           }
         }
 
         setState(() {
           _latitudeController.text = lat.toString();
           _longitudeController.text = lng.toString();
+          _pincode = pincode;
+          _city = city;
+          _state = state;
+          _country = country;
         });
 
         // Fetch nearby schools after getting location
@@ -446,7 +498,9 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_images.isEmpty && !widget.isEditing) {
+    
+    // For new items, require at least one image
+    if (!widget.isEditing && _images.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please add at least one image")),
       );
@@ -495,6 +549,14 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       }
 
       if (widget.isEditing && widget.itemId != null) {
+        // For editing, add images and deleted images to the marketplace data
+        if (_images.isNotEmpty) {
+          marketplaceData['images'] = _images.map((file) => file.path).toList();
+        }
+        if (_deletedImages.isNotEmpty) {
+          marketplaceData['deleted_images'] = _deletedImages;
+        }
+        
         // Update existing item
         await context.read<MarketplaceNotifier>().updateMarketplaceItem(
           token: token,
@@ -572,16 +634,16 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           key: _formKey,
           child: ListView(
             children: [
-              PropertyImagePicker(
+              MarketplaceImagePicker(
                 images: _images,
-                existingImages: const [],
+                existingImages: _existingImages,
                 onPickImage: (source) async {
                   try {
                     if (source == ImageSource.gallery) {
                       final List<XFile>? pickedImages = await _picker.pickMultiImage(
-                        maxWidth: 1200,
-                        maxHeight: 1200,
-                        imageQuality: 70,
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        imageQuality: 50,
                       );
                       
                       if (pickedImages != null) {
@@ -592,9 +654,9 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                     } else {
                       final XFile? pickedImage = await _picker.pickImage(
                         source: source,
-                        maxWidth: 1200,
-                        maxHeight: 1200,
-                        imageQuality: 70,
+                        maxWidth: 800,
+                        maxHeight: 800,
+                        imageQuality: 50,
                       );
                       
                       if (pickedImage != null) {
@@ -612,7 +674,16 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                     _images.removeAt(index);
                   });
                 },
-                onRemoveExistingImage: (index) {},
+                onRemoveExistingImage: (index) {
+                  String imageId = _existingImages[index].id;
+                  setState(() {
+                    // Only add to deleted images if it's not empty
+                    if (imageId.isNotEmpty) {
+                      _deletedImages.add(imageId);
+                    }
+                    _existingImages.removeAt(index);
+                  });
+                },
               ),
 
               const SizedBox(height: 16),

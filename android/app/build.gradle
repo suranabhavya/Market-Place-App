@@ -33,6 +33,11 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled true
+        
+        // Add this for Google Sign-In
+        manifestPlaceholders += [
+            'appAuthRedirectScheme': 'com.googleusercontent.apps.236498773398-08f9crnjv1hgqv6ksonmk135rdtrmnta'
+        ]
     }
 
     signingConfigs {

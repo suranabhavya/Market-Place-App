@@ -38,6 +38,7 @@ class _FilterPageState extends State<FilterPage> {
   List<String> selectedBedrooms = [];
   List<String> selectedBathrooms = [];
   List<String> selectedSchoolIds = [];
+  List<String> selectedPropertyTypes = [];
   final List<String> bedroomOptions = ['1', '2', '3', '4', '5+'];
   final List<String> bathroomOptions = ['1', '2', '3', '4+'];
   List<Map<String, String>> schoolOptions = [];
@@ -59,6 +60,7 @@ class _FilterPageState extends State<FilterPage> {
     selectedBedrooms = List.from(filterNotifier.selectedBedrooms);
     selectedBathrooms = List.from(filterNotifier.selectedBathrooms);
     selectedSchoolIds = List.from(filterNotifier.selectedSchools);
+    selectedPropertyTypes = List.from(filterNotifier.selectedPropertyTypes);
     
     // Load previously selected schools from local storage
     _loadSelectedSchoolsFromStorage();
@@ -252,7 +254,16 @@ class _FilterPageState extends State<FilterPage> {
         List<dynamic> data = json.decode(responseBody);
 
         final filterNotifier = Provider.of<FilterNotifier>(context, listen: false);
-        filterNotifier.amenities = {for (var item in data) item["name"]: false};
+        
+        // Preserve existing selections when updating amenities
+        Map<String, bool> currentAmenities = Map.from(filterNotifier.amenities);
+        
+        // Initialize amenities with preserved selections
+        filterNotifier.amenities = {
+          for (var item in data) 
+            item["name"]: currentAmenities[item["name"]] ?? false
+        };
+        
         filterNotifier.notifyListeners();
       } else {
         throw Exception("Failed to load amenities");
@@ -280,6 +291,7 @@ class _FilterPageState extends State<FilterPage> {
       selectedBedrooms = [];
       selectedBathrooms = [];
       selectedSchoolIds = [];
+      selectedPropertyTypes = [];
       _selectedSchoolsMap.clear();
       filterNotifier.resetFilters();
       _minRentController.text = filterNotifier.priceRange.start.toInt().toString();
@@ -292,6 +304,7 @@ class _FilterPageState extends State<FilterPage> {
       selectedBedrooms = [];
       selectedBathrooms = [];
       selectedSchoolIds = [];
+      selectedPropertyTypes = [];
       _selectedSchoolsMap.clear();
       filterNotifier.resetAll();
       _minRentController.text = filterNotifier.priceRange.start.toInt().toString();
@@ -494,22 +507,46 @@ class _FilterPageState extends State<FilterPage> {
                   
                   SizedBox(height: 16.h),
 
-                  CustomDropdown<String>(
-                    value: filterNotifier.propertyType,
-                    items: const [
-                      DropdownMenuItem(value: '', child: Text("Select Property Type")),
-                      DropdownMenuItem(value: 'private_room', child: Text("Private Room")),
-                      DropdownMenuItem(value: 'shared_room', child: Text("Shared Room")),
-                      DropdownMenuItem(value: 'apartment', child: Text("Apartment")),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SectionTitle(
+                        title: "Property Type",
+                      ),
+                      SizedBox(height: 8.h),
+                      MultiSelectDropdown(
+                        title: "Property Type",
+                        options: const ['Private Room', 'Shared Room', 'Apartment'],
+                        selectedValues: selectedPropertyTypes.map((type) {
+                          switch (type) {
+                            case 'private_room': return 'Private Room';
+                            case 'shared_room': return 'Shared Room';
+                            case 'apartment': return 'Apartment';
+                            default: return type;
+                          }
+                        }).toList(),
+                        hintText: "Select Property Types",
+                        onSelectionChanged: (List<String> newSelection) {
+                          setState(() {
+                            selectedPropertyTypes = newSelection.map((displayName) {
+                              switch (displayName) {
+                                case 'Private Room': return 'private_room';
+                                case 'Shared Room': return 'shared_room';
+                                case 'Apartment': return 'apartment';
+                                default: return displayName;
+                              }
+                            }).toList();
+                            filterNotifier.setPropertyTypes(selectedPropertyTypes);
+                          });
+                        },
+                      ),
                     ],
-                    onChanged: (value) => filterNotifier.setPropertyType(value ?? ''),
-                    labelText: "Looking for a",
                   ),
 
                   SizedBox(height: 16.h),
 
                   // Flatmate Preferences (only show for Private Room or Shared Room)
-                  if (filterNotifier.propertyType == 'private_room' || filterNotifier.propertyType == 'shared_room') ...[
+                  if (selectedPropertyTypes.contains('private_room') || selectedPropertyTypes.contains('shared_room')) ...[
                     CustomDivider(
                       height: 1,
                       thickness: 0.5.h,
@@ -664,7 +701,6 @@ class _FilterPageState extends State<FilterPage> {
                             onTap: () {
                               filterNotifier.toggleAmenity(key);
                             },
-                            icon: Icons.check,
                           );
                         }).toList(),
                       ),

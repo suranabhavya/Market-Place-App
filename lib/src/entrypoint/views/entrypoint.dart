@@ -11,6 +11,7 @@ import 'package:marketplace_app/src/home/views/home_screen.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/profile/views/profile_screen.dart';
 import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -36,12 +37,50 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   void initState() {
     super.initState();
     _lastToken = Storage().getString('accessToken');
+    
+    // Initialize wishlist state on startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentToken = Storage().getString('accessToken');
+      final wishlistNotifier = context.read<WishlistNotifier>();
+      
+      if (currentToken != null) {
+        // User is logged in - load their wishlist
+        wishlistNotifier.loadWishlistFromStorage();
+        wishlistNotifier.fetchWishlist();
+      } else {
+        // No user logged in - clear wishlist
+        wishlistNotifier.clearWishlist();
+      }
+    });
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check for token changes when dependencies change (like after login)
+    _checkTokenChange();
   }
   
   void _checkTokenChange() {
     final currentToken = Storage().getString('accessToken');
     if (currentToken != _lastToken) {
       _lastToken = currentToken;
+      
+      // Handle wishlist state based on token change
+      try {
+        final wishlistNotifier = context.read<WishlistNotifier>();
+        if (currentToken == null) {
+          // User logged out - clear wishlist
+          wishlistNotifier.clearWishlist();
+        } else {
+          // User logged in or switched - load their wishlist
+          wishlistNotifier.loadWishlistFromStorage();
+          wishlistNotifier.fetchWishlist();
+        }
+      } catch (e) {
+        debugPrint('WishlistNotifier not available: $e');
+      }
+      
       // Token changed, reconnect WebSocket if needed
       try {
         final unreadNotifier = context.read<UnreadCountNotifier>();
@@ -63,6 +102,7 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       providers: [
         ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
         ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
+        ChangeNotifierProvider(create: (_) => WishlistNotifier()),
         ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
       ],
       child: Consumer<TabIndexNotifier>(
