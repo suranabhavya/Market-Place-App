@@ -10,58 +10,93 @@ class OnboardingScreenOne extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Background image - using fit: BoxFit.cover is efficient
-        Image.asset(
-          R.ASSETS_IMAGES_EXPERIENCE_WEBP,
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
-        ),
-        
-        // Bottom content container
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            width: double.infinity,
-            height: 330.h,
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(40),
-                topRight: Radius.circular(40),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                SizedBox(height: 15.h),
-                
-                // Title text
-                Text(
-                  AppText.kOnboardingHeader1,
-                  textAlign: TextAlign.center,
-                  style: appStyle(24, Kolors.kPrimary, FontWeight.bold),
-                ),
-                
-                SizedBox(height: 15.h),
-                
-                // Description text with constrained width
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: ScreenUtil().screenWidth - 100),
-                  child: Text(
-                    AppText.kOnboardingMessage1,
-                    textAlign: TextAlign.center,
-                    style: appStyle(11, Kolors.kGray, FontWeight.normal),
-                  ),
-                ),
-              ],
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background image - using fit: BoxFit.cover is efficient
+          Positioned.fill(
+            child: Image.asset(
+              R.ASSETS_IMAGES_EXPERIENCE_WEBP,
+              fit: BoxFit.cover,
             ),
           ),
-        ),
-      ],
+          
+          // Bottom content container with flexible height
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: double.infinity,
+              // Use percentage of screen height with min/max constraints
+              height: screenHeight * 0.35, // 40% of screen height
+              constraints: BoxConstraints(
+                minHeight: 280.h, // Minimum height for small screens
+                maxHeight: 400.h, // Maximum height for large screens
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16.w, // Reduced from screenWidth * 0.05
+                vertical: 20.h,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40.r),
+                  topRight: Radius.circular(40.r),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    
+                    // Title text with responsive font size
+                    Flexible(
+                      flex: 2,
+                      child: Text(
+                        AppText.kOnboardingHeader1,
+                        textAlign: TextAlign.center,
+                        style: appStyle(
+                          screenWidth > 400 ? 24.sp : 20.sp, // Responsive font size
+                          Kolors.kPrimary, 
+                          FontWeight.bold
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: 30.h),
+                    
+                    // Description text with responsive constraints
+                    Flexible(
+                      flex: 3,
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: screenWidth * 0.85, // 85% of screen width
+                        ),
+                        child: Text(
+                          AppText.kOnboardingMessage1,
+                          textAlign: TextAlign.center,
+                          style: appStyle(
+                            screenWidth > 400 ? 13.sp : 11.sp, // Responsive font size
+                            Kolors.kGray, 
+                            FontWeight.normal
+                          ),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: 30.h),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

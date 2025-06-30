@@ -21,7 +21,7 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'HomiSwap App Help Center',
+                'Sublyst Help Center',
                 style: appStyle(
                   18.0,
                   Kolors.kPrimary,
