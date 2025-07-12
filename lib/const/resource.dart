@@ -44,4 +44,10 @@ class R {
   static const String ASSETS_ICONS_FACEBOOK_SVG = 'assets/icons/facebook.svg';
 
   static const String ASSETS_ICONS_GOOGLE_SVG = 'assets/icons/google.svg';
+
+  static const String ASSETS_IMAGES_ONBOARDING_ONE_SVG = 'assets/images/onboarding_one.svg';
+  
+  static const String ASSETS_IMAGES_ONBOARDING_TWO_SVG = 'assets/images/onboarding_two.svg';
+
+  static const String ASSETS_IMAGES_ONBOARDING_THREE_SVG = 'assets/images/onboarding_three.svg';
 }

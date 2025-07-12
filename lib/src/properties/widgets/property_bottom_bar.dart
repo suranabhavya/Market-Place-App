@@ -40,7 +40,7 @@ class PropertyBottomBar extends StatelessWidget {
       height: 68.h,
       color: Colors.white.withOpacity(.6),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+        padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
         child: ElevatedButton(
           onPressed: () async {
             if(accessToken == null) {

@@ -4,6 +4,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/const/resource.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class OnboardingScreenTwo extends StatelessWidget {
   const OnboardingScreenTwo({super.key});
@@ -14,87 +15,53 @@ class OnboardingScreenTwo extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     
     return Scaffold(
-      body: Stack(
+      backgroundColor: Colors.white,
+      body: Column(
         children: [
-          // Background image - using fit: BoxFit.cover is efficient
-          Positioned.fill(
-            child: Image.asset(
-              R.ASSETS_IMAGES_WISHLIST_WEBP,
-              fit: BoxFit.cover,
+          // SVG Image taking most of the space
+          Expanded(
+            flex: 3,
+            child: Transform.translate(
+              offset: Offset(0, 80.h),
+              child: SvgPicture.asset(
+                R.ASSETS_IMAGES_ONBOARDING_TWO_SVG,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
-          
-          // Bottom content container with flexible height
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: double.infinity,
-              // Use percentage of screen height with min/max constraints
-              height: screenHeight * 0.35, // 40% of screen height
-              constraints: BoxConstraints(
-                minHeight: 280.h, // Minimum height for small screens
-                maxHeight: 400.h, // Maximum height for large screens
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: 16.w, // Reduced from screenWidth * 0.05
-                vertical: 20.h,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40.r),
-                  topRight: Radius.circular(40.r),
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    
-                    // Title text with responsive font size
-                    Flexible(
-                      flex: 2,
-                      child: Text(
-                        AppText.kOnboardingHeader2,
-                        textAlign: TextAlign.center,
-                        style: appStyle(
-                          screenWidth > 400 ? 24.sp : 20.sp, // Responsive font size
-                          Kolors.kPrimary, 
-                          FontWeight.bold
-                        ),
+          // Text content at the bottom
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 50.w),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                    Text(
+                      AppText.kOnboardingHeader2,
+                      textAlign: TextAlign.center,
+                      style: appStyle(
+                        screenWidth > 400 ? 24.sp : 20.sp,
+                        Kolors.kPrimary, 
+                        FontWeight.bold
                       ),
                     ),
-                    
-                    SizedBox(height: 30.h),
-                    
-                    // Description text with responsive constraints
-                    Flexible(
-                      flex: 3,
-                      child: Container(
-                        constraints: BoxConstraints(
-                          maxWidth: screenWidth * 0.85, // 85% of screen width
-                        ),
-                        child: Text(
-                          AppText.kOnboardingMessage2,
-                          textAlign: TextAlign.center,
-                          style: appStyle(
-                            screenWidth > 400 ? 13.sp : 11.sp, // Responsive font size
-                            Kolors.kGray, 
-                            FontWeight.normal
-                          ),
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                    SizedBox(height: 20.h),
+                    Text(
+                      AppText.kOnboardingMessage2,
+                      textAlign: TextAlign.center,
+                      style: appStyle(
+                        screenWidth > 400 ? 13.sp : 11.sp,
+                        Kolors.kGray, 
+                        FontWeight.normal
                       ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    
-                    SizedBox(height: 30.h),
                   ],
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

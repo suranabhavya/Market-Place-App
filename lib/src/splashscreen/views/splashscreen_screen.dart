@@ -80,14 +80,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 		
 		// Check if widget is still mounted before using context
 		if (!mounted) return;
+
+    GoRouter.of(context).go('/onboarding');
 		
-		if (Storage().getBool('firstOpen') == null) {
-			// Go to the onboarding screen
-			GoRouter.of(context).go('/onboarding');
-		} else {
-			// Go to the Home Page
-			GoRouter.of(context).go('/home');
-		}
+		// if (Storage().getBool('firstOpen') == null) {
+		// 	// Go to the onboarding screen
+		// 	GoRouter.of(context).go('/onboarding');
+		// } else {
+		// 	// Go to the Home Page
+		// 	GoRouter.of(context).go('/home');
+		// }
 	}
 
   @override

@@ -8,6 +8,7 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/const/resource.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -18,136 +19,91 @@ class WelcomeScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     
     return Scaffold(
-      body: Stack(
+      backgroundColor: Colors.white,
+      body: Column(
         children: [
-          // Background image
-          Positioned.fill(
-            child: Image.asset(
-              R.ASSETS_IMAGES_GETSTARTED_WEBP,
-              fit: BoxFit.cover,
+          // SVG Image taking most of the space
+          Expanded(
+            flex: 2,
+            child: Transform.translate(
+              offset: Offset(0, 80.h),
+              child: SvgPicture.asset(
+                R.ASSETS_IMAGES_ONBOARDING_THREE_SVG,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
-          
-          // Bottom content container with flexible height
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: double.infinity,
-              // Use percentage of screen height with min/max constraints
-              height: screenHeight * 0.35, // 45% of screen height (slightly more for buttons)
-              constraints: BoxConstraints(
-                minHeight: 320.h, // Minimum height for small screens
-                maxHeight: 450.h, // Maximum height for large screens
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: 16.w, // Reduced from screenWidth * 0.05
-                vertical: 20.h,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40.r),
-                  topRight: Radius.circular(40.r),
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Title text with responsive font size
-                    Flexible(
-                      flex: 2,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            AppText.kWelcomeHeader,
-                            textAlign: TextAlign.center,
-                            style: appStyle(
-                              screenWidth > 400 ? 24.sp : 20.sp,
-                              Kolors.kPrimary, 
-                              FontWeight.bold
-                            ),
-                          ),
-                          
-                          SizedBox(height: 20.h),
-                          
-                          // Description text with responsive constraints
-                          Container(
-                            constraints: BoxConstraints(
-                              maxWidth: screenWidth * 0.85, // 85% of screen width
-                            ),
-                            child: Text(
-                              AppText.kWelcomeMessage, 
-                              textAlign: TextAlign.center,
-                              style: appStyle(
-                                screenWidth > 400 ? 13.sp : 11.sp,
-                                Kolors.kGray, 
-                                FontWeight.normal
-                              ),
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          // SizedBox(height: 10.h),
-                        ],
-                      ),
+          // Content at the bottom
+          Expanded(
+            flex: 1,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 50.w),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Title and description
+                  Text(
+                    AppText.kWelcomeHeader,
+                    textAlign: TextAlign.center,
+                    style: appStyle(
+                      screenWidth > 400 ? 24.sp : 20.sp,
+                      Kolors.kPrimary, 
+                      FontWeight.bold
                     ),
-                    
-                    // Buttons section
-                    Flexible(
-                      flex: 1,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Get Started button with responsive width
-                          CustomButton(
-                            text: AppText.kGetStarted,
-                            btnHeight: screenHeight > 700 ? 45.h : 40.h, // Responsive height
-                            radius: 20.r,
-                            btnWidth: screenWidth * 0.75, // 85% of screen width
-                            onTap: () {
-                              Storage().setBool('firstOpen', true);
-                              context.go('/home');
-                            },
-                          ),
-
-                          SizedBox(height: 15.h),
-
-                          // Sign in option with responsive layout
-                          Flexible(
-                            child: Wrap(
-                              alignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  "Already have an Account? ",
-                                  style: appStyle(
-                                    screenWidth > 400 ? 12.sp : 10.sp,
-                                    Kolors.kDark, 
-                                    FontWeight.normal
-                                  )
-                                ),
-                                GestureDetector(
-                                  onTap: () => context.go('/check-email'),
-                                  child: Text(
-                                    "Sign In",
-                                    style: appStyle(
-                                      screenWidth > 400 ? 12.sp : 10.sp,
-                                      Colors.blue, 
-                                      FontWeight.bold
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                  ),
+                  SizedBox(height: 20.h),
+                  // Description text
+                  Text(
+                    AppText.kWelcomeMessage, 
+                    textAlign: TextAlign.center,
+                    style: appStyle(
+                      screenWidth > 400 ? 13.sp : 11.sp,
+                      Kolors.kGray, 
+                      FontWeight.normal
                     ),
-                  ],
-                ),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 20.h),
+                  // Get Started button
+                  CustomButton(
+                    text: AppText.kGetStarted,
+                    btnHeight: screenHeight > 700 ? 45.h : 40.h,
+                    radius: 20.r,
+                    btnWidth: screenWidth * 0.75,
+                    onTap: () {
+                      Storage().setBool('firstOpen', true);
+                      context.go('/home');
+                    },
+                  ),
+                  SizedBox(height: 15.h),
+                  // Sign in option
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        "Already have an Account? ",
+                        style: appStyle(
+                          screenWidth > 400 ? 12.sp : 10.sp,
+                          Kolors.kDark, 
+                          FontWeight.normal
+                        )
+                      ),
+                      GestureDetector(
+                        onTap: () => context.go('/check-email'),
+                        child: Text(
+                          "Sign In",
+                          style: appStyle(
+                            screenWidth > 400 ? 12.sp : 10.sp,
+                            Colors.blue, 
+                            FontWeight.bold
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

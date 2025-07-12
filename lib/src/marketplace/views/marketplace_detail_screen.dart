@@ -516,11 +516,17 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
       ),
       
       // Bottom Action Buttons
-      bottomNavigationBar: PropertyBottomBar(
-        senderId: _item!.seller.id,
-        senderName: _item!.seller.name.isNotEmpty ? _item!.seller.name : 'Anonymous Seller',
-        senderProfilePhoto: _item!.seller.profilePhoto,
-        isMarketplaceItem: true,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: PropertyBottomBar(
+          senderId: _item!.seller.id,
+          senderName: _item!.seller.name.isNotEmpty ? _item!.seller.name : 'Anonymous Seller',
+          senderProfilePhoto: _item!.seller.profilePhoto,
+          isMarketplaceItem: true,
+        ),
       ),
     );
   }
