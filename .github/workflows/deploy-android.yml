@@ -1,0 +1,217 @@
+# GitHub Actions Workflow for Android App Deployment to Google Play Store
+# This workflow automatically builds, signs, and deploys the Android app when code is pushed to main branch
+
+name: 🚀 Deploy Android App to Play Store
+
+# When should this workflow run?
+# - Push to main branch (production releases)
+# - Manual trigger via GitHub UI (for emergency releases)
+on:
+  push:
+    branches: [ main, master ]
+    # Only run if these paths change (optimization)
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/deploy-android.yml'
+  
+  # Allow manual triggering from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes for this deployment'
+        required: false
+        default: 'Bug fixes and performance improvements'
+
+# Define environment variables that all jobs can access
+env:
+  FLUTTER_VERSION: '3.5.4'  # Match your pubspec.yaml Flutter version
+  JAVA_VERSION: '17'        # Required for latest Android builds
+  
+jobs:
+  # Job 1: Build and Deploy Android App
+  deploy:
+    name: 📱 Build & Deploy Android
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Get the source code
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        # Fetch full history for proper version management
+        fetch-depth: 0
+    
+    # Step 2: Set up Java Development Kit (required for Android builds)
+    - name: ☕ Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: ${{ env.JAVA_VERSION }}
+        
+    # Step 3: Install and configure Flutter
+    - name: 🐦 Setup Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true  # Cache Flutter for faster builds
+        
+    # Step 4: Verify Flutter installation
+    - name: 🔍 Verify Flutter Installation
+      run: |
+        flutter --version
+        flutter doctor -v
+        
+    # Step 5: Get Flutter dependencies
+    - name: 📦 Get Flutter Dependencies
+      run: flutter pub get
+      
+    # Step 6: Run code analysis (optional but recommended)
+    - name: 🔍 Analyze Flutter Code
+      run: flutter analyze --fatal-infos
+      
+    # Step 7: Run tests (optional but recommended)
+    - name: 🧪 Run Flutter Tests
+      run: flutter test
+      continue-on-error: true  # Don't fail deployment if tests fail
+      
+    # Step 8: Create environment file for production
+    - name: 🌍 Create Production Environment File
+      run: |
+        echo "Creating .env.production file..."
+        cat > .env.production << EOF
+        API_KEY=${{ secrets.API_KEY }}
+        IOS_API_BASE_URL=${{ secrets.IOS_API_BASE_URL }}
+        ANDROID_API_BASE_URL=${{ secrets.ANDROID_API_BASE_URL }}
+        IOS_WS_BASE_URL=${{ secrets.IOS_WS_BASE_URL }}
+        ANDROID_WS_BASE_URL=${{ secrets.ANDROID_WS_BASE_URL }}
+        MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}
+        FIREBASE_WEB_API_KEY=${{ secrets.FIREBASE_WEB_API_KEY }}
+        FIREBASE_WEB_APP_ID=${{ secrets.FIREBASE_WEB_APP_ID }}
+        FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+        FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
+        GOOGLE_OAUTH_SERVER_CLIENT_ID=${{ secrets.GOOGLE_OAUTH_SERVER_CLIENT_ID }}
+        GOOGLE_OAUTH_REDIRECT_SCHEME=${{ secrets.GOOGLE_OAUTH_REDIRECT_SCHEME }}
+        ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
+        ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
+        ANDROID_KEYSTORE_PATH=/home/runner/work/keystore.jks
+        EOF
+        
+    # Step 9: Decode and setup Android keystore
+    - name: 🔐 Setup Android Keystore
+      run: |
+        echo "Decoding keystore from base64..."
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > /home/runner/work/keystore.jks
+        
+        echo "Creating key.properties file..."
+        cat > android/key.properties << EOF
+        storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+        keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+        storeFile=/home/runner/work/keystore.jks
+        EOF
+        
+    # Step 10: Increment version number automatically
+    - name: 📈 Auto-increment Version
+      id: version
+      run: |
+        # Get current version from pubspec.yaml
+        current_version=$(grep "version:" pubspec.yaml | cut -d' ' -f2)
+        echo "Current version: $current_version"
+        
+        # Extract version name and build number
+        version_name=$(echo $current_version | cut -d'+' -f1)
+        build_number=$(echo $current_version | cut -d'+' -f2)
+        
+        # Increment build number
+        new_build_number=$((build_number + 1))
+        new_version="${version_name}+${new_build_number}"
+        
+        echo "New version: $new_version"
+        
+        # Update pubspec.yaml
+        sed -i "s/version: $current_version/version: $new_version/" pubspec.yaml
+        
+        # Output for later steps
+        echo "version_name=$version_name" >> $GITHUB_OUTPUT
+        echo "build_number=$new_build_number" >> $GITHUB_OUTPUT
+        echo "full_version=$new_version" >> $GITHUB_OUTPUT
+        
+    # Step 11: Build the Android App Bundle (AAB)
+    - name: 🔨 Build Android App Bundle
+      run: |
+        echo "Building Android App Bundle for release..."
+        flutter build appbundle --release \
+          --dart-define-from-file=.env.production \
+          --build-name=${{ steps.version.outputs.version_name }} \
+          --build-number=${{ steps.version.outputs.build_number }}
+          
+    # Step 12: Setup Google Play Console API access
+    - name: 🔑 Setup Google Play Console API
+      run: |
+        echo "Setting up Google Play Console service account..."
+        echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}' > /tmp/service-account.json
+        
+    # Step 13: Upload to Google Play Store
+    - name: 🚀 Deploy to Google Play Store
+      uses: r0adkll/upload-google-play@v1.1.3
+      with:
+        serviceAccountJson: /tmp/service-account.json
+        packageName: com.surana.homiswap  # Your app's package name
+        releaseFiles: build/app/outputs/bundle/release/app-release.aab
+        track: production  # Can be: internal, alpha, beta, production
+        status: completed  # completed = immediate release, draft = manual release
+        inAppUpdatePriority: 2
+        releaseNotes: |
+          Version ${{ steps.version.outputs.full_version }}
+          
+          ${{ github.event.inputs.release_notes || 'Automated release with latest updates and improvements.' }}
+          
+          Changes in this release:
+          ${{ github.event.head_commit.message }}
+          
+    # Step 14: Commit version bump back to repository
+    - name: 📝 Commit Version Bump
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add pubspec.yaml
+        git commit -m "🔖 Bump version to ${{ steps.version.outputs.full_version }} [skip ci]" || exit 0
+        git push
+        
+    # Step 15: Create GitHub Release
+    - name: 🏷️ Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version.outputs.full_version }}
+        release_name: Release v${{ steps.version.outputs.full_version }}
+        body: |
+          ## 🚀 Release v${{ steps.version.outputs.full_version }}
+          
+          **Deployed to Google Play Store:** ✅
+          
+          ### 📝 Release Notes
+          ${{ github.event.inputs.release_notes || 'Automated release with latest updates and improvements.' }}
+          
+          ### 🔄 Changes
+          ${{ github.event.head_commit.message }}
+          
+          ### 📱 Download
+          - [Google Play Store](https://play.google.com/store/apps/details?id=com.surana.homiswap)
+          
+        draft: false
+        prerelease: false
+        
+    # Step 16: Cleanup sensitive files
+    - name: 🧹 Cleanup
+      if: always()
+      run: |
+        rm -f /tmp/service-account.json
+        rm -f /home/runner/work/keystore.jks
+        rm -f android/key.properties
+        rm -f .env.production 
