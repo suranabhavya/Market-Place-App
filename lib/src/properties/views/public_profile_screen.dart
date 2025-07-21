@@ -139,56 +139,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 ),
               ),
               const SizedBox(height: 10),
-              if (currentUser?.id != widget.userId) Center(
-                child: CustomButton(
-                  text: 'Message',
-                  onTap: () async {
-                    String? accessToken = Storage().getString('accessToken');
-                    if(accessToken == null) {
-                      loginBottomSheet(context);
-                    } else {
-                      final chatId = await checkExistingChat(widget.userId);
-                      if (chatId != null) {
-                        // Navigate to the existing chat
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MessagePage(
-                              chatId: chatId,
-                              participants: userProfile!["name"],
-                              otherParticipantId: widget.userId,
-                              otherParticipantProfilePhoto: userProfile!["profile_photo"],
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Show message modal for new chat using the same pattern as PropertyBottomBar
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (BuildContext context) {
-                            return Container(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(context).viewInsets.bottom,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                              ),
-                              child: MessageModalContent(senderId: widget.userId),
-                            );
-                          },
-                        );
-                      }
-                    }
-                  },
-                  btnWidth: 150.w,
-                  btnHeight: 40.h,
-                  textSize: 16,
-                  radius: 24,
-                ),
-              ),
+              // Removed Message button from here
               const SizedBox(height: 10),
               const Divider(thickness: 0.5),
               const SizedBox(height: 10),
@@ -427,6 +378,65 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           ),
         ),
       ),
+      bottomNavigationBar: (currentUser?.id != widget.userId)
+          ? SafeArea(
+              top: false,
+              left: false,
+              right: false,
+              bottom: true,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                child: CustomButton(
+                  text: 'Message',
+                  onTap: () async {
+                    String? accessToken = Storage().getString('accessToken');
+                    if(accessToken == null) {
+                      loginBottomSheet(context);
+                    } else {
+                      final chatId = await checkExistingChat(widget.userId);
+                      if (chatId != null) {
+                        // Navigate to the existing chat
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MessagePage(
+                              chatId: chatId,
+                              participants: userProfile!["name"],
+                              otherParticipantId: widget.userId,
+                              otherParticipantProfilePhoto: userProfile!["profile_photo"],
+                            ),
+                          ),
+                        );
+                      } else {
+                        // Show message modal for new chat using the same pattern as PropertyBottomBar
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (BuildContext context) {
+                            return Container(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(context).viewInsets.bottom,
+                              ),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              child: MessageModalContent(senderId: widget.userId),
+                            );
+                          },
+                        );
+                      }
+                    }
+                  },
+                  btnWidth: double.infinity,
+                  btnHeight: 48.h,
+                  textSize: 16,
+                  radius: 24,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

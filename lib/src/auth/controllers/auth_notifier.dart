@@ -369,7 +369,7 @@ class AuthNotifier with ChangeNotifier {
       // Configure GoogleSignIn with proper scopes for ID token
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
-        serverClientId: '236498773398-om4ilh99d8haq7hdr9vf3fvcmbkncbbd.apps.googleusercontent.com',
+        serverClientId: Environment.googleOAuthServerClientId,
       );
 
       // Sign out first to ensure a fresh authentication flow

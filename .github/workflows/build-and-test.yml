@@ -1,0 +1,174 @@
+# GitHub Actions Workflow for Development Builds and Testing
+# This workflow runs on pull requests and development branches to ensure code quality
+
+name: 🔍 Build & Test (Development)
+
+# When should this workflow run?
+on:
+  pull_request:
+    branches: [ main, master, develop ]
+  push:
+    branches: [ develop, feature/*, fix/* ]
+    
+# Cancel previous runs if a new push happens
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.5.4'
+  JAVA_VERSION: '17'
+
+jobs:
+  # Job 1: Code Quality Checks
+  analyze:
+    name: 🔍 Code Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🐦 Setup Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Get Dependencies
+      run: flutter pub get
+      
+    - name: 🔍 Run Flutter Analyze
+      run: flutter analyze --fatal-infos
+      
+    - name: 📏 Check Code Formatting
+      run: dart format --set-exit-if-changed .
+      
+  # Job 2: Run Tests
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    needs: analyze
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🐦 Setup Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Get Dependencies
+      run: flutter pub get
+      
+    - name: 🧪 Run Unit Tests
+      run: flutter test --coverage
+      
+    - name: 📊 Upload Coverage Reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        fail_ci_if_error: false
+        
+  # Job 3: Build Development APK
+  build-dev:
+    name: 🔨 Build Development APK
+    runs-on: ubuntu-latest
+    needs: [analyze, test]
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: ${{ env.JAVA_VERSION }}
+        
+    - name: 🐦 Setup Flutter SDK
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
+        channel: 'stable'
+        cache: true
+        
+    - name: 📦 Get Dependencies
+      run: flutter pub get
+      
+    - name: 🌍 Create Development Environment File
+      run: |
+        echo "Creating .env.development file for build test..."
+        cat > .env.development << EOF
+        API_KEY=dev_api_key
+        IOS_API_BASE_URL=https://dev-api.example.com
+        ANDROID_API_BASE_URL=https://dev-api.example.com
+        IOS_WS_BASE_URL=wss://dev-api.example.com
+        ANDROID_WS_BASE_URL=wss://dev-api.example.com
+        MAPS_API_KEY=dev_maps_key
+        FIREBASE_WEB_API_KEY=dev_firebase_key
+        FIREBASE_WEB_APP_ID=dev_firebase_app_id
+        FIREBASE_MESSAGING_SENDER_ID=dev_sender_id
+        FIREBASE_PROJECT_ID=dev_project_id
+        GOOGLE_OAUTH_SERVER_CLIENT_ID=dev_oauth_client_id
+        GOOGLE_OAUTH_REDIRECT_SCHEME=dev_redirect_scheme
+        ANDROID_KEYSTORE_PASSWORD=dev_password
+        ANDROID_KEY_PASSWORD=dev_password
+        ANDROID_KEY_ALIAS=dev_alias
+        ANDROID_KEYSTORE_PATH=dev_keystore_path
+        EOF
+        
+    - name: 🔨 Build Debug APK
+      run: |
+        echo "Building debug APK for development testing..."
+        flutter build apk --debug \
+          --dart-define-from-file=.env.development
+          
+    - name: 📤 Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-apk-${{ github.sha }}
+        path: build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 7
+        
+    - name: 💬 Comment PR with APK
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Get APK file size
+          const apkPath = 'build/app/outputs/flutter-apk/app-debug.apk';
+          const stats = fs.statSync(apkPath);
+          const fileSizeInBytes = stats.size;
+          const fileSizeInMB = (fileSizeInBytes / (1024 * 1024)).toFixed(2);
+          
+          const comment = `## 📱 Development Build Ready!
+          
+          **APK Generated:** ✅  
+          **Size:** ${fileSizeInMB} MB  
+          **Commit:** ${context.sha.substring(0, 7)}
+          
+          ### 📥 Download
+          You can download the debug APK from the [GitHub Actions artifacts](${context.payload.pull_request.html_url}/checks).
+          
+          ### 🧪 Testing Notes
+          - This is a debug build for testing purposes
+          - Performance may be slower than release builds
+          - Debug information is included
+          
+          ---
+          *This comment was automatically generated by GitHub Actions*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          }); 

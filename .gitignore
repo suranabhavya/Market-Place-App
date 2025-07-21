@@ -43,5 +43,33 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Security - Environment files (CRITICAL)
 .env.development
 .env.production
+.env.local
+.env.*.local
+
+# Security - Keystore files
+*.keystore
+*.jks
+android/key.properties
+key.properties.backup
+
+# Security - Firebase config backups
+google-services.json.backup
+GoogleService-Info.plist.backup
+
+# Security - API keys and secrets
+secrets.json
+config.json
+credentials.json
+
+# Security - Build artifacts that may contain secrets
+/android/app/src/main/assets/
+/ios/Runner/Assets/
+
+# CI/CD related
+.github/secrets/
+deploy_key*
+service-account*.json

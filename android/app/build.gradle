@@ -6,6 +6,12 @@ plugins {
     id "com.google.gms.google-services"
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.surana.homiswap"
     // compileSdk = flutter.compileSdkVersion
@@ -36,16 +42,16 @@ android {
         
         // Add this for Google Sign-In
         manifestPlaceholders += [
-            'appAuthRedirectScheme': 'com.googleusercontent.apps.236498773398-08f9crnjv1hgqv6ksonmk135rdtrmnta'
+            'appAuthRedirectScheme': System.getenv('GOOGLE_OAUTH_REDIRECT_SCHEME') ?: 'com.googleusercontent.apps.236498773398-08f9crnjv1hgqv6ksonmk135rdtrmnta'
         ]
     }
 
     signingConfigs {
         release {
-            keyAlias 'homiswap-key'
-            keyPassword 'homiswap'
-            storeFile file('homiswap-keystore.jks')
-            storePassword 'homiswap'
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
         }
     }
 
@@ -59,9 +65,9 @@ android {
             signingConfig signingConfigs.release
             // Use the release signing config for release builds
             // signingConfig signingConfigs.release
-            // minifyEnabled true
-            // shrinkResources true
-            // proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

@@ -1276,10 +1276,16 @@ class _PropertyPageState extends State<PropertyPage> {
         ],
       ),
       
-      bottomNavigationBar: PropertyBottomBar(
-        senderId: property.userId,
-        senderName: property.name,
-        senderProfilePhoto: property.profilePhoto,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: PropertyBottomBar(
+          senderId: property.userId,
+          senderName: property.name,
+          senderProfilePhoto: property.profilePhoto,
+        ),
       ),
     );
   }

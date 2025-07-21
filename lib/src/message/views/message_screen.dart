@@ -308,58 +308,65 @@ class _MessagePageState extends State<MessagePage> {
                     },
                   ),
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxHeight: 100.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: TextField(
-                      controller: _messageController,
-                      maxLines: null,
-                      keyboardType: TextInputType.multiline,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                      decoration: InputDecoration(
-                        hintText: "Type a message...",
-                        hintStyle: appStyle(14, Colors.grey, FontWeight.normal),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Container(
-                  height: 40.h,
-                  width: 40.h,
-                  margin: EdgeInsets.only(bottom: 2.h),
-                  decoration: const BoxDecoration(
-                    color: Kolors.kPrimaryLight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: Icon(Icons.send, color: Colors.white, size: 25.h),
-                    onPressed: sendMessage,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        bottom: true,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
+          // padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: 100.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: TextField(
+                    controller: _messageController,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                    decoration: InputDecoration(
+                      hintText: "Type a message...",
+                      hintStyle: appStyle(14, Colors.grey, FontWeight.normal),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Container(
+                height: 40.h,
+                width: 40.h,
+                margin: EdgeInsets.only(bottom: 2.h),
+                decoration: const BoxDecoration(
+                  color: Kolors.kPrimaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(Icons.send, color: Colors.white, size: 25.h),
+                  onPressed: sendMessage,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

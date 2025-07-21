@@ -50,11 +50,11 @@ void main() async {
 
   if (kIsWeb) {
     await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyAZ_iAD9FJeMVicdkSouosVrbKuIpG3yjQ",
-        appId: "1:767184260939:web:1c8a110b9b20860f7122ce",
-        messagingSenderId: "767184260939",
-        projectId: "homiswap-b0dcf",
+      options: FirebaseOptions(
+        apiKey: Environment.firebaseWebApiKey,
+        appId: Environment.firebaseWebAppId,
+        messagingSenderId: Environment.firebaseMessagingSenderId,
+        projectId: Environment.firebaseProjectId,
       ),
     );
   } else {
