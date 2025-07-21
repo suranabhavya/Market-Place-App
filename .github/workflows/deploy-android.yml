@@ -26,7 +26,7 @@ on:
 
 # Define environment variables that all jobs can access
 env:
-  FLUTTER_VERSION: '3.5.4'  # Match your pubspec.yaml Flutter version
+  FLUTTER_VERSION: '3.32.0'  # Current Flutter Version
   JAVA_VERSION: '17'        # Required for latest Android builds
   
 jobs:
