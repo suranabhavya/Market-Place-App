@@ -50,9 +50,26 @@ jobs:
         distribution: 'zulu'
         java-version: ${{ env.JAVA_VERSION }}
         
-    # Step 2.1: Set Gradle wrapper permissions
+    # Step 2.0: Setup Gradle (as backup)
+    - name: 🔧 Setup Gradle
+      uses: gradle/gradle-build-action@v3
+      with:
+        gradle-version: '8.8'
+        cache-read-only: false
+        
+    # Step 2.1: Set Gradle wrapper permissions and validate
     - name: 🔧 Set Gradle Wrapper Permissions
-      run: chmod +x android/gradlew
+      run: |
+        echo "Setting Gradle wrapper permissions..."
+        chmod +x android/gradlew
+        ls -la android/gradlew
+        
+        # Ensure gradle wrapper jar exists and is valid
+        if [ ! -f "android/gradle/wrapper/gradle-wrapper.jar" ]; then
+          echo "❌ Gradle wrapper jar not found, regenerating..."
+          cd android
+          gradle wrapper --gradle-version=8.8
+        fi
         
     # Step 2.2: Verify Java installation and set JAVA_HOME
     - name: 🔍 Verify Java Installation
@@ -62,10 +79,22 @@ jobs:
         echo "JAVA_HOME: $JAVA_HOME"
         echo "PATH: $PATH"
         
+        # Verify Gradle wrapper exists
+        echo "Checking Gradle wrapper files..."
+        ls -la android/gradle/wrapper/
+        
+        # Validate Gradle wrapper jar
+        echo "Validating Gradle wrapper jar..."
+        file android/gradle/wrapper/gradle-wrapper.jar
+        
         # Verify Gradle can find Java
         echo "Testing Gradle Java detection..."
-        ./gradlew --version
-      working-directory: android
+        cd android
+        if ! ./gradlew --version; then
+          echo "Gradle wrapper failed, attempting to regenerate..."
+          gradle wrapper --gradle-version=8.8
+          ./gradlew --version
+        fi
         
     # Step 3: Install and configure Flutter
     - name: 🐦 Setup Flutter SDK
@@ -166,9 +195,8 @@ jobs:
     - name: 🧹 Clean Gradle Environment
       run: |
         echo "Cleaning Gradle caches..."
-        chmod +x ./gradlew
+        cd android
         ./gradlew clean
-      working-directory: android
         
     # Step 12: Build the Android App Bundle (AAB)
     - name: 🔨 Build Android App Bundle
