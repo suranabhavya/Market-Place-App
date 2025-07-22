@@ -60,8 +60,8 @@ jobs:
         
         # Verify Gradle can find Java
         echo "Testing Gradle Java detection..."
-        cd android
         ./gradlew --version
+      working-directory: android
         
     # Step 3: Install and configure Flutter
     - name: 🐦 Setup Flutter SDK
@@ -154,12 +154,16 @@ jobs:
         echo "full_version=$new_version" >> $GITHUB_OUTPUT
         
     # Step 11: Clean and prepare for build
-    - name: 🧹 Clean Build Environment
+    - name: 🧹 Clean Flutter Environment
       run: |
-        echo "Cleaning Flutter and Gradle caches..."
+        echo "Cleaning Flutter caches..."
         flutter clean
-        cd android
+        
+    - name: 🧹 Clean Gradle Environment
+      run: |
+        echo "Cleaning Gradle caches..."
         ./gradlew clean
+      working-directory: android
         
     # Step 12: Build the Android App Bundle (AAB)
     - name: 🔨 Build Android App Bundle
