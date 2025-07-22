@@ -19,21 +19,22 @@ class _SelectDateSectionState extends State<SelectDateSection> {
   DateTime? toDate;
 
   void _selectDuration() async {
+    final filterNotifier = context.read<FilterNotifier>();
+    
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SelectDurationPage(
-          initialFromDate: context.read<FilterNotifier>().availableFrom,
-          initialToDate: context.read<FilterNotifier>().availableTo,
+          initialFromDate: filterNotifier.availableFrom,
+          initialToDate: filterNotifier.availableTo,
         ),
       ),
     );
 
-    if (result != null) {
-      final filterNotifier = context.read<FilterNotifier>();
+    if (result != null && mounted) {
       filterNotifier.setMoveInDate(result["fromDate"]);
       filterNotifier.setMoveOutDate(result["toDate"]);
-      filterNotifier.applyFilters(context);
+      await filterNotifier.applyFilters();
     }
   }
 

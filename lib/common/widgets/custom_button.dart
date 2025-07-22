@@ -43,7 +43,7 @@ class CustomButton extends StatelessWidget {
         height: btnHeight ?? 25.h,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius??6),
-          color: isLoading ? (btnColor ?? Kolors.kPrimaryLight).withOpacity(0.7) : btnColor?? Kolors.kPrimaryLight,
+          color: isLoading ? (btnColor ?? Kolors.kPrimaryLight).withValues(alpha: 0.7) : btnColor?? Kolors.kPrimaryLight,
           border: Border.all(width: 0.5.h, color:borderColor?? Kolors.kWhite),
         ),
         child: Center(

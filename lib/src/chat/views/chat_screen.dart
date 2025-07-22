@@ -1,15 +1,11 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
-import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
@@ -62,7 +58,6 @@ class _ChatPageState extends State<ChatPage> {
         final decoded = jsonDecode(data);
         // If the payload contains the key "chats", update our local chat list.
         if (decoded.containsKey("chats")) {
-          print("decoded chats: $decoded");
           setState(() {
             chats = decoded["chats"];
             isLoading = false;
@@ -71,8 +66,10 @@ class _ChatPageState extends State<ChatPage> {
           final int totalUnread = (decoded["chats"] as List)
               .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
           // Update the global unread count in the notifier.
-          Provider.of<UnreadCountNotifier>(context, listen: false)
-              .setGlobalUnreadCount(totalUnread);
+          if (mounted) {
+            Provider.of<UnreadCountNotifier>(context, listen: false)
+                .setGlobalUnreadCount(totalUnread);
+          }
         }
       } catch (e) {
         debugPrint("Error decoding WS data: $e");
@@ -121,7 +118,7 @@ class _ChatPageState extends State<ChatPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.chat_bubble_outline,
                         size: 64,
                         color: Kolors.kGray,
@@ -211,6 +208,9 @@ class _ChatPageState extends State<ChatPage> {
                     ],
                   ),
                   onTap: () async {
+                    // Get the notifier before async operation
+                    final notifier = Provider.of<UnreadCountNotifier>(context, listen: false);
+                    
                     // Navigate to the MessagePage. (Marking messages as read will be handled there.)
                     await Navigator.push(
                       context,
@@ -227,7 +227,7 @@ class _ChatPageState extends State<ChatPage> {
                     // Refresh unread count when returning from message screen
                     if (mounted) {
                       try {
-                        context.read<UnreadCountNotifier>().refreshUnreadCount();
+                        notifier.refreshUnreadCount();
                       } catch (e) {
                         debugPrint('Error refreshing unread count: $e');
                       }

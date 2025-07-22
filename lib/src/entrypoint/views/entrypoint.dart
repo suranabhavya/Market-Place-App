@@ -16,7 +16,7 @@ import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatefulWidget {
-  AppEntryPoint({super.key});
+  const AppEntryPoint({super.key});
 
   @override
   State<AppEntryPoint> createState() => _AppEntryPointState();

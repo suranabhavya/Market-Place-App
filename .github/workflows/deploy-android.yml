@@ -162,7 +162,7 @@ jobs:
         serviceAccountJson: /tmp/service-account.json
         packageName: com.surana.homiswap  # Your app's package name
         releaseFiles: build/app/outputs/bundle/release/app-release.aab
-        track: production  # Can be: internal, alpha, beta, production
+        track: internal  # Changed from production to internal for testing
         status: completed  # completed = immediate release, draft = manual release
         inAppUpdatePriority: 2
         releaseNotes: |

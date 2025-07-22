@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
@@ -42,17 +41,19 @@ class _MobileSignupPageState extends State<MobileSignupPage> {
       return;
     }
 
-    MobileModel model = MobileModel(mobile_number: mobileNumber);
+    MobileModel model = MobileModel(mobileNumber: mobileNumber);
     String data = mobileModelToJson(model);
 
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     final success = await _authNotifier?.generateOTP(data);
     
     if (!mounted) return;
     
     if (success == true) {
-      context.push('/login/mobile/otp', extra: {"mobileNumber": mobileNumber});
+      router.push('/login/mobile/otp', extra: {"mobileNumber": mobileNumber});
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("Failed to generate OTP. Try again."), backgroundColor: Colors.red),
       );
     }

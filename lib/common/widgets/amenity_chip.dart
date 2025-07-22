@@ -24,7 +24,7 @@ class AmenityChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Kolors.kPrimary.withOpacity(0.1) : Colors.white,
+          color: isSelected ? Kolors.kPrimary.withValues(alpha: 0.1) : Colors.white,
           border: Border.all(
             color: isSelected ? Kolors.kPrimary : Colors.grey.shade300,
             width: 1,

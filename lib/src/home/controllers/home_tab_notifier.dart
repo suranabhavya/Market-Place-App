@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/utils/enums.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 
 class HomeTabNotifier with ChangeNotifier {

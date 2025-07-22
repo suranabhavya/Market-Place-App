@@ -49,10 +49,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
       // Only fetch items if we don't have filtered items
       if (_currentItems == null) {
         final marketplaceNotifier = context.read<MarketplaceNotifier>();
-        print('MarketplacePage initState - About to call applyFilters, current searchKey: ${marketplaceNotifier.searchKey}');
-        marketplaceNotifier.applyFilters(context);
-      } else {
-        print('MarketplacePage initState - Using filtered items, not calling applyFilters');
+        marketplaceNotifier.refreshMarketplaceItems();
       }
     });
   }
@@ -85,11 +82,11 @@ class _MarketplacePageState extends State<MarketplacePage> {
     });
     
     // Refresh marketplace items
-    await marketplaceNotifier.applyFilters(context);
+    await marketplaceNotifier.refreshMarketplaceItems();
     
     // Also refresh wishlist if user is logged in
     final accessToken = Storage().getString('accessToken');
-    if (accessToken != null) {
+    if (accessToken != null && mounted) {
       await context.read<WishlistNotifier>().fetchWishlist();
     }
   }
@@ -106,7 +103,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
     
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight),
+        preferredSize: const Size.fromHeight(kToolbarHeight),
         child: MarketplaceAppBar(
           onFilterApplied: _handleFilteredItems,
         )
@@ -125,7 +122,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.search_off, size: 64, color: Kolors.kGray),
+                      const Icon(Icons.search_off, size: 64, color: Kolors.kGray),
                       SizedBox(height: 16.h),
                       Text(
                         "No marketplace items found",
@@ -152,25 +149,26 @@ class _MarketplacePageState extends State<MarketplacePage> {
             if (accessToken == null) {
               loginBottomSheet(context);
             } else {
+              // Capture notifiers before async operation
+              final marketplaceNotifier = context.read<MarketplaceNotifier>();
+              final wishlistNotifier = context.read<WishlistNotifier>();
+              
               // Navigate to create screen with a callback when returning
               context.push("/marketplace/create").then((_) async {
-                // Refresh the marketplace items when returning from create screen
-                print('Returned from create screen, refreshing items...');
-                
-                // Clear any filtered items to show all items including the new one
-                setState(() {
-                  _currentItems = null;
-                });
-                
-                // Force refresh of marketplace items
-                await marketplaceNotifier.applyFilters(context);
-                
-                // Also refresh wishlist in case the new item was added to wishlist
-                if (accessToken != null) {
-                  await context.read<WishlistNotifier>().fetchWishlist();
+                if (mounted) {
+                  // Refresh the marketplace items when returning from create screen
+                  
+                  // Clear any filtered items to show all items including the new one
+                  setState(() {
+                    _currentItems = null;
+                  });
+                  
+                  // Force refresh of marketplace items
+                  await marketplaceNotifier.refreshMarketplaceItems();
+                  
+                  // Also refresh wishlist in case the new item was added to wishlist
+                  await wishlistNotifier.fetchWishlist();
                 }
-                
-                print('Refresh completed after create');
               });
             }
           },

@@ -99,7 +99,7 @@ class AuthNotifier with ChangeNotifier {
           await PushNotificationService().updateUserAssociation();
         } catch (e) {
           // Silently handle iOS APNS errors during development
-          print('Push notification setup skipped: $e');
+          debugPrint('Push notification setup skipped: $e');
         }
 
         if (ctx.mounted) {
@@ -147,7 +147,7 @@ class AuthNotifier with ChangeNotifier {
           await PushNotificationService().updateUserAssociation();
         } catch (e) {
           // Silently handle iOS APNS errors during development
-          print('Push notification setup skipped: $e');
+          debugPrint('Push notification setup skipped: $e');
         }
 
         if (ctx.mounted) {
@@ -200,15 +200,15 @@ class AuthNotifier with ChangeNotifier {
       setLoading(false);
 
       if (response.statusCode == 200) {
-        print('OTP Sent: ${response.body}');
+        debugPrint('OTP Sent: ${response.body}');
         return true;  // Return true on success
       } else {
-        print('Failed to generate OTP: ${response.body}');
+        debugPrint('Failed to generate OTP: ${response.body}');
         return false; // Return false on failure
       }
     } catch (e) {
       setLoading(false);
-      print("Error generating OTP: $e");
+      debugPrint("Error generating OTP: $e");
       return false; // Return false if there's an exception
     }
   }
@@ -313,17 +313,17 @@ class AuthNotifier with ChangeNotifier {
           await PushNotificationService().updateUserAssociation();
         } catch (e) {
           // Silently handle iOS APNS errors during development
-          print('Push notification setup skipped: $e');
+          debugPrint('Push notification setup skipped: $e');
         }
         
         return true;
       } else {
-        print("Failed to verify OTP: ${response.body}");
+        debugPrint("Failed to verify OTP: ${response.body}");
         return false;
       }
     } catch (e) {
       setLoading(false);
-      print("Error verifying OTP: $e");
+      debugPrint("Error verifying OTP: $e");
       return false;
     }
   }
@@ -347,12 +347,12 @@ class AuthNotifier with ChangeNotifier {
         String message = jsonDecode(response.body)['message'];
         return message == "Mobile Number exists";
       } else {
-        print("Failed to check mobile number: ${response.body}");
+        debugPrint("Failed to check mobile number: ${response.body}");
         return false;
       }
     } catch (e) {
       setLoading(false);
-      print("Error checking mobile number: $e");
+      debugPrint("Error checking mobile number: $e");
       return false;
     }
   }
@@ -449,7 +449,9 @@ class AuthNotifier with ChangeNotifier {
         }
         
         // Reconnect WebSocket for unread messages
-        _initializeUserState(context);
+        if (context.mounted) {
+          _initializeUserState(context);
+        }
         
         return true;
       } else {

@@ -193,19 +193,19 @@ class PushNotificationService {
       
       String? token = await _fcm.getToken();
       if (token != null) {
-        debugPrint('FCM Token: ${token}');
+        debugPrint('FCM Token: $token');
         // Save token to storage
         Storage().setString('fcmToken', token);
         await _saveTokenToBackend(token);
         // Listen for token refresh
         _fcm.onTokenRefresh.listen((newToken) {
-          debugPrint('FCM Token refreshed: ${newToken}');
+          debugPrint('FCM Token refreshed: $newToken');
           Storage().setString('fcmToken', newToken);
           _saveTokenToBackend(newToken);
         });
       }
     } catch (e) {
-      debugPrint('Error getting FCM token: ${e}');
+      debugPrint('Error getting FCM token: $e');
       if (e.toString().contains('apns-token-not-set') || 
           e.toString().contains('APNS')) {
         debugPrint('APNS token error - requires paid Apple Developer account for iOS push notifications');
@@ -236,9 +236,6 @@ class PushNotificationService {
       }
 
       debugPrint('Done Saving device ID');
-
-      String base_url = Environment.baseUrl;
-      debugPrint('base_url: $base_url');
 
       String url = '${Environment.baseUrl}/api/notifications/devices/';
       debugPrint('URL: $url');

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -113,15 +112,13 @@ class ImageCompressionUtil {
     
     try {
       if (multiple) {
-        final List<XFile>? images = await picker.pickMultiImage(
+        final List<XFile> images = await picker.pickMultiImage(
           imageQuality: quality,
         );
-        if (images != null) {
-          pickedFiles = maxImages != null 
-            ? images.take(maxImages).toList()
-            : images;
-        }
-      } else {
+        pickedFiles = maxImages != null 
+          ? images.take(maxImages).toList()
+          : images;
+            } else {
         final XFile? image = await picker.pickImage(
           source: ImageSource.gallery,
           imageQuality: quality,

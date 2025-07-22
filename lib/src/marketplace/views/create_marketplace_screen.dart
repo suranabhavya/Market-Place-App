@@ -4,14 +4,12 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
@@ -29,7 +27,6 @@ import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.
 
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_date_picker.dart';
-import '../../../common/widgets/custom_switch.dart';
 import '../../../src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:provider/provider.dart';
 
@@ -144,7 +141,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         throw Exception("Failed to load nearby schools");
       }
     } catch (e) {
-      print("Error fetching nearby schools: $e");
+      debugPrint("Error fetching nearby schools: $e");
     }
   }
 
@@ -190,7 +187,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error fetching schools: $e");
+      debugPrint("Error fetching schools: $e");
     }  
   }
 
@@ -261,7 +258,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error searching schools: $e");
+      debugPrint("Error searching schools: $e");
     }
   }
 
@@ -640,18 +637,16 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                 onPickImage: (source) async {
                   try {
                     if (source == ImageSource.gallery) {
-                      final List<XFile>? pickedImages = await _picker.pickMultiImage(
+                      final List<XFile> pickedImages = await _picker.pickMultiImage(
                         maxWidth: 800,
                         maxHeight: 800,
                         imageQuality: 50,
                       );
                       
-                      if (pickedImages != null) {
-                        setState(() {
-                          _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
-                        });
-                      }
-                    } else {
+                      setState(() {
+                        _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
+                      });
+                                        } else {
                       final XFile? pickedImage = await _picker.pickImage(
                         source: source,
                         maxWidth: 800,
@@ -666,7 +661,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                       }
                     }
                   } catch (e) {
-                    print("Error picking images: $e");
+                    debugPrint("Error picking images: $e");
                   }
                 },
                 onRemoveImage: (index) {
@@ -1044,7 +1039,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                   ...userProperties.map((property) => DropdownMenuItem<String?>(
                     value: property.id,
                     child: Text(property.title),
-                  )).toList(),
+                  )),
                 ],
                 onChanged: (value) {
                   setState(() {

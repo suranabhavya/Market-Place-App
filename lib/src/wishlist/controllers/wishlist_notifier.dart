@@ -127,10 +127,8 @@ class WishlistNotifier with ChangeNotifier {
       }
 
       // Only save to storage if we have a valid access token
-      if (accessToken != null) {
-        Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
-      }
-      
+      Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
+          
       notifyListeners();
       refetch();
     } catch (e) {

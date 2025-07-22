@@ -22,7 +22,7 @@ class CustomDivider extends StatelessWidget {
     return Divider(
       height: height,
       thickness: thickness,
-      color: color ?? Kolors.kPrimary.withOpacity(0.1),
+      color: color ?? Kolors.kPrimary.withValues(alpha: 0.1),
       indent: indent,
       endIndent: endIndent,
     );

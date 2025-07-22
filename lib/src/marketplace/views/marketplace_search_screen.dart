@@ -1,23 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/common/utils/kstrings.dart';
-import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
-import 'package:marketplace_app/common/widgets/empty_screen_widget.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
-import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
-import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async';
 
 class MarketplaceSearchPage extends StatefulWidget {
@@ -31,9 +21,8 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   Timer? _debounce;
-  bool _isSearching = false;
   List<String> _recentSearches = [];
-  List<String> _suggestions = [
+  final List<String> _suggestions = [
     'Furniture',
     'Electronics',
     'Books',
@@ -134,7 +123,8 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
   // Perform the search when user selects a suggestion or presses search
   void _performSearch(String query) async {
     if (query.isEmpty) return;
-    
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       // Save to recent searches
       _saveSearch(query);
@@ -143,23 +133,21 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
       _marketplaceNotifier!.clearAutocompleteResults();
       
       // Use the new method to set search key and apply filters in one go
-      await _marketplaceNotifier!.setSearchKeyAndApplyFilters(query, context);
+      await _marketplaceNotifier!.setSearchKeyAndApplyFilters(query);
       
       // Get the filtered items from the notifier after API call
       final filteredItems = _marketplaceNotifier!.marketplaceItems;
       
-      print('About to navigate back with ${filteredItems.length} items and searchKey: ${_marketplaceNotifier!.searchKey}');
-      
       // Navigate back to marketplace screen with both filtered results and search term
       if (mounted) {
         // Pop back with a map containing both the search term and filtered items
-        Navigator.of(context).pop({
+        navigator.pop({
           'searchTerm': query,
           'filteredItems': filteredItems,
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text("Search failed: $e"),
           backgroundColor: Kolors.kRed,
@@ -182,10 +170,11 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
             
             // Clear the search key and reset marketplace items to show all
             _marketplaceNotifier!.clearSearch();
-            _marketplaceNotifier!.applyFilters(context).then((_) {
+            final navigator = Navigator.of(context);
+            _marketplaceNotifier!.refreshMarketplaceItems().then((_) {
               if (mounted) {
                 // Navigate back with cleared search
-                Navigator.of(context).pop({
+                navigator.pop({
                   'searchTerm': '',
                   'filteredItems': _marketplaceNotifier!.marketplaceItems,
                 });
@@ -245,7 +234,15 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                                 
                                 // Clear the search key and reset marketplace items
                                 _marketplaceNotifier!.clearSearch();
-                                _marketplaceNotifier!.applyFilters(context);
+                                final navigator = Navigator.of(context);
+                                _marketplaceNotifier!.refreshMarketplaceItems().then((_) {
+                                  if (mounted) {
+                                    navigator.pop({
+                                      'searchTerm': '',
+                                      'filteredItems': _marketplaceNotifier!.marketplaceItems,
+                                    });
+                                  }
+                                });
                               },
                               child: const Icon(
                                 Icons.close,
@@ -331,7 +328,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                       onTap: () => _performSearch(search),
                       child: Chip(
                         backgroundColor: Kolors.kOffWhite,
-                        side: BorderSide(color: Kolors.kGrayLight),
+                        side: const BorderSide(color: Kolors.kGrayLight),
                         label: Text(search),
                         labelStyle: appStyle(12, Kolors.kDark, FontWeight.normal),
                         deleteIcon: const Icon(Icons.close, size: 16),
@@ -362,7 +359,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                     onTap: () => _performSearch(suggestion),
                     child: Chip(
                       backgroundColor: Kolors.kOffWhite,
-                      side: BorderSide(color: Kolors.kGrayLight),
+                      side: const BorderSide(color: Kolors.kGrayLight),
                       label: Text(suggestion),
                       labelStyle: appStyle(12, Kolors.kDark, FontWeight.normal),
                     ),
@@ -382,7 +379,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
+          const CircularProgressIndicator(
             color: Kolors.kPrimary,
           ),
           SizedBox(height: 16.h),
@@ -406,7 +403,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
           Icon(
             Icons.search_off,
             size: 60.sp,
-            color: Kolors.kGray.withOpacity(0.5),
+            color: Kolors.kGray.withValues(alpha: 0.5),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -435,7 +432,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
               onTap: () => _performSearch(suggestion),
               child: Chip(
                 backgroundColor: Kolors.kOffWhite,
-                side: BorderSide(color: Kolors.kGrayLight),
+                side: const BorderSide(color: Kolors.kGrayLight),
                 label: Text(suggestion),
                 labelStyle: appStyle(12, Kolors.kDark, FontWeight.normal),
               ),
@@ -455,7 +452,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -495,7 +492,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                     borderRadius: BorderRadius.circular(4),
                     hoverColor: Kolors.kOffWhite,
                     splashColor: Kolors.kOffWhite,
-                    highlightColor: Kolors.kOffWhite.withOpacity(0.5),
+                    highlightColor: Kolors.kOffWhite.withValues(alpha: 0.5),
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 16.w, 
@@ -521,14 +518,14 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                           Icon(
                             Icons.north_west,
                             size: 14,
-                            color: Kolors.kGray.withOpacity(0.5),
+                            color: Kolors.kGray.withValues(alpha: 0.5),
                           ),
                         ],
                       ),
                     ),
                   ),
                 );
-              }).toList(),
+              }),
               // Add spacing after each category except the last one
               if (entry.key != marketplaceNotifier.autocompleteResults.entries
                   .where((e) => e.value.isNotEmpty)

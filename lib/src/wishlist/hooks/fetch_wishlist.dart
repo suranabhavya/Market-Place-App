@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
-import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:flutter/material.dart';
 
 class WishlistItem {

@@ -3,26 +3,15 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
-import 'package:marketplace_app/common/widgets/empty_screen_widget.dart';
-import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/src/entrypoint/views/entrypoint.dart';
-import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dart';
 import 'package:marketplace_app/src/search/controllers/search_notifier.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async';
-import 'package:marketplace_app/common/utils/environment.dart';
-import 'package:marketplace_app/src/properties/models/property_list_model.dart';
-import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 
 class SearchPage extends StatefulWidget {
@@ -81,6 +70,9 @@ class _SearchPageState extends State<SearchPage> {
   
   // Get nearby properties using device location
   Future<void> _getNearbyProperties() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    final filterNotifier = context.read<FilterNotifier>(); // capture before async
     setState(() {
       _isLocationLoading = true;
     });
@@ -95,7 +87,7 @@ class _SearchPageState extends State<SearchPage> {
       
       if (permission == LocationPermission.denied || 
           permission == LocationPermission.deniedForever) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text("Location permission is required to find nearby properties"),
             backgroundColor: Kolors.kRed,
@@ -112,9 +104,6 @@ class _SearchPageState extends State<SearchPage> {
         desiredAccuracy: LocationAccuracy.high
       );
       
-      // Update filter notifier with location
-      final filterNotifier = context.read<FilterNotifier>();
-      
       // Clear search text and set "Near Me" as the search key
       _searchController.text = "Properties Near Me";
       filterNotifier.setSearchKey("Properties Near Me");
@@ -123,14 +112,14 @@ class _SearchPageState extends State<SearchPage> {
       filterNotifier.setLocation(position.latitude, position.longitude);
       
       // Apply filters with the new location
-      await filterNotifier.applyFilters(context);
+      await filterNotifier.applyFilters();
       
       // Navigate back to home
       if (mounted) {
-        context.pop();
+        router.pop();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text("Failed to get location: $e"),
           backgroundColor: Kolors.kRed,
@@ -148,22 +137,19 @@ class _SearchPageState extends State<SearchPage> {
   // Perform the search when user selects an autocomplete suggestion or presses search
   void _performSearch(String query) async {
     if (query.isEmpty) return;
-    
-    // Update the search key in FilterNotifier
-    final filterNotifier = context.read<FilterNotifier>();
+    final router = GoRouter.of(context);
+    final filterNotifier = context.read<FilterNotifier>(); // capture before async
+
     filterNotifier.setSearchKey(query);
-    
-    // Reset location if we're not doing a location-based search
+
     if (query != "Properties Near Me") {
       filterNotifier.resetLocation();
     }
-    
-    // Use FilterNotifier to apply filters
-    await filterNotifier.applyFilters(context);
-    
-    // Go back to home screen
+
+    await filterNotifier.applyFilters();
+
     if (mounted) {
-      context.pop();
+      router.pop();
     }
   }
 
@@ -185,9 +171,10 @@ class _SearchPageState extends State<SearchPage> {
             filterNotifier.resetLocation(); // Clear location if set
             
             // Apply filters (which will show all properties since search key is empty)
-            filterNotifier.applyFilters(context).then((_) {
+            final router = GoRouter.of(context);
+            filterNotifier.applyFilters().then((_) {
               if (mounted) {
-                context.pop();
+                router.pop();
               }
             });
           },
@@ -290,7 +277,7 @@ class _SearchPageState extends State<SearchPage> {
                     decoration: BoxDecoration(
                       color: Kolors.kOffWhite,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Kolors.kGray.withOpacity(0.3)),
+                      border: Border.all(color: Kolors.kGray.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -350,7 +337,7 @@ class _SearchPageState extends State<SearchPage> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -410,14 +397,14 @@ class _SearchPageState extends State<SearchPage> {
                           Icon(
                             Icons.north_west,
                             size: 14,
-                            color: Kolors.kGray.withOpacity(0.5),
+                            color: Kolors.kGray.withValues(alpha: 0.5),
                           ),
                         ],
                       ),
                     ),
                   ),
                 );
-              }).toList(),
+              }),
               // Add spacing after each category except the last one
               if (entry.key != searchNotifier.autocompleteResults.entries
                   .where((e) => e.value.isNotEmpty)
@@ -438,7 +425,7 @@ class _SearchPageState extends State<SearchPage> {
           Icon(
             Icons.search_off,
             size: 60.sp,
-            color: Kolors.kGray.withOpacity(0.5),
+            color: Kolors.kGray.withValues(alpha: 0.5),
           ),
           SizedBox(height: 16.h),
           Text(

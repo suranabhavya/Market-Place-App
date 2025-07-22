@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
@@ -121,17 +120,19 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
     
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     final String newPassword = _passwordController.text;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     final success = await profileNotifier.updateUserDetails({"password": newPassword});
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Password updated successfully"), backgroundColor: Colors.green),
         );
-        Navigator.pop(context); // Navigate back to AccountPage
+        navigator.pop(); // Navigate back to AccountPage
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Failed to update password"), backgroundColor: Colors.red),
         );
       }

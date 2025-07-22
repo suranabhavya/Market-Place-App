@@ -495,7 +495,6 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onSuccess,
     required VoidCallback onError,
   }) async {
-    print("deleting property");
     String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/$propertyId/';
 
     try {
@@ -508,7 +507,6 @@ class PropertyNotifier extends ChangeNotifier {
       );
 
       if (response.statusCode == 204) {
-        print("property deleted");
         // Remove the property from the list
         _properties.removeWhere((property) => property.id == propertyId);
         notifyListeners();

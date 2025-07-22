@@ -1,15 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 
 class LocationListTile extends StatelessWidget {
   const LocationListTile({
-    Key? key,
+    super.key,
     required this.location,
     required this.press,
-  }) : super(key: key);
+  });
 
   final String location;
   final VoidCallback press;

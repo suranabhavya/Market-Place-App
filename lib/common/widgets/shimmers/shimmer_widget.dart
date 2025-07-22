@@ -22,7 +22,7 @@ class ShimmerWidget extends StatelessWidget {
       {required double height, required double width, required double radius}) {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
-      highlightColor: Kolors.kGray.withOpacity(0.3),
+      highlightColor: Kolors.kGray.withValues(alpha: 0.3),
       child: Container(
         height: height,
         width: width,

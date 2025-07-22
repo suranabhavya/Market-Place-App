@@ -8,12 +8,12 @@ void main(List<String> args) {
   final bool isProduction = args.contains('--production') || args.contains('--release');
   final String envFile = isProduction ? '.env.production' : '.env.development';
   
-  print('Loading environment variables from: $envFile');
+  stdout.writeln('Loading environment variables from: $envFile');
   
   try {
     final file = File(envFile);
     if (!file.existsSync()) {
-      print('Warning: Environment file $envFile not found');
+      stderr.writeln('Warning: Environment file $envFile not found');
       return;
     }
     
@@ -39,11 +39,11 @@ void main(List<String> args) {
         
         // Set environment variable
         Platform.environment[key] = cleanValue;
-        print('Set $key');
+        stdout.writeln('Set $key');
       }
     }
     
-    print('Environment variables loaded successfully!');
+    stdout.writeln('Environment variables loaded successfully!');
     
     // Special handling for Android keystore configuration
     if (isProduction) {
@@ -51,7 +51,7 @@ void main(List<String> args) {
     }
     
   } catch (e) {
-    print('Error loading environment variables: $e');
+    stderr.writeln('Error loading environment variables: $e');
     exit(1);
   }
 }
@@ -74,8 +74,8 @@ storeFile=$storeFile
 ''';
     
     keystoreFile.writeAsStringSync(content);
-    print('Generated android/key.properties with environment variables');
+    stdout.writeln('Generated android/key.properties with environment variables');
   } catch (e) {
-    print('Warning: Could not generate keystore properties: $e');
+    stderr.writeln('Warning: Could not generate keystore properties: $e');
   }
 } 

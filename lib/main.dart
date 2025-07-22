@@ -31,7 +31,6 @@ import 'dart:io';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase here if needed
   await Firebase.initializeApp();
-  print("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
@@ -45,7 +44,7 @@ void main() async {
   if (!Platform.isIOS || enableIOSPushNotifications) {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } else {
-    print('Skipping Firebase background message handler setup on iOS - APNS not configured');
+    debugPrint('Skipping Firebase background message handler setup on iOS - APNS not configured');
   }
 
   if (kIsWeb) {

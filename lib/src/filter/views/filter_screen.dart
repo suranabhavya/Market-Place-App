@@ -9,7 +9,6 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
-import 'package:marketplace_app/common/widgets/custom_text.dart' as custom_text;
 import 'package:marketplace_app/common/widgets/multi_select_dropdown.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
@@ -18,8 +17,6 @@ import 'package:provider/provider.dart';
 import 'package:get_storage/get_storage.dart';
 
 import '../../../common/widgets/custom_dropdown.dart';
-import '../../../common/widgets/custom_checkbox.dart';
-import '../../../common/widgets/custom_switch.dart';
 import '../../../common/widgets/custom_divider.dart';
 import '../../../common/widgets/custom_text_field.dart';
 import '../../../common/widgets/amenity_chip.dart';
@@ -169,7 +166,7 @@ class _FilterPageState extends State<FilterPage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error fetching schools: $e");
+      debugPrint("Error fetching schools: $e");
     }
   }
 
@@ -240,7 +237,7 @@ class _FilterPageState extends State<FilterPage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error searching schools: $e");
+      debugPrint("Error searching schools: $e");
     }
   }
 
@@ -253,23 +250,23 @@ class _FilterPageState extends State<FilterPage> {
         String responseBody = utf8.decode(response.bodyBytes);
         List<dynamic> data = json.decode(responseBody);
 
-        final filterNotifier = Provider.of<FilterNotifier>(context, listen: false);
-        
-        // Preserve existing selections when updating amenities
-        Map<String, bool> currentAmenities = Map.from(filterNotifier.amenities);
-        
-        // Initialize amenities with preserved selections
-        filterNotifier.amenities = {
-          for (var item in data) 
-            item["name"]: currentAmenities[item["name"]] ?? false
-        };
-        
-        filterNotifier.notifyListeners();
+        if (mounted) {
+          final filterNotifier = Provider.of<FilterNotifier>(context, listen: false);
+          
+          // Preserve existing selections when updating amenities
+          Map<String, bool> currentAmenities = Map.from(filterNotifier.amenities);
+          
+          // Initialize amenities with preserved selections
+          filterNotifier.amenities = {
+            for (var item in data) 
+              item["name"]: currentAmenities[item["name"]] ?? false
+          };
+        }
       } else {
         throw Exception("Failed to load amenities");
       }
     } catch (e) {
-      print("Error fetching amenities: $e");
+      debugPrint("Error fetching amenities: $e");
     }
   }
 
@@ -283,7 +280,7 @@ class _FilterPageState extends State<FilterPage> {
       return;
     }
     filterNotifier.setPriceRange(RangeValues(minRent, maxRent));
-    filterNotifier.applyFilters(context);
+    filterNotifier.applyFilters();
   }
 
   void _resetFilters(FilterNotifier filterNotifier) {
@@ -294,19 +291,6 @@ class _FilterPageState extends State<FilterPage> {
       selectedPropertyTypes = [];
       _selectedSchoolsMap.clear();
       filterNotifier.resetFilters();
-      _minRentController.text = filterNotifier.priceRange.start.toInt().toString();
-      _maxRentController.text = filterNotifier.priceRange.end.toInt().toString();
-    });
-  }
-
-  void _resetAll(FilterNotifier filterNotifier) {
-    setState(() {
-      selectedBedrooms = [];
-      selectedBathrooms = [];
-      selectedSchoolIds = [];
-      selectedPropertyTypes = [];
-      _selectedSchoolsMap.clear();
-      filterNotifier.resetAll();
       _minRentController.text = filterNotifier.priceRange.start.toInt().toString();
       _maxRentController.text = filterNotifier.priceRange.end.toInt().toString();
     });
@@ -370,7 +354,7 @@ class _FilterPageState extends State<FilterPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Rent Range Section
-                  SectionTitle(
+                  const SectionTitle(
                     title: "Rent Range",
                   ),
                   RangeSlider(

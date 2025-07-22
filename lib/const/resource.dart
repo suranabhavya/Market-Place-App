@@ -4,12 +4,6 @@
 class R {
   const R._();
 
-  /// ![preview](file:///Volumes/Transfer/Projects/fashion/.env.development)
-  static const String _ENV_DEVELOPMENT = '.env.development';
-
-  /// ![preview](file:///Volumes/Transfer/Projects/fashion/.env.production)
-  static const String _ENV_PRODUCTION = '.env.production';
-
   /// ![preview](file:///Volumes/Transfer/Projects/fashion/assets/images/checkout.png)
   static const String ASSETS_IMAGES_CHECKOUT_PNG = 'assets/images/checkout.webp';
 

@@ -5,8 +5,6 @@ import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
-import 'package:marketplace_app/src/auth/views/login_screen.dart';
-import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/wishlist/widgets/wishlist.dart';
 import 'package:provider/provider.dart';

@@ -58,7 +58,7 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
     } else {
       // Fallback: refresh marketplace items directly
       final marketplaceNotifier = context.read<MarketplaceNotifier>();
-      await marketplaceNotifier.applyFilters(context);
+      await marketplaceNotifier.applyFilters();
     }
   }
 

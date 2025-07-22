@@ -128,9 +128,10 @@ class SearchNotifier with ChangeNotifier {
 
       if(response.statusCode == 200) {
         var searchProperties = propertyListModelFromJson(response.body);
-        print("search properties: $searchProperties");
         notifyListeners();
-        context.go('/home', extra: searchProperties);
+        if (context.mounted) {
+          context.go('/home', extra: searchProperties);
+        }
         setResults(searchProperties);
         setLoading(false);
       }
