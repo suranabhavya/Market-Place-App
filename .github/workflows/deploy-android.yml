@@ -71,30 +71,22 @@ jobs:
           gradle wrapper --gradle-version=8.8
         fi
         
-    # Step 2.2: Verify Java installation and set JAVA_HOME
-    - name: 🔍 Verify Java Installation
+    # Step 2.2: Verify Java installation and Gradle setup
+    - name: 🔍 Verify Java Installation and Gradle Setup
       run: |
         echo "Java version:"
         java -version
         echo "JAVA_HOME: $JAVA_HOME"
         echo "PATH: $PATH"
         
-        # Verify Gradle wrapper exists
+        # Verify Gradle wrapper files exist
         echo "Checking Gradle wrapper files..."
         ls -la android/gradle/wrapper/
         
-        # Validate Gradle wrapper jar
-        echo "Validating Gradle wrapper jar..."
-        file android/gradle/wrapper/gradle-wrapper.jar
-        
-        # Verify Gradle can find Java
-        echo "Testing Gradle Java detection..."
+        # Test Gradle wrapper
+        echo "Testing Gradle wrapper..."
         cd android
-        if ! ./gradlew --version; then
-          echo "Gradle wrapper failed, attempting to regenerate..."
-          gradle wrapper --gradle-version=8.8
-          ./gradlew --version
-        fi
+        ./gradlew --version
         
     # Step 3: Install and configure Flutter
     - name: 🐦 Setup Flutter SDK
