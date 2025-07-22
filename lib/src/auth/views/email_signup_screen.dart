@@ -199,27 +199,27 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
   
   // Handle Google Sign-In
   Future<void> _handleGoogleSignIn(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
-      // Unfocus keyboard before starting Google sign-in
       FocusScope.of(context).unfocus();
-      
       final authNotifier = context.read<AuthNotifier>();
+      final router = GoRouter.of(context);
+
       final success = await authNotifier.signInWithGoogle(context);
-      
+
       if (success && mounted) {
-        // Add a small delay to ensure Google Sign-In flow is complete
         await Future.delayed(const Duration(milliseconds: 300));
         if (mounted) {
-          // Force a complete navigation reset to ensure proper UI update
-          context.go('/');
+          router.go('/');
           await Future.delayed(const Duration(milliseconds: 100));
-          context.go('/home');
+          if (mounted) {
+            router.go('/home');
+          }
         }
       }
     } catch (e) {
       if (mounted) {
-        // Show a generic error message for unexpected errors
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text("Google Sign-In failed. Please try again."),
             backgroundColor: Colors.red,

@@ -75,7 +75,7 @@ class CustomAppBar extends StatelessWidget {
                               onTap: () {
                                 filterNotifier.clearSearch();
                                 filterNotifier.resetLocation();
-                                filterNotifier.applyFilters(context);
+                                filterNotifier.applyFilters();
                               },
                               child: const Icon(
                                 Icons.close,

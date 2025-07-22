@@ -100,11 +100,11 @@ class _PropertyPageState extends State<PropertyPage> {
         
         return results.map((item) => MarketplaceListModel.fromJson(item)).toList();
       } else {
-        print('Failed to load marketplace items: ${response.statusCode}');
+        debugPrint('Failed to load marketplace items: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('Error fetching marketplace items: $e');
+      debugPrint('Error fetching marketplace items: $e');
       return [];
     }
   }
@@ -196,12 +196,13 @@ class _PropertyPageState extends State<PropertyPage> {
                 padding: const EdgeInsets.only(right: 8.0),
                 child: GestureDetector(
                   onTap: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     try {
                       await ShareUtils.shareProperty(property);
                     } catch (e) {
                       debugPrint('Error sharing property: $e');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           const SnackBar(
                             content: Text('Failed to share property. Please try again.'),
                             backgroundColor: Colors.red,
@@ -314,7 +315,7 @@ class _PropertyPageState extends State<PropertyPage> {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: Kolors.kPrimary.withOpacity(0.1),
+                        color: Kolors.kPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: ReusableText(
@@ -326,7 +327,7 @@ class _PropertyPageState extends State<PropertyPage> {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: Kolors.kPrimary.withOpacity(0.1),
+                        color: Kolors.kPrimary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: ReusableText(
@@ -407,7 +408,7 @@ class _PropertyPageState extends State<PropertyPage> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.location_on, color: Kolors.kPrimary, size: 20),
+                            const Icon(Icons.location_on, color: Kolors.kPrimary, size: 20),
                             SizedBox(width: 8.w),
                             Expanded(
                               child: Text(
@@ -417,7 +418,7 @@ class _PropertyPageState extends State<PropertyPage> {
                                 style: appStyle(14, Kolors.kDark, FontWeight.w400),
                               ),
                             ),
-                            Icon(Icons.open_in_new, color: Kolors.kGray, size: 16),
+                            const Icon(Icons.open_in_new, color: Kolors.kGray, size: 16),
                           ],
                         ),
                       ),
@@ -985,7 +986,7 @@ class _PropertyPageState extends State<PropertyPage> {
                               ],
                             ),
                           ),
-                          Icon(
+                          const Icon(
                             AntDesign.right,
                             size: 16,
                             color: Kolors.kDark,

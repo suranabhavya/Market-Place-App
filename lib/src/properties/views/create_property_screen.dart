@@ -21,14 +21,10 @@ import 'package:marketplace_app/src/properties/controllers/property_notifier.dar
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
 import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
-import 'package:marketplace_app/src/properties/services/property_service.dart';
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:marketplace_app/common/utils/image_compression_util.dart';
-
-import '../../../common/widgets/custom_text.dart' as custom_text;
 import '../../../common/widgets/custom_dropdown.dart';
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_switch.dart';
@@ -37,10 +33,6 @@ import '../../../common/widgets/custom_text_field.dart';
 import '../../../common/widgets/amenity_chip.dart';
 import '../../../common/widgets/section_title.dart';
 import '../../../common/widgets/custom_date_picker.dart';
-
-
-// TODO: fetch schools API is behaving weirdly when multiple schools are selected it keeps on loading check later
-// TODO: cross button to remove school is not working
 
 
 class CreatePropertyPage extends StatefulWidget {
@@ -122,18 +114,16 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   Future<void> _pickImage(ImageSource source) async {
     try {
       if (source == ImageSource.gallery) {
-        final List<XFile>? pickedImages = await _picker.pickMultiImage(
+        final List<XFile> pickedImages = await _picker.pickMultiImage(
           maxWidth: 800,  // Reduced from 1200
           maxHeight: 800, // Reduced from 1200
           imageQuality: 50, // Reduced from 70 for better compression
         );
         
-        if (pickedImages != null) {
-          setState(() {
-            _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
-          });
-        }
-      } else {
+        setState(() {
+          _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
+        });
+            } else {
         // For camera, we can't use pickMultiImage
         final XFile? pickedImage = await _picker.pickImage(
           source: source,
@@ -149,7 +139,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         }
       }
     } catch (e) {
-      print("Error picking images: $e");
+      debugPrint("Error picking images: $e");
     }
   }
 
@@ -199,23 +189,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       }
       _existingImages.removeAt(index);
     });
-    debugPrint("Current deleted images: "+_deletedImages.toString());
-  }
-
-  // Method to pick a date
-  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-      });
-    }
+    debugPrint("Current deleted images: $_deletedImages");
   }
 
   @override
@@ -287,12 +261,13 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         throw Exception("Failed to load nearby schools");
       }
     } catch (e) {
-      print("Error fetching nearby schools: $e");
+      debugPrint("Error fetching nearby schools: $e");
     }
   }
 
   // Function to fetch place details (lat/lng) based on the place_id
   Future<void> fetchPlaceDetails(String placeId) async {
+    final messenger = ScaffoldMessenger.of(context);
     Uri uri = Uri.https(
       "maps.googleapis.com",
       "maps/api/place/details/json",
@@ -349,7 +324,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         // **Fetch Nearby Schools After Address Selection**
         _fetchNearbySchools(lat, lng);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text("Failed to get location details: ${data['status']}")),
         );
       }
@@ -398,7 +373,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error fetching schools: $e");
+      debugPrint("Error fetching schools: $e");
     }  
   }
 
@@ -469,7 +444,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error searching schools: $e");
+      debugPrint("Error searching schools: $e");
     }
   }
 
@@ -532,7 +507,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         throw Exception("Failed to load amenities");
       }
     } catch (e) {
-      print("Error fetching amenities: $e");
+      debugPrint("Error fetching amenities: $e");
     }
   }
 
@@ -1589,10 +1564,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               Container(
                 padding: EdgeInsets.all(16.w),
                 decoration: BoxDecoration(
-                  color: Kolors.kPrimaryLight.withOpacity(0.1),
+                  color: Kolors.kPrimaryLight.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
-                    color: Kolors.kPrimaryLight.withOpacity(0.3),
+                    color: Kolors.kPrimaryLight.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),

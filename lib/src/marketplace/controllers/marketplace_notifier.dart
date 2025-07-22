@@ -8,7 +8,6 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
-import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 
 class PropertyListItem {
   final String id;
@@ -75,22 +74,19 @@ class MarketplaceNotifier extends ChangeNotifier {
 
   void setSearchKey(String value) {
     _searchKey = value;
-    print('MarketplaceNotifier.setSearchKey: Set searchKey to "$value"');
     notifyListeners();
   }
 
   void clearSearch() {
     _searchKey = '';
-    print('MarketplaceNotifier.clearSearch: Cleared searchKey');
     notifyListeners();
   }
 
   // Add a method to set search key and apply filters in one go
-  Future<void> setSearchKeyAndApplyFilters(String searchKey, BuildContext context) async {
+  Future<void> setSearchKeyAndApplyFilters(String searchKey) async {
     _searchKey = searchKey;
-    print('MarketplaceNotifier.setSearchKeyAndApplyFilters: Set searchKey to "$searchKey"');
     notifyListeners();
-    await applyFilters(context);
+    await refreshMarketplaceItems();
   }
 
   // Force notify listeners - useful for ensuring UI updates
@@ -241,7 +237,97 @@ class MarketplaceNotifier extends ChangeNotifier {
     }
   }
 
-  Future<void> applyFilters(BuildContext context) async {
+  // Remove context from applyFilters (deprecated, use refreshMarketplaceItems)
+  Future<void> applyFilters() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      String url = '${Environment.iosAppBaseUrl}/api/marketplace/';
+      
+      // Build query parameters
+      final queryParams = <String, String>{};
+      
+      // Add search query if present
+      if (_searchKey.isNotEmpty) {
+        queryParams['search'] = _searchKey;
+        
+        // Check if the search key matches a school name from autocomplete
+        // If so, also add the school search parameter
+        if (_autocompleteResults['school_name']?.contains(_searchKey) ?? false) {
+          queryParams['school_name'] = _searchKey;
+        }
+      }
+      
+      // Add conditions if selected
+      if (_selectedConditions.isNotEmpty) {
+        queryParams['condition'] = _selectedConditions.join(',');
+      }
+      
+      // Add boolean filters
+      if (_negotiable != null) {
+        queryParams['negotiable'] = _negotiable.toString();
+      }
+      
+      if (_deliveryAvailable != null) {
+        queryParams['delivery_available'] = _deliveryAvailable.toString();
+      }
+      
+      if (_originalReceiptAvailable != null) {
+        queryParams['original_receipt_available'] = _originalReceiptAvailable.toString();
+      }
+      
+      // Add price range
+      if (_minPrice > 0) {
+        queryParams['min_price'] = _minPrice.toString();
+      }
+      
+      if (_maxPrice < 10000) {
+        queryParams['max_price'] = _maxPrice.toString();
+      }
+      
+      // Add item types and subtypes
+      if (_selectedItemTypes.isNotEmpty) {
+        queryParams['item_type'] = _selectedItemTypes.join(',');
+      }
+      
+      if (_selectedItemSubtypes.isNotEmpty) {
+        queryParams['item_subtype'] = _selectedItemSubtypes.join(',');
+      }
+      
+      // Add school IDs
+      if (_selectedSchoolIds.isNotEmpty) {
+        queryParams['schools_nearby'] = _selectedSchoolIds.join(',');
+      }
+
+      final uri = Uri.parse(url).replace(queryParameters: queryParams);
+      debugPrint("Fetching items from URL: $uri");
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("response body: ${response.body}");
+        final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
+        _marketplaceItems = paginatedResponse.results;
+      } else {
+        _error = 'Failed to fetch marketplace items';
+      }
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Add a context-free version of applyFilters
+  Future<void> refreshMarketplaceItems() async {
     _isLoading = true;
     _error = null;
     notifyListeners();

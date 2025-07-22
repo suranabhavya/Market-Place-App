@@ -114,17 +114,19 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
     
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     final String newEmail = _emailController.text.trim();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     final success = await profileNotifier.updateUserDetails({"email": newEmail});
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Email updated successfully"), backgroundColor: Colors.green),
         );
-        Navigator.pop(context); // Navigate back to account page
+        navigator.pop(); // Navigate back to account page
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Failed to update email"), backgroundColor: Colors.red),
         );
       }

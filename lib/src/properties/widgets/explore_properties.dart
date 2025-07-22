@@ -123,7 +123,7 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
     return RefreshIndicator(
       onRefresh: () async {
         if (widget.filteredProperties != null) {
-          await context.read<FilterNotifier>().applyFilters(context);
+          await context.read<FilterNotifier>().applyFilters();
         } else {
           await context.read<PropertyNotifier>().fetchProperties();
         }

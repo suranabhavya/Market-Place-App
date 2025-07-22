@@ -6,10 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
-import 'package:marketplace_app/common/widgets/custom_text.dart' as custom_text;
 import 'package:marketplace_app/common/widgets/multi_select_dropdown.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
@@ -17,10 +15,6 @@ import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier
 import 'package:provider/provider.dart';
 import 'package:get_storage/get_storage.dart';
 
-import '../../../common/widgets/custom_dropdown.dart';
-import '../../../common/widgets/custom_checkbox.dart';
-import '../../../common/widgets/custom_switch.dart';
-import '../../../common/widgets/custom_divider.dart';
 import '../../../common/widgets/custom_text_field.dart';
 import '../../../common/widgets/section_title.dart';
 
@@ -255,7 +249,7 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error fetching schools: $e");
+      debugPrint("Error fetching schools: $e");
     }
   }
 
@@ -322,7 +316,7 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
       setState(() {
         _isLoadingMoreSchools = false;
       });
-      print("Error searching schools: $e");
+      debugPrint("Error searching schools: $e");
     }
   }
 
@@ -349,13 +343,15 @@ class _MarketplaceFilterPageState extends State<MarketplaceFilterPage> {
       _isFiltering = true;
     });
     
-    marketplaceNotifier.applyFilters(context).then((_) {
-      setState(() {
-        _isFiltering = false;
-      });
-      
-      // Pop back to the previous screen with filtered items
-      Navigator.pop(context, marketplaceNotifier.marketplaceItems);
+    marketplaceNotifier.applyFilters().then((_) {
+      if (mounted) {
+        setState(() {
+          _isFiltering = false;
+        });
+        
+        // Pop back to the previous screen with filtered items
+        Navigator.pop(context, marketplaceNotifier.marketplaceItems);
+      }
     });
   }
 

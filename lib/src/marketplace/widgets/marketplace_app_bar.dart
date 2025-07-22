@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
-import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
@@ -111,7 +110,7 @@ class MarketplaceAppBar extends StatelessWidget {
                                   onTap: () {
                                     // Clear search and apply filters
                                     marketplaceNotifier.clearSearch();
-                                    marketplaceNotifier.applyFilters(context);
+                                    marketplaceNotifier.applyFilters();
                                     
                                     // If we have a callback, call it with the refreshed items
                                     if (onFilterApplied != null) {

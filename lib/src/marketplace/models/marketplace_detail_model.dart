@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 
 MarketplaceDetailModel marketplaceDetailModelFromJson(String str) =>
     MarketplaceDetailModel.fromJson(json.decode(str));

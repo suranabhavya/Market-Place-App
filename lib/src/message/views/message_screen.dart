@@ -66,7 +66,6 @@ class _MessagePageState extends State<MessagePage> {
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
-    print("chat_id: ${widget.chatId}");
     channel = WebSocketChannel.connect(
       Uri.parse("${Environment.iosWsBaseUrl}/ws/chat/${widget.chatId}/?token=$token"),
     );
@@ -94,6 +93,7 @@ class _MessagePageState extends State<MessagePage> {
       const EmailSignupPage();
       return;
     }
+    final messenger = ScaffoldMessenger.of(context);
     final response = await http.get(
       Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/messages/'),
       headers: {'Authorization': 'Token $token'},
@@ -105,7 +105,7 @@ class _MessagePageState extends State<MessagePage> {
       });
       debugPrint("messages are: $messages");
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("Failed to load messages"), backgroundColor: Colors.red),
       );
     }
@@ -114,6 +114,7 @@ class _MessagePageState extends State<MessagePage> {
   Future<void> markMessagesAsRead() async {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
+    final unreadNotifier = context.read<UnreadCountNotifier>();
     final response = await http.post(
       Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/read/'),
       headers: {'Authorization': 'Token $token'},
@@ -121,7 +122,7 @@ class _MessagePageState extends State<MessagePage> {
     if (response.statusCode == 200) {
       debugPrint("Messages marked as read");
       // Refresh the unread count
-      context.read<UnreadCountNotifier>().refreshUnreadCount();
+      unreadNotifier.refreshUnreadCount();
     } else {
       debugPrint("Failed to mark messages as read");
     }
@@ -297,7 +298,7 @@ class _MessagePageState extends State<MessagePage> {
                                 timeDisplay,
                                 style: appStyle(
                                   10,
-                                  isMine ? Colors.white.withOpacity(0.7) : Kolors.kPrimary,
+                                  isMine ? Colors.white.withValues(alpha: 0.7) : Kolors.kPrimary,
                                   FontWeight.normal
                                 ),
                               ),

@@ -1,8 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 
@@ -188,7 +185,7 @@ class FilterNotifier extends ChangeNotifier {
     return url;
   }
 
-  Future<void> applyFilters(BuildContext context) async {
+  Future<void> applyFilters() async {
     if (isLoading) return;
     
     isLoading = true;
@@ -218,7 +215,6 @@ class FilterNotifier extends ChangeNotifier {
         debugPrint("Next page URL for filtered results: $nextPageUrl");
         
         notifyListeners();
-        context.go('/home');
       } else {
         errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
         debugPrint(errorMessage);

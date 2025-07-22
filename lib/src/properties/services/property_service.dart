@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
-import 'package:marketplace_app/src/properties/models/property_edit_model.dart';
 import 'package:path/path.dart' as path;
 
 class PropertyService {
@@ -71,18 +70,14 @@ class PropertyService {
       if (value != null) {
         if (value is Map || value is List) {
           request.fields[key] = json.encode(value);
-          print("request.fields: $key: "+json.encode(value));
         } else {
           request.fields[key] = value.toString();
-          print("request.fields: $key: ${value.toString()}");
         }
       }
     });
 
     var response = await request.send();
     var responseData = await http.Response.fromStream(response);
-
-    print("responseData: ${responseData.body}");
 
     if (response.statusCode != 200) {
       String errorBody = utf8.decode(responseData.bodyBytes);

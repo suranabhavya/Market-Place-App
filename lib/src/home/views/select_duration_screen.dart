@@ -5,7 +5,6 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
-import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -136,14 +135,14 @@ class _SelectDurationPageState extends State<SelectDurationPage> {
 
                 calendarStyle: CalendarStyle(
                   todayDecoration: BoxDecoration(
-                    color: Kolors.kPrimary.withOpacity(0.5),
+                    color: Kolors.kPrimary.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   selectedDecoration: const BoxDecoration(
                     color: Kolors.kPrimary,
                     shape: BoxShape.circle,
                   ),
-                  rangeHighlightColor: Kolors.kPrimary.withOpacity(0.3),
+                  rangeHighlightColor: Kolors.kPrimary.withValues(alpha: 0.3),
                   rangeStartDecoration: const BoxDecoration(
                     color: Kolors.kPrimary,
                     shape: BoxShape.circle,

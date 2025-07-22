@@ -13,9 +13,6 @@ import 'package:marketplace_app/src/properties/controllers/property_notifier.dar
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 
 
 class StaggeredTileWidget extends StatefulWidget {
@@ -130,6 +127,28 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
     }
     
     return locationParts.isNotEmpty ? locationParts.join(', ') : 'Location not available';
+  }
+
+  void _handleShare() async {
+    try {
+      await ShareUtils.sharePropertyFromList(widget.property);
+    } catch (e) {
+      debugPrint('Error sharing property: $e');
+      if (mounted) {
+        _showErrorSnackBar();
+      }
+    }
+  }
+
+  void _showErrorSnackBar() {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to share property. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -251,21 +270,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                     children: [
                       // Share button
                       GestureDetector(
-                        onTap: () async {
-                          try {
-                            await ShareUtils.sharePropertyFromList(widget.property);
-                          } catch (e) {
-                            debugPrint('Error sharing property: $e');
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Failed to share property. Please try again.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        },
+                        onTap: () => _handleShare(),
                         child: CircleAvatar(
                           radius: 15.r,
                           backgroundColor: Kolors.kSecondaryLight,

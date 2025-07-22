@@ -58,7 +58,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       setState(() {
         isLoading = false;
       });
-      print('Error fetching profile: $e');
+      debugPrint('Error fetching profile: $e');
     }
   }
 
@@ -80,9 +80,62 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     return locationParts.isEmpty ? 'Location not available' : locationParts.join(', ');
   }
 
+  void _navigateToExistingChat(BuildContext context, int chatId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MessagePage(
+          chatId: chatId,
+          participants: userProfile!["name"],
+          otherParticipantId: widget.userId,
+          otherParticipantProfilePhoto: userProfile!["profile_photo"],
+        ),
+      ),
+    );
+  }
+
+  void _showNewChatModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: MessageModalContent(senderId: widget.userId),
+        );
+      },
+    );
+  }
+
+  void _handleMessageTap(BuildContext context) async {
+    final chatId = await checkExistingChat(widget.userId);
+    if (!mounted) return;
+    
+    if (chatId != null) {
+      // Navigate to the existing chat
+      if (mounted) {
+        // ignore: use_build_context_synchronously
+        _navigateToExistingChat(context, chatId);
+      }
+    } else {
+      // Show message modal for new chat
+      if (mounted) {
+        // ignore: use_build_context_synchronously
+        _showNewChatModal(context);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    String? accessToken = Storage().getString('accessToken');
+    final String? accessToken = Storage().getString('accessToken');
     final currentUser = context.read<AuthNotifier>().getUserData();
     
     if (isLoading) {
@@ -388,45 +441,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 child: CustomButton(
                   text: 'Message',
-                  onTap: () async {
-                    String? accessToken = Storage().getString('accessToken');
+                  onTap: () {
+                    final String? accessToken = Storage().getString('accessToken');
                     if(accessToken == null) {
                       loginBottomSheet(context);
                     } else {
-                      final chatId = await checkExistingChat(widget.userId);
-                      if (chatId != null) {
-                        // Navigate to the existing chat
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MessagePage(
-                              chatId: chatId,
-                              participants: userProfile!["name"],
-                              otherParticipantId: widget.userId,
-                              otherParticipantProfilePhoto: userProfile!["profile_photo"],
-                            ),
-                          ),
-                        );
-                      } else {
-                        // Show message modal for new chat using the same pattern as PropertyBottomBar
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (BuildContext context) {
-                            return Container(
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(context).viewInsets.bottom,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                              ),
-                              child: MessageModalContent(senderId: widget.userId),
-                            );
-                          },
-                        );
-                      }
+                      _handleMessageTap(context);
                     }
                   },
                   btnWidth: double.infinity,

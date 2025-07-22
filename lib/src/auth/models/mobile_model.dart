@@ -5,17 +5,17 @@ MobileModel mobileModelFromJson(String str) => MobileModel.fromJson(json.decode(
 String mobileModelToJson(MobileModel data) => json.encode(data.toJson());
 
 class MobileModel {
-    String mobile_number;
+    String mobileNumber;
 
     MobileModel({
-        required this.mobile_number,
+        required this.mobileNumber,
     });
 
     factory MobileModel.fromJson(Map<String, dynamic> json) => MobileModel(
-        mobile_number: json["mobile_number"],
+        mobileNumber: json["mobile_number"],
     );
 
     Map<String, dynamic> toJson() => {
-        "mobile_number": mobile_number,
+        "mobile_number": mobileNumber,
     };
 }

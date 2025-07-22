@@ -31,10 +31,10 @@ class MessageModalContent extends StatefulWidget {
   const MessageModalContent({super.key, required this.senderId});
 
   @override
-  _MessageModalContentState createState() => _MessageModalContentState();
+  MessageModalContentState createState() => MessageModalContentState();
 }
 
-class _MessageModalContentState extends State<MessageModalContent> {
+class MessageModalContentState extends State<MessageModalContent> {
   final TextEditingController _messageController = TextEditingController();
   int? currentUserId;
 
@@ -61,6 +61,8 @@ class _MessageModalContentState extends State<MessageModalContent> {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
 
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     // Create chat
     final createChatResponse = await http.post(
       Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/create/'),
@@ -83,11 +85,9 @@ class _MessageModalContentState extends State<MessageModalContent> {
         final messageData = jsonDecode(sendMessageResponse.body);
         
         // Close the modal first
-        Navigator.pop(context);
-        
+        navigator.pop();
         // Then navigate to the MessagePage
-        Navigator.push(
-          context,
+        navigator.push(
           MaterialPageRoute(
             builder: (context) => MessagePage(
               chatId: chatId,
@@ -98,12 +98,12 @@ class _MessageModalContentState extends State<MessageModalContent> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Failed to send message'), backgroundColor: Colors.red),
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Failed to create chat'), backgroundColor: Colors.red),
       );
     }
@@ -112,7 +112,7 @@ class _MessageModalContentState extends State<MessageModalContent> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(16.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -126,7 +126,7 @@ class _MessageModalContentState extends State<MessageModalContent> {
               ),
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 16.h),
           CustomButton(
             text: 'Send Message',
             onTap: sendMessage,

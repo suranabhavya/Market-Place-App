@@ -26,13 +26,14 @@ class _HomePageState extends State<HomePage> {
     PushNotificationService().requestPermissionIfNeeded();
     
     // Initialize both filters and wishlist when the page loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Apply filters
-      context.read<FilterNotifier>().applyFilters(context);
+      final filterNotifier = context.read<FilterNotifier>();
+      final wishlistNotifier = context.read<WishlistNotifier>(); // capture before async
+      await filterNotifier.applyFilters();
       
       // Initialize wishlist state
       final accessToken = Storage().getString('accessToken');
-      final wishlistNotifier = context.read<WishlistNotifier>();
       
       if (accessToken != null) {
         // User is logged in - load their wishlist to ensure proper state
@@ -87,10 +88,11 @@ class _HomePageState extends State<HomePage> {
             if (accessToken == null) {
               loginBottomSheet(context);
             } else {
-              // Navigate to create screen with a callback when returning
+              final filterNotifier = context.read<FilterNotifier>();
               context.push("/property/create").then((_) async {
-                // Refresh properties when returning from create screen
-                await context.read<FilterNotifier>().applyFilters(context);
+                if (mounted) {
+                  await filterNotifier.applyFilters();
+                }
               });
             }
           },

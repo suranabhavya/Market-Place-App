@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/const/resource.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
@@ -96,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Kolors.kWhite,
-      body: Container(
+      body: SizedBox(
 				width: MediaQuery.of(context).size.width,
 				height: MediaQuery.of(context).size.height,
 				child: Center(

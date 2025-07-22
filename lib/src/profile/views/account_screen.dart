@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -12,7 +9,6 @@ import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/src/auth/models/auth_model.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:provider/provider.dart';
 
@@ -107,6 +103,7 @@ class _AccountPageState extends State<AccountPage> {
     }
 
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
     final success = await profileNotifier.updateUserDetails({
       "name": _nameController.text.trim(),
       "mobile_number": _mobileController.text.trim()
@@ -114,13 +111,13 @@ class _AccountPageState extends State<AccountPage> {
 
     if (success) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Profile updated successfully"), backgroundColor: Colors.green),
         );
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Failed to update profile"), backgroundColor: Colors.red),
         );
       }
@@ -167,17 +164,18 @@ class _AccountPageState extends State<AccountPage> {
                 TextButton(
                   onPressed: () async {
                     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+                    final messenger = ScaffoldMessenger.of(context);
                     bool success = await profileNotifier.updateProfilePhoto();
             
                     if (success && mounted) {
                       // Force refresh the UI by calling loadUserFromStorage
                       profileNotifier.refreshUserData();
                       
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(content: Text("Profile photo updated successfully"), backgroundColor: Colors.green),
                       );
                     } else if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(content: Text("Failed to update profile photo"), backgroundColor: Colors.red),
                       );
                     }
@@ -357,12 +355,12 @@ class AccountOptionButton extends StatelessWidget {
           color: Kolors.kOffWhite,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Kolors.kGray.withOpacity(0.3),
+            color: Kolors.kGray.withValues(alpha: 0.3),
             width: 0.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),

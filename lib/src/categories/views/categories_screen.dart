@@ -12,7 +12,7 @@ class CategoriesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: AppBackButton(),
+        leading: const AppBackButton(),
         title: ReusableText(
           text: AppText.kCategories,
           style: appStyle(16, Kolors.kPrimary, FontWeight.bold)

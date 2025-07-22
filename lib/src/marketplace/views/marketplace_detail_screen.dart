@@ -97,6 +97,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
   }
 
   Future<void> _launchMaps() async {
+    final messenger = ScaffoldMessenger.of(context);
     if (_item?.latitude != null && _item?.longitude != null) {
       final Uri mapsUri = Uri.parse(
         'https://www.google.com/maps/search/?api=1&query=${_item!.latitude},${_item!.longitude}'
@@ -106,7 +107,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
         await launchUrl(mapsUri);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(content: Text('Could not open maps')),
           );
         }
@@ -138,7 +139,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Kolors.kRed),
+              const Icon(Icons.error_outline, size: 64, color: Kolors.kRed),
               SizedBox(height: 16.h),
               Text(_error!, style: appStyle(16, Kolors.kDark, FontWeight.w500)),
               SizedBox(height: 16.h),
@@ -176,7 +177,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
             leading: Container(
               margin: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: AppBackButton(
@@ -189,18 +190,19 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
               Container(
                 margin: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: IconButton(
                   onPressed: () async {
                     if (_item != null) {
+                      final messenger = ScaffoldMessenger.of(context);
                       try {
                         await ShareUtils.shareMarketplaceItem(_item!);
                       } catch (e) {
                         debugPrint('Error sharing marketplace item: $e');
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(
                               content: Text('Failed to share item. Please try again.'),
                               backgroundColor: Colors.red,
@@ -220,7 +222,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
               Container(
                 margin: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Consumer<WishlistNotifier>(
@@ -295,7 +297,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                                     shape: BoxShape.circle,
                                     color: _currentImageIndex == index
                                         ? Kolors.kWhite
-                                        : Kolors.kWhite.withOpacity(0.5),
+                                        : Kolors.kWhite.withValues(alpha: 0.5),
                                   ),
                                 ),
                               ),
@@ -407,7 +409,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.location_on, color: Kolors.kPrimary, size: 20),
+                            const Icon(Icons.location_on, color: Kolors.kPrimary, size: 20),
                             SizedBox(width: 8.w),
                             Expanded(
                               child: Text(
@@ -417,7 +419,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                                 style: appStyle(14, Kolors.kDark, FontWeight.w400),
                               ),
                             ),
-                            Icon(Icons.open_in_new, color: Kolors.kGray, size: 16),
+                            const Icon(Icons.open_in_new, color: Kolors.kGray, size: 16),
                           ],
                         ),
                       ),
@@ -437,7 +439,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                       runSpacing: 8.h,
                       children: _item!.schoolsNearby.map((school) => Chip(
                         label: Text(school.name),
-                        backgroundColor: Kolors.kPrimaryLight.withOpacity(0.1),
+                        backgroundColor: Kolors.kPrimaryLight.withValues(alpha: 0.1),
                         labelStyle: appStyle(12, Kolors.kPrimary, FontWeight.w500),
                       )).toList(),
                     ),

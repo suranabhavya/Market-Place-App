@@ -70,7 +70,7 @@ class WishlistWidget extends HookWidget {
                       return StaggeredTileWidget(
                         property: property,
                       );
-                    }).toList(),
+                    }),
                   ],
                   
                   // Marketplace items section
@@ -84,7 +84,7 @@ class WishlistWidget extends HookWidget {
                     ),
                     ...marketplaceItems.map((item) => 
                       _buildMarketplaceItem(context, item, refetch)
-                    ).toList(),
+                    ),
                   ],
                 ],
               );

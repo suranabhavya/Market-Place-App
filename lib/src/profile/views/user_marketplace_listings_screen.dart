@@ -467,7 +467,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                               Container(
                                                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                                                 decoration: BoxDecoration(
-                                                  color: Kolors.kPrimaryLight.withOpacity(0.1),
+                                                  color: Kolors.kPrimaryLight.withValues(alpha: 0.1),
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(

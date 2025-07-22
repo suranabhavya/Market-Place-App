@@ -133,6 +133,8 @@ class _VerifySchoolEmailPageState extends State<VerifySchoolEmailPage> {
     }
 
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    final focusScope = FocusScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     bool otpSent = await profileNotifier.sendSchoolEmailOtp(_emailController.text.trim());
 
     if (otpSent) {
@@ -144,13 +146,13 @@ class _VerifySchoolEmailPageState extends State<VerifySchoolEmailPage> {
       _startResendTimer();
       
       // Move focus to OTP field
-      FocusScope.of(context).requestFocus(_otpFocusNode);
+      focusScope.requestFocus(_otpFocusNode);
       
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("OTP Sent to Email"), backgroundColor: Colors.green),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("Failed to send OTP. Try again."), backgroundColor: Colors.red),
       );
     }
@@ -158,8 +160,10 @@ class _VerifySchoolEmailPageState extends State<VerifySchoolEmailPage> {
 
   Future<void> verifyOtp(BuildContext context) async {
     final otpError = _validateOtp(_otpController.text);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     if (otpError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text(otpError), backgroundColor: Colors.red),
       );
       return;
@@ -175,14 +179,14 @@ class _VerifySchoolEmailPageState extends State<VerifySchoolEmailPage> {
       // Refresh the UI to show verified status
       _loadUserData();
       
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("School Email Verified Successfully"), backgroundColor: Colors.green),
       );
 
       // Navigate back to previous screen
-      Navigator.pop(context);
+      navigator.pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("Invalid OTP. Try again."), backgroundColor: Colors.red),
       );
     }

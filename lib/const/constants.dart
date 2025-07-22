@@ -18,7 +18,7 @@ LinearGradient kPGradient = LinearGradient(
   end: Alignment.bottomRight,
   colors: [
     Kolors.kPrimaryLight,
-    Kolors.kPrimaryLight.withOpacity(0.7),
+    Kolors.kPrimaryLight.withValues(alpha: 0.7),
     Kolors.kPrimary,
   ],
 );

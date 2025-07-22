@@ -6,7 +6,6 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
-import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/const/resource.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 

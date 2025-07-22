@@ -28,9 +28,9 @@ class PropertyBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? accessToken = Storage().getString('accessToken');
+    final String? accessToken = Storage().getString('accessToken');
     final currentUser = context.read<AuthNotifier>().getUserData();
-    
+
     // Don't show the message button if the item is listed by the current user
     if (currentUser?.id == senderId) {
       return const SizedBox.shrink();
@@ -38,15 +38,16 @@ class PropertyBottomBar extends StatelessWidget {
 
     return Container(
       height: 68.h,
-      color: Colors.white.withOpacity(.6),
+      color: Colors.white.withAlpha((0.6 * 255).toInt()),
       child: Padding(
         padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
         child: ElevatedButton(
           onPressed: () async {
-            if(accessToken == null) {
+            if (accessToken == null) {
               loginBottomSheet(context);
             } else {
               final chatId = await checkExistingChat(senderId);
+              if (!context.mounted) return;
               if (chatId != null) {
                 // Navigate to the existing chat
                 Navigator.push(
@@ -94,15 +95,13 @@ class PropertyBottomBar extends StatelessWidget {
                 size: 16,
                 color: Kolors.kWhite,
               ),
-              SizedBox(
-                width: 12.w,
-              ),
+              SizedBox(width: 12.w),
               ReusableText(
                 text: isMarketplaceItem ? 'Message Seller' : 'Message',
-                style: appStyle(14, Kolors.kWhite, FontWeight.bold)
+                style: appStyle(14, Kolors.kWhite, FontWeight.bold),
               ),
             ],
-          )
+          ),
         ),
       ),
     );

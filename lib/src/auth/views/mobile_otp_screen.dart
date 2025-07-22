@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/common/widgets/custom_text.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
@@ -28,10 +27,13 @@ class _MobileOtpPageState extends State<MobileOtpPage> {
 
   Future<void> _verifyOtp(BuildContext context) async {
     final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+    final unreadNotifier = context.read<UnreadCountNotifier>();
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
     String otp = _otpController.text.trim();
 
     if (otp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("Please enter the OTP"), backgroundColor: Colors.red),
       );
       return;
@@ -43,25 +45,23 @@ class _MobileOtpPageState extends State<MobileOtpPage> {
 
     if (success) {
       final exists = await authNotifier.checkMobile(widget.mobileNumber);
+      
+      if (!mounted) return;
+      
       if (exists) {
         // Reconnect WebSocket for unread messages
         try {
-          final unreadNotifier = context.read<UnreadCountNotifier>();
           unreadNotifier.reconnectIfNeeded();
         } catch (e) {
-          // UnreadCountNotifier might not be available in all contexts
           debugPrint('UnreadCountNotifier not available: $e');
         }
-        
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text("Login Successful"), backgroundColor: Colors.green),
         );
-        context.go('/home');
-      } else {
-        // context.go('/register/mobile', extra: {"mobileNumber": widget.mobileNumber});
+        router.go('/home');
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text("Invalid OTP. Try again."), backgroundColor: Colors.red),
       );
     }
