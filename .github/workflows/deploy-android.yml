@@ -50,7 +50,11 @@ jobs:
         distribution: 'zulu'
         java-version: ${{ env.JAVA_VERSION }}
         
-    # Step 2.1: Verify Java installation and set JAVA_HOME
+    # Step 2.1: Set Gradle wrapper permissions
+    - name: 🔧 Set Gradle Wrapper Permissions
+      run: chmod +x android/gradlew
+        
+    # Step 2.2: Verify Java installation and set JAVA_HOME
     - name: 🔍 Verify Java Installation
       run: |
         echo "Java version:"
@@ -162,6 +166,7 @@ jobs:
     - name: 🧹 Clean Gradle Environment
       run: |
         echo "Cleaning Gradle caches..."
+        chmod +x ./gradlew
         ./gradlew clean
       working-directory: android
         
