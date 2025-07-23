@@ -60,8 +60,12 @@ void main() async {
     await Firebase.initializeApp();
   }
 
+  // print('Looking for env file: ${Environment.fileName}');
+  // print('Current directory: ${Directory.current.path}');
+  // print('Files in current directory: ${Directory.current.listSync().map((e) => e.path).toList()}');
+
   // Load the correct environment BEFORE initializing push notifications
-  await dotenv.load(fileName: Environment.fileName);
+  await dotenv.load(fileName: 'assets/.env.development');
 
   // Initialize notification handlers and token logic (but NOT permission)
   await PushNotificationService().initializeHandlersAndToken();

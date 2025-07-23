@@ -7,6 +7,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/message/views/message_screen.dart';
@@ -112,7 +113,7 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: ListShimmer())
           : chats.isEmpty
               ? Center(
                   child: Column(

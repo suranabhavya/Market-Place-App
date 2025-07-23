@@ -12,56 +12,59 @@ class OnboardingScreenTwo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // SVG Image taking most of the space
-          Expanded(
-            flex: 3,
-            child: Transform.translate(
-              offset: Offset(0, 80.h),
-              child: SvgPicture.asset(
-                R.ASSETS_IMAGES_ONBOARDING_TWO_SVG,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-          // Text content at the bottom
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 50.w),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                    Text(
-                      AppText.kOnboardingHeader2,
-                      textAlign: TextAlign.center,
-                      style: appStyle(
-                        screenWidth > 400 ? 24.sp : 20.sp,
-                        Kolors.kPrimary, 
-                        FontWeight.bold
-                      ),
-                    ),
-                    SizedBox(height: 20.h),
-                    Text(
-                      AppText.kOnboardingMessage2,
-                      textAlign: TextAlign.center,
-                      style: appStyle(
-                        screenWidth > 400 ? 13.sp : 11.sp,
-                        Kolors.kGray, 
-                        FontWeight.normal
-                      ),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 30.w),
+          child: Column(
+            children: [
+              // Header section at the top
+              Container(
+                padding: EdgeInsets.only(top: 60.h),
+                child: Text(
+                  AppText.kOnboardingHeader2,
+                  textAlign: TextAlign.center,
+                  style: appStyle(
+                    screenWidth > 400 ? 24.sp : 20.sp,
+                    Kolors.kPrimary, 
+                    FontWeight.bold
+                  ),
                 ),
               ),
-            ),
-        ],
+              
+              // SVG Image section in the middle
+              Expanded(
+                flex: 3,
+                child: Center(
+                  child: SvgPicture.asset(
+                    R.ASSETS_IMAGES_ONBOARDING_TWO_SVG,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              
+              // Message section at the bottom
+              Container(
+                padding: EdgeInsets.only(
+                  top: 30.h,
+                  bottom: 100.h, // Bottom padding to avoid navigation overlap
+                ),
+                child: Text(
+                  AppText.kOnboardingMessage2,
+                  textAlign: TextAlign.center,
+                  style: appStyle(
+                    screenWidth > 400 ? 13.sp : 11.sp,
+                    Kolors.kGray, 
+                    FontWeight.normal
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -68,7 +68,7 @@ class AppText {
       "Welcome to the ultimate fashion destination! Discover trends, shop your favorite styles, and elevate your wardrobe. Let's get started on your stylish journey today";
   static const String kOnboardingHeader1 = "Finding Accommodation \nMade Easy";
   static const String kOnboardingMessage1 = "Struggling to find a place near your university? We make it easy to find, compare, and secure the perfect accommodation hassle-free!";
-  static const String kOnboardingHeader2 = "Move-Out Marketplace";
+  static const String kOnboardingHeader2 = "Move-Out \nMarketplace";
   static const String kOnboardingMessage2 = 'Moving out? Sell your furniture, electronics, and more to incoming students who need them. \n"Declutter fast. Help someone settle in."';
 }
 

@@ -133,7 +133,7 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
           SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.8,
+              childAspectRatio: 0.65,
               crossAxisSpacing: 10.w,
               mainAxisSpacing: 10.h,
             ),
@@ -257,7 +257,7 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
                                 },
                                 child: CircleAvatar(
                                   radius: 15.r,
-                                  backgroundColor: Kolors.kSecondaryLight,
+                                  backgroundColor: Kolors.kWhite,
                                   child: Icon(
                                     Icons.share,
                                     color: Kolors.kGray,
@@ -291,7 +291,7 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
                                     },
                                     child: CircleAvatar(
                                       radius: 15.r,
-                                      backgroundColor: Kolors.kSecondaryLight,
+                                      backgroundColor: Kolors.kWhite,
                                       child: Icon(
                                         isInWishlist ? Icons.favorite : Icons.favorite_border,
                                         color: isInWishlist ? Kolors.kRed : Kolors.kGray,

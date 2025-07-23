@@ -192,7 +192,7 @@ class WishlistWidget extends HookWidget {
                         },
                         child: CircleAvatar(
                           radius: 15.r,
-                          backgroundColor: Kolors.kSecondaryLight,
+                          backgroundColor: Kolors.kWhite,
                           child: Icon(
                             Icons.share,
                             color: Kolors.kGray,
@@ -219,7 +219,7 @@ class WishlistWidget extends HookWidget {
                             },
                             child: CircleAvatar(
                               radius: 15.r,
-                              backgroundColor: Kolors.kSecondaryLight,
+                              backgroundColor: Kolors.kWhite,
                               child: Icon(
                                 Icons.favorite,
                                 color: Kolors.kRed,

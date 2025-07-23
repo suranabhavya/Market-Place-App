@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
@@ -68,11 +69,7 @@ class _HomePageState extends State<HomePage> {
             // Expandable content section
             Expanded(
               child: filterNotifier.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
-                      ),
-                    )
+                  ? const ListShimmer()
                   : Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.w),
                       child: ExploreProperties(filteredProperties: filterNotifier.filteredProperties),

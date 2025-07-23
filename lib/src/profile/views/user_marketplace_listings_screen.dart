@@ -5,6 +5,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/common/services/storage.dart';
@@ -156,11 +157,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
         centerTitle: true,
       ),
       body: isLoading 
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
-              ),
-            )
+          ? const ListShimmer()
           : errorMessage != null
               ? Center(
                   child: Column(
@@ -313,7 +310,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                                 },
                                                 child: CircleAvatar(
                                                   radius: 15.r,
-                                                  backgroundColor: Kolors.kSecondaryLight,
+                                                  backgroundColor: Kolors.kWhite,
                                                   child: Icon(
                                                     Icons.share,
                                                     color: Kolors.kGray,
@@ -344,7 +341,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                                     },
                                                     child: CircleAvatar(
                                                       radius: 15.r,
-                                                      backgroundColor: Kolors.kSecondaryLight,
+                                                      backgroundColor: Kolors.kWhite,
                                                       child: Icon(
                                                         isInWishlist ? Icons.favorite : Icons.favorite_border,
                                                         color: isInWishlist ? Kolors.kRed : Kolors.kGray,
@@ -374,7 +371,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                                   },
                                                   child: CircleAvatar(
                                                     radius: 15.r,
-                                                    backgroundColor: Kolors.kSecondaryLight,
+                                                    backgroundColor: Kolors.kWhite,
                                                     child: Icon(
                                                       Icons.edit,
                                                       color: Kolors.kPrimary,
@@ -388,7 +385,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                                   onTap: () => _showDeleteConfirmation(item),
                                                   child: CircleAvatar(
                                                     radius: 15.r,
-                                                    backgroundColor: Kolors.kSecondaryLight,
+                                                    backgroundColor: Kolors.kWhite,
                                                     child: Icon(
                                                       Icons.delete,
                                                       color: Colors.red,

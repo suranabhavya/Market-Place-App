@@ -9,6 +9,7 @@ import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/properties/widgets/staggered_tile_widget.dart';
 import 'package:marketplace_app/common/services/storage.dart';
@@ -110,11 +111,7 @@ class _UserListingsPageState extends State<UserListingsPage> {
         centerTitle: true,
       ),
       body: isLoading 
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
-              ),
-            )
+          ? const ListShimmer()
           : errorMessage != null
               ? Center(
                   child: Column(

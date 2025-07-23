@@ -10,6 +10,7 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
@@ -165,8 +166,13 @@ class _PropertyPageState extends State<PropertyPage> {
     final property = propertyNotifier.selectedProperty;
 
     if (propertyNotifier.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(top: 20.h),
+            child: const ListShimmer(),
+          ),
+        ),
       );
     }
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/marketplace/widgets/marketplace_app_bar.dart';
 import 'package:marketplace_app/src/marketplace/widgets/explore_marketplace.dart';
@@ -112,11 +113,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
-                ),
-              )
+            ? const ListShimmer()
             : items.isEmpty
               ? Center(
                   child: Column(

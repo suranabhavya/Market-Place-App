@@ -273,7 +273,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                         onTap: () => _handleShare(),
                         child: CircleAvatar(
                           radius: 15.r,
-                          backgroundColor: Kolors.kSecondaryLight,
+                          backgroundColor: Kolors.kWhite,
                           child: Icon(
                             Icons.share,
                             color: Kolors.kGray,
@@ -300,7 +300,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                             },
                             child: CircleAvatar(
                               radius: 15.r,
-                              backgroundColor: Kolors.kSecondaryLight,
+                              backgroundColor: Kolors.kWhite,
                               child: Icon(
                                 AntDesign.heart,
                                 color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
@@ -326,7 +326,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           onTap: widget.onEdit,
                           child: CircleAvatar(
                             radius: 15.r,
-                            backgroundColor: Kolors.kSecondaryLight,
+                            backgroundColor: Kolors.kWhite,
                             child: Icon(
                               Icons.edit,
                               color: Kolors.kPrimary,
@@ -340,7 +340,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           onTap: _showDeleteConfirmationDialog,
                           child: CircleAvatar(
                             radius: 15.r,
-                            backgroundColor: Kolors.kSecondaryLight,
+                            backgroundColor: Kolors.kWhite,
                             child: Icon(
                               Icons.delete,
                               color: Colors.red,
