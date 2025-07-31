@@ -99,4 +99,9 @@ class Environment {
   static String get androidKeystorePath {
     return dotenv.env['ANDROID_KEYSTORE_PATH'] ?? 'ANDROID_KEYSTORE_PATH not found';
   }
+
+  // Google Cloud Storage Configuration
+  static String get googleCloudServiceAccount {
+    return dotenv.env['GOOGLE_CLOUD_SERVICE_ACCOUNT'] ?? 'GOOGLE_CLOUD_SERVICE_ACCOUNT not found';
+  }
 }

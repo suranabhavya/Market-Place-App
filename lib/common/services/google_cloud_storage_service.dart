@@ -1,37 +1,62 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:googleapis_auth/auth_io.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 
 class GoogleCloudStorageService {
   static const String _bucketName = 'homiswap-images';
   static const String _baseUrl = 'https://storage.googleapis.com';
   
-  // Service account credentials - Replace with your actual credentials
-  static const Map<String, dynamic> _serviceAccountCredentials = {
-    "type": "service_account",
-    "project_id": "homiswap-backend",
-    "private_key_id": "800839bc59d5a397cec6985139903e23988a456d",
-    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDRoWoM8gQCcwjJ\n4C1CeZSuBMVogeAj8qV2W/uuLJjPuG+XOfXcAL3HebT1lG10YjlxJJdjHI6ykxKw\numc17KcVadVqhyFxAejw8HuZUyQhfVKI0TFQc1sDbM5Ei/wqIHIaXz0HKkuhH2oC\nE47N94lxCB9Z9PAjJiNg6NXXvZSeiLkfnbvGtDmFSqLyVx3JJj7vRfZwIy9Mqm4b\n/j2DK+StaQ1s5ivtpfmYlhyKTVOoIhR7RYpMV593mk6OLMgrXR1kWbWMw3/C/AOR\n+j/4jPmmCvppm3BZ5UMB6o1VhhK3FHYjdtpnrSeV9oafEpj7HehIpOzZtQnHaQnt\nzUhEbCHZAgMBAAECggEAXae3SRxQ9UUujn6UyeemqM5h4cxwdq8ABG6Y9VpgVSFJ\n3a7b7FP6daWm1rbe5cnCbw2RgwqtqBN0HLfSx7E4fqUfX24K30GisA5IshoGgN3M\nI2sOlKpM5a1VRCOkX6/KOoUFL2/ShSQTSOUy/ksSwQiHdTmslY+C69dqPm4o+WA9\n4pUh178U9efOvKsVu2/fLJD7Yht3r+m8F+hLsD3BTjap6egJKNJ65O5kJzAypwZC\nxBykAD5RWdQoab/HnfZMa0daQYE1Fvf5ZE1f0KjSLqyTk4Pm1RoAfDgq+q9xQFZG\nbkumZif/JDrwsKLSoj6+jUEGfmK+ewsLTI4u3MZxZwKBgQDxrAwffHfmPQZHl1ep\nhlYeSObboIyurockajRfMdEVZXyTHtDM5kdrspFda9QpC88jEUAsQyT9fO//hy2p\nmtPH4HnIWv5TLUyn4Q6/8iMcrQoAaaASabAmdTQmqFHb5qLkNvjaeVjBYw9echtj\n15z4oR68NFhVvSfBtYFkcnxozwKBgQDeDw9QWLlXAK//vSJqSOAmESFj9Os2vxix\n/gbiAdSSt1yqohJ+e+8eacletK0TsUT1vSPgS37eiLsjMYo0dKwYGfStsoLzkWeS\nhtp+Sgmb/ypkN6M/rXrbMQCjjIEvvQq/CeiLStxzjoBqNpinq9OARxNx5eqVEHim\nir3htF0k1wKBgH2PyBSr1Je46QRVK2SWuTOu6NL/TViMsQZIb8Ft3pXhTqIZhp6O\nnljkRAZnualBy3MKyW61zAgv23nFwAG4wYO9q0hfjnekt4kZs1Ii+f8yIFoqhtJK\nOw0gI+JZ3X4FDGjJ7u2D0otXbmrBml17bsD25UMfZy3Uw00vgnSvztedAoGAVxUm\n10aEIJd3bd5ZMb80kBkltBJnb8fPQnYxcs5u876Oy6fVgt7Nbmrj+oz2VwOs3IX5\nHMvejByo7utNnLaoiqcbKkcYTbaXHIJgCyizzgZqNHURQzagOHdmHb1LKFKFdVfI\nZ1/LRlH7ECwq/45F2keFW6Rjs2OLPRypzGq0IG8CgYB6hCUYNFM1RTzgOrE+hY5M\ns7yCUOBgJ7iaaCLDag3j4OvVYgvZ50KoekUvKPhwj/Hv4pQD3fT2R5JyaYwvf7DS\nePWortTF9nmNQv9+5vqwlFU2SwjlpOiPKPwdfxTeolUn9I/FA5khzj0O3q2jVtn0\nFqS+ztUPFYIXDkc8G9JvBg==\n-----END PRIVATE KEY-----\n",
-    "client_email": "homiswap-storage-service@homiswap-backend.iam.gserviceaccount.com",
-    "client_id": "105868636728282697486",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/homiswap-storage-service%40homiswap-backend.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
-  };
+  // Service account credentials - Load from environment or secure storage
+  static Map<String, dynamic>? _serviceAccountCredentials;
+  
+  static Future<Map<String, dynamic>> _getServiceAccountCredentials() async {
+    if (_serviceAccountCredentials != null) {
+      return _serviceAccountCredentials!;
+    }
+    
+    try {
+      // Load credentials from environment variables
+      final credentialsJson = Environment.googleCloudServiceAccount;
+      
+      if (credentialsJson.isEmpty || credentialsJson == 'GOOGLE_CLOUD_SERVICE_ACCOUNT not found') {
+        throw Exception('Google Cloud Service Account credentials not found in environment variables');
+      }
+      
+      debugPrint('Loading Google Cloud credentials from environment...');
+      
+      // Clean and parse the JSON credentials
+      // Replace literal \n with actual newlines for proper JSON parsing
+      final cleanedJson = credentialsJson.replaceAll('\\n', '\n');
+      final credentials = json.decode(cleanedJson) as Map<String, dynamic>;
+      
+      debugPrint('Successfully parsed Google Cloud credentials');
+      
+      // Cache the credentials
+      _serviceAccountCredentials = credentials;
+      
+      return credentials;
+    } catch (e) {
+      debugPrint('Error loading Google Cloud credentials: $e');
+      // Don't log the raw credentials for security
+      debugPrint('Failed to parse Google Cloud credentials from environment');
+      rethrow;
+    }
+  }
 
   /// Get authenticated HTTP client
   static Future<AuthClient> _getAuthenticatedClient() async {
     try {
       debugPrint('Getting authenticated client...');
       
-      final credentials = ServiceAccountCredentials.fromJson(_serviceAccountCredentials);
+      final credentials = await _getServiceAccountCredentials();
+      final serviceAccountCredentials = ServiceAccountCredentials.fromJson(credentials);
       const scopes = ['https://www.googleapis.com/auth/cloud-platform'];
       
-      final client = await clientViaServiceAccount(credentials, scopes);
+      final client = await clientViaServiceAccount(serviceAccountCredentials, scopes);
       debugPrint('Authentication successful');
       return client;
     } catch (e) {
