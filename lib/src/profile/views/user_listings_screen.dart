@@ -207,6 +207,7 @@ class _UserListingsPageState extends State<UserListingsPage> {
                                   context.read<WishlistNotifier>().toggleWishlist(
                                     property.id,
                                     () {},
+                                    type: 'property',
                                   );
                                 }
                               },

@@ -102,6 +102,25 @@ class _MarketplacePageState extends State<MarketplacePage> {
     final bool isLoading = (_currentItems == null && marketplaceNotifier.isLoading) || 
                          context.watch<WishlistNotifier>().isLoading;
     
+    // Debug logging
+    debugPrint('MarketplaceScreen - _currentItems: ${_currentItems?.length ?? 'null'}');
+    debugPrint('MarketplaceScreen - marketplaceNotifier.marketplaceItems: ${marketplaceNotifier.marketplaceItems.length}');
+    debugPrint('MarketplaceScreen - final items: ${items.length}');
+    debugPrint('MarketplaceScreen - isLoading: $isLoading');
+    debugPrint('MarketplaceScreen - marketplaceNotifier.isLoading: ${marketplaceNotifier.isLoading}');
+    debugPrint('MarketplaceScreen - wishlistNotifier.isLoading: ${context.watch<WishlistNotifier>().isLoading}');
+    debugPrint('MarketplaceScreen - items.isEmpty: ${items.isEmpty}');
+    
+    // Force refresh if items are empty but notifier has items
+    if (items.isEmpty && marketplaceNotifier.marketplaceItems.isNotEmpty && _currentItems == null) {
+      debugPrint('MarketplaceScreen - Items are empty but notifier has items, forcing refresh');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),

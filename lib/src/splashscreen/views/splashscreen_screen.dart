@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/auth_service.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/utils/debug_utils.dart';
 import 'package:marketplace_app/const/resource.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:provider/provider.dart';
@@ -58,6 +61,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 	}
 
 	_navigator() async {
+		// Add debugging for Android storage issues
+		DebugUtils.logStorageState();
+		DebugUtils.logAuthenticationState();
+		
 		// Preload properties data during splash screen
 		// Use addPostFrameCallback to avoid calling setState during build
 		WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,15 +87,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 		// Check if widget is still mounted before using context
 		if (!mounted) return;
 
-    GoRouter.of(context).go('/onboarding');
+		// Check if this is the first time opening the app
+		final firstOpen = Storage().getBool('firstOpen');
+		debugPrint("SplashScreen: firstOpen value: $firstOpen");
 		
-		// if (Storage().getBool('firstOpen') == null) {
-		// 	// Go to the onboarding screen
-		// 	GoRouter.of(context).go('/onboarding');
-		// } else {
-		// 	// Go to the Home Page
-		// 	GoRouter.of(context).go('/home');
-		// }
+		if (firstOpen == null) {
+			debugPrint("SplashScreen: First time opening app - going to onboarding");
+			// First time opening app - go to onboarding
+			GoRouter.of(context).go('/onboarding');
+		} else {
+			debugPrint("SplashScreen: Not first time - going to home");
+			// Not first time - always go to home screen
+			// Home screen will handle authentication state internally
+			GoRouter.of(context).go('/home');
+		}
 	}
 
   @override

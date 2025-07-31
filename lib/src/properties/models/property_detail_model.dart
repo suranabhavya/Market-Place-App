@@ -48,7 +48,7 @@ class PropertyDetailModel {
   int? bedrooms;
   int? bathrooms;
   int? squareFootage;
-  List<PropertyImage>? images;
+  final List<String>? images;
   List<String>? deletedImages;
   DateTime createdAt;
   DateTime updatedAt;
@@ -120,9 +120,7 @@ class PropertyDetailModel {
         bedrooms: json["bedrooms"],
         bathrooms: json["bathrooms"],
         squareFootage: json["square_footage"],
-        images: json["images"] != null
-            ? List<PropertyImage>.from(json["images"].map((x) => PropertyImage.fromJson(x)))
-            : [],
+        images: (json['images'] as List?)?.map((img) => img is String ? img : (img['url'] ?? '') as String).toList(),
         deletedImages: json["deleted_images"]?.cast<String>(),
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
@@ -175,7 +173,7 @@ class PropertyDetailModel {
         "bedrooms": bedrooms,
         "bathrooms": bathrooms,
         "square_footage": squareFootage,
-        "images": images?.map((x) => x.toJson()).toList(),
+        "images": images,
         if (deletedImages != null) "deleted_images": deletedImages,
         "created_at": createdAt.toIso8601String(),
         "updated_at": updatedAt.toIso8601String(),

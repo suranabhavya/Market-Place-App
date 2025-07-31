@@ -53,7 +53,7 @@ WishlistHookResult useFetchWishlist() {
       }
 
       final response = await http.get(
-        Uri.parse('${Environment.iosAppBaseUrl}/api/wishlist/'),
+        Uri.parse('${Environment.baseUrl}/api/wishlist/'),
         headers: {
           "Authorization": "Token $token",
           "Content-Type": "application/json",

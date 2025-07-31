@@ -18,6 +18,7 @@ import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/properties/services/property_service_v2.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
 import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
@@ -686,14 +687,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
       };
 
       if (widget.isEditing && widget.propertyId != null) {
-        // For editing, add images and deleted images to the property data
-        if (_images.isNotEmpty) {
-          propertyData['images'] = _images.map((file) => file.path).toList();
-        }
-        if (_deletedImages.isNotEmpty) {
-          propertyData['deleted_images'] = _deletedImages;
-        }
-        
+        // For editing, the PropertyServiceV2 will handle image uploads and deletions
         try {
           // Get the access token
           String? accessToken = Storage().getString('accessToken');
@@ -701,28 +695,52 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
             throw Exception("User not authenticated");
           }
 
-          // Update property using PropertyNotifier
-          await context.read<PropertyNotifier>().updateProperty(
-            token: accessToken,
+          // Extract userId from stored user profile
+          String? userJson = Storage().getString('user');
+          String? userId;
+          if (userJson != null) {
+            try {
+              final userMap = jsonDecode(userJson);
+              userId = userMap['id']?.toString();
+            } catch (e) {
+              debugPrint('Error decoding user JSON: $e');
+            }
+          }
+          if (userId == null) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("User ID not found. Please re-login.")),
+              );
+            }
+            setState(() { _isLoading = false; });
+            return;
+          }
+
+          // Update property using PropertyServiceV2
+          await PropertyServiceV2.updateProperty(
             propertyId: widget.propertyId!,
             propertyData: propertyData,
-            onSuccess: () {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Property updated successfully!")),
-                );
-                context.pop();
-                context.read<PropertyNotifier>().fetchProperties();
-              }
+            images: _images,
+            userId: userId,
+            deletedImages: _deletedImages.isNotEmpty ? _deletedImages : null,
+            onProgress: (progress) {
+              debugPrint('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
             },
-            onError: () {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Failed to update property")),
-                );
-              }
-            },
-          );
+          ).then((result) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Property updated successfully!")),
+              );
+              context.pop();
+              context.read<PropertyNotifier>().fetchProperties();
+            }
+          }).catchError((error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Failed to update property: $error")),
+              );
+            }
+          });
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -731,45 +749,49 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           }
         }
       } else {
-        try {
-          // For new properties, add images to the property data
-          if (_images.isNotEmpty) {
-            propertyData['images'] = _images.map((file) => file.path).toList();
-          }
-          
-          // Get the access token
-          String? accessToken = Storage().getString('accessToken');
-          if (accessToken == null) {
-            throw Exception("User not authenticated");
-          }
-
-          // Create property using PropertyNotifier
-          await context.read<PropertyNotifier>().createProperty(
-            token: accessToken,
-            propertyData: propertyData,
-            onSuccess: () {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Property created successfully!")),
-                );
-                context.pop();
-              }
-            },
-            onError: () {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Failed to create property")),
-                );
-              }
-            },
-          );
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Failed to create property: $e")),
-            );
+        // Create new property using Google Cloud Storage
+        // Extract userId from stored user profile
+        String? userJson = Storage().getString('user');
+        String? userId;
+        if (userJson != null) {
+          try {
+            final userMap = jsonDecode(userJson);
+            userId = userMap['id']?.toString();
+          } catch (e) {
+            debugPrint('Error decoding user JSON: $e');
           }
         }
+        if (userId == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("User ID not found. Please re-login.")),
+            );
+          }
+          setState(() { _isLoading = false; });
+          return;
+        }
+        await PropertyServiceV2.createProperty(
+          propertyData: propertyData,
+          images: _images,
+          userId: userId,
+          onProgress: (progress) {
+            debugPrint('Upload progress: \\${(progress * 100).toStringAsFixed(1)}%');
+          },
+        ).then((result) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Property created successfully!")),
+            );
+            context.pop();
+            context.read<PropertyNotifier>().fetchProperties();
+          }
+        }).catchError((error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to create property: $error")),
+            );
+          }
+        });
       }
     } finally {
       if (mounted) {

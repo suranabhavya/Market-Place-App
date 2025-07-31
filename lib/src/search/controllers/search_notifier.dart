@@ -77,7 +77,7 @@ class SearchNotifier with ChangeNotifier {
     debugPrint('Fetching autocomplete for query: $query');
     
     try {
-      final url = '${Environment.iosAppBaseUrl}/api/autocomplete/?q=$query';
+      final url = '${Environment.baseUrl}/api/autocomplete/?q=$query';
       debugPrint('Autocomplete URL: $url');
       
       final response = await http.get(
@@ -121,7 +121,7 @@ class SearchNotifier with ChangeNotifier {
     setSearchKey(searchKey);
     clearAutocompleteResults(); // Clear autocomplete when performing search
 
-    Uri url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/?search=$searchKey');
+    Uri url = Uri.parse('${Environment.baseUrl}/api/properties/?search=$searchKey');
 
     try {
       var response = await http.get(url);

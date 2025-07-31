@@ -13,6 +13,7 @@ import 'package:marketplace_app/src/profile/views/profile_screen.dart';
 import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
+import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatefulWidget {
@@ -38,17 +39,19 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     super.initState();
     _lastToken = Storage().getString('accessToken');
     
-    // Initialize wishlist state on startup
+    // Initialize user state on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentToken = Storage().getString('accessToken');
       final wishlistNotifier = context.read<WishlistNotifier>();
+      final profileNotifier = context.read<ProfileNotifier>();
       
       if (currentToken != null) {
-        // User is logged in - load their wishlist
+        // User is logged in - load their data
+        profileNotifier.loadUserFromStorage();
         wishlistNotifier.loadWishlistFromStorage();
         wishlistNotifier.fetchWishlist();
       } else {
-        // No user logged in - clear wishlist
+        // No user logged in - clear data
         wishlistNotifier.clearWishlist();
       }
     });
@@ -66,19 +69,22 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     if (currentToken != _lastToken) {
       _lastToken = currentToken;
       
-      // Handle wishlist state based on token change
+      // Handle user state based on token change
       try {
+        final profileNotifier = context.read<ProfileNotifier>();
         final wishlistNotifier = context.read<WishlistNotifier>();
+        
         if (currentToken == null) {
-          // User logged out - clear wishlist
+          // User logged out - clear data
           wishlistNotifier.clearWishlist();
         } else {
-          // User logged in or switched - load their wishlist
+          // User logged in or switched - load their data
+          profileNotifier.loadUserFromStorage();
           wishlistNotifier.loadWishlistFromStorage();
           wishlistNotifier.fetchWishlist();
         }
       } catch (e) {
-        debugPrint('WishlistNotifier not available: $e');
+        debugPrint('Notifiers not available: $e');
       }
       
       // Token changed, reconnect WebSocket if needed
@@ -102,7 +108,6 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       providers: [
         ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
         ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
-        ChangeNotifierProvider(create: (_) => WishlistNotifier()),
         ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
       ],
       child: Consumer<TabIndexNotifier>(

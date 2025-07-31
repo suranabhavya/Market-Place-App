@@ -5,6 +5,7 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
+import 'package:marketplace_app/common/utils/image_utils.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
@@ -48,40 +49,52 @@ class _ChatPageState extends State<ChatPage> {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
 
-    final wsUrl = Environment.iosWsBaseUrl;
+    try {
+      final wsUrl = Environment.iosWsBaseUrl;
 
-    // Connect to the user chats WebSocket endpoint.
-    channel = WebSocketChannel.connect(
-      Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
-    );
-    channel!.stream.listen((data) {
-      try {
-        final decoded = jsonDecode(data);
-        // If the payload contains the key "chats", update our local chat list.
-        if (decoded.containsKey("chats")) {
-          setState(() {
-            chats = decoded["chats"];
-            isLoading = false;
-          });
-          // Calculate total unread count from all chats.
-          final int totalUnread = (decoded["chats"] as List)
-              .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
-          // Update the global unread count in the notifier.
-          if (mounted) {
-            Provider.of<UnreadCountNotifier>(context, listen: false)
-                .setGlobalUnreadCount(totalUnread);
+      // Connect to the user chats WebSocket endpoint.
+      channel = WebSocketChannel.connect(
+        Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
+      );
+      channel!.stream.listen((data) {
+        try {
+          final decoded = jsonDecode(data);
+          // If the payload contains the key "chats", update our local chat list.
+          if (decoded.containsKey("chats")) {
+            if (mounted) {
+              setState(() {
+                chats = decoded["chats"];
+                isLoading = false;
+              });
+              // Calculate total unread count from all chats.
+              final int totalUnread = (decoded["chats"] as List)
+                  .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
+              // Update the global unread count in the notifier.
+              if (mounted) {
+                Provider.of<UnreadCountNotifier>(context, listen: false)
+                    .setGlobalUnreadCount(totalUnread);
+              }
+            }
           }
+        } catch (e) {
+          debugPrint("Error decoding WS data: $e");
         }
-      } catch (e) {
-        debugPrint("Error decoding WS data: $e");
-      }
-    });
+      }, onError: (error) {
+        debugPrint("WebSocket error: $error");
+      });
+    } catch (e) {
+      debugPrint("Error connecting to WebSocket: $e");
+    }
   }
 
   @override
   void dispose() {
     if (channel != null) {
-      channel!.sink.close();
+      try {
+        channel!.sink.close();
+      } catch (e) {
+        debugPrint("Error closing WebSocket: $e");
+      }
     }
     super.dispose();
   }
@@ -96,6 +109,8 @@ class _ChatPageState extends State<ChatPage> {
       return "";
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -160,12 +175,10 @@ class _ChatPageState extends State<ChatPage> {
                   leading: CircleAvatar(
                     radius: 24.w,
                     backgroundColor: Colors.grey,
-                    backgroundImage: (chat["sender_profile_photo"] != null &&
-                            (chat["sender_profile_photo"] as String).isNotEmpty)
-                        ? NetworkImage(chat["sender_profile_photo"])
-                        : null,
+                    backgroundImage: ImageUtils.getImageProvider(chat["sender_profile_photo"]),
                     child: (chat["sender_profile_photo"] == null ||
-                            (chat["sender_profile_photo"] as String).isEmpty)
+                            (chat["sender_profile_photo"] as String).isEmpty ||
+                            ImageUtils.getImageProvider(chat["sender_profile_photo"]) == null)
                         ? Icon(Icons.person, size: 48.w)
                         : null,
                   ),

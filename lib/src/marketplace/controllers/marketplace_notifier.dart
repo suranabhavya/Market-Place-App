@@ -8,6 +8,7 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
+import 'package:marketplace_app/common/services/google_cloud_storage_service.dart';
 
 class PropertyListItem {
   final String id;
@@ -117,7 +118,7 @@ class MarketplaceNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '${Environment.iosAppBaseUrl}/api/marketplace/autocomplete/?q=$query';
+      final url = '${Environment.baseUrl}/api/marketplace/autocomplete/?q=$query';
       debugPrint('Fetching marketplace autocomplete from: $url');
       
       final response = await http.get(
@@ -219,7 +220,7 @@ class MarketplaceNotifier extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('${Environment.iosAppBaseUrl}/api/properties/my_listings/'),
+        Uri.parse('${Environment.baseUrl}/api/properties/my_listings/'),
         headers: {
           'Authorization': 'Token $token',
         },
@@ -244,7 +245,7 @@ class MarketplaceNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
-      String url = '${Environment.iosAppBaseUrl}/api/marketplace/';
+      String url = '${Environment.baseUrl}/api/marketplace/';
       
       // Build query parameters
       final queryParams = <String, String>{};
@@ -322,6 +323,7 @@ class MarketplaceNotifier extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      debugPrint("MarketplaceNotifier - Calling notifyListeners() with ${_marketplaceItems.length} items");
       notifyListeners();
     }
   }
@@ -333,7 +335,7 @@ class MarketplaceNotifier extends ChangeNotifier {
     notifyListeners();
 
     try {
-      String url = '${Environment.iosAppBaseUrl}/api/marketplace/';
+      String url = '${Environment.baseUrl}/api/marketplace/';
       
       // Build query parameters
       final queryParams = <String, String>{};
@@ -403,7 +405,10 @@ class MarketplaceNotifier extends ChangeNotifier {
       if (response.statusCode == 200) {
         debugPrint("response body: ${response.body}");
         final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
+        debugPrint("Parsed paginated response - count: ${paginatedResponse.count}");
+        debugPrint("Parsed paginated response - results length: ${paginatedResponse.results.length}");
         _marketplaceItems = paginatedResponse.results;
+        debugPrint("Set _marketplaceItems length: ${_marketplaceItems.length}");
       } else {
         _error = 'Failed to fetch marketplace items';
       }
@@ -411,131 +416,15 @@ class MarketplaceNotifier extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      debugPrint("MarketplaceNotifier - Calling notifyListeners() with ${_marketplaceItems.length} items");
       notifyListeners();
-    }
-  }
-
-  // Create marketplace item
-  Future<void> createMarketplaceItem({
-    required String token,
-    required Map<String, dynamic> marketplaceData,
-    required Function onSuccess,
-    required Function onError,
-  }) async {
-    String apiUrl = '${Environment.iosAppBaseUrl}/api/marketplace/';
-
-    try {
-      debugPrint('Creating marketplace item');
-      debugPrint('Marketplace data: $marketplaceData');
-      
-      var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
-      request.headers['Authorization'] = 'Token $token';
-
-      // Handle images
-      List<String>? imagePaths = marketplaceData['images'] as List<String>?;
-      if (imagePaths != null && imagePaths.isNotEmpty) {
-        debugPrint('Adding ${imagePaths.length} images');
-        for (var imagePath in imagePaths) {
-          File imageFile = File(imagePath);
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'images',
-              imageFile.path,
-              filename: path.basename(imageFile.path),
-            ),
-          );
-        }
-      }
-
-      // Add basic fields
-      request.fields['title'] = marketplaceData['title'] ?? '';
-      if (marketplaceData['description'] != null) {
-        request.fields['description'] = marketplaceData['description'];
-      }
-      request.fields['price'] = marketplaceData['price'].toString();
-      
-      // Handle original_price properly - only add if not null
-      if (marketplaceData['original_price'] != null) {
-        request.fields['original_price'] = marketplaceData['original_price'].toString();
-      }
-      
-      request.fields['item_type'] = marketplaceData['item_type'] ?? '';
-      request.fields['item_subtype'] = marketplaceData['item_subtype'] ?? '';
-      request.fields['condition'] = marketplaceData['condition'] ?? '';
-      request.fields['negotiable'] = marketplaceData['negotiable'].toString();
-      request.fields['delivery_available'] = marketplaceData['delivery_available'].toString();
-      request.fields['address'] = marketplaceData['address'] ?? '';
-      
-      if (marketplaceData['property_id'] != null && marketplaceData['property_id'].toString().isNotEmpty) {
-        request.fields['property_id'] = marketplaceData['property_id'].toString();
-      }
-      
-      if (marketplaceData['unit'] != null && marketplaceData['unit'].toString().isNotEmpty) {
-        request.fields['unit'] = marketplaceData['unit'].toString();
-      }
-      
-      if (marketplaceData['latitude'] != null) {
-        request.fields['latitude'] = marketplaceData['latitude'].toString();
-      }
-      
-      if (marketplaceData['longitude'] != null) {
-        request.fields['longitude'] = marketplaceData['longitude'].toString();
-      }
-      
-      // Add address components
-      if (marketplaceData['city'] != null && marketplaceData['city'].toString().isNotEmpty) {
-        request.fields['city'] = marketplaceData['city'].toString();
-      }
-      
-      if (marketplaceData['state'] != null && marketplaceData['state'].toString().isNotEmpty) {
-        request.fields['state'] = marketplaceData['state'].toString();
-      }
-      
-      if (marketplaceData['pincode'] != null && marketplaceData['pincode'].toString().isNotEmpty) {
-        request.fields['pincode'] = marketplaceData['pincode'].toString();
-      }
-      
-      if (marketplaceData['country'] != null && marketplaceData['country'].toString().isNotEmpty) {
-        request.fields['country'] = marketplaceData['country'].toString();
-      }
-      
-      request.fields['hide_address'] = marketplaceData['hide_address'].toString();
-      
-      if (marketplaceData['availability_date'] != null) {
-        request.fields['availability_date'] = marketplaceData['availability_date'];
-      }
-      
-      request.fields['original_receipt_available'] = marketplaceData['original_receipt_available'].toString();
-
-      // Add school_ids if present
-      if (marketplaceData['school_ids'] != null && marketplaceData['school_ids'].isNotEmpty) {
-        String schoolIdsString = marketplaceData['school_ids'].join(',');
-        request.fields['school_ids'] = schoolIdsString;
-      }
-
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-
-      debugPrint('Create API Response Status: ${response.statusCode}');
-      debugPrint('Create API Response Body: $responseBody');
-
-      if (response.statusCode == 201) {
-        debugPrint('✅ Successfully created marketplace item');
-        onSuccess();
-      } else {
-        debugPrint('❌ Failed to create marketplace item: $responseBody');
-        onError();
-      }
-    } catch (e) {
-      debugPrint('💥 Error creating marketplace item: $e');
-      onError();
     }
   }
 
   // Fetch marketplace detail
   Future<MarketplaceDetailModel?> fetchMarketplaceDetail(String itemId) async {
     try {
-      final url = '${Environment.iosAppBaseUrl}/api/marketplace/$itemId/';
+      final url = '${Environment.baseUrl}/api/marketplace/$itemId/';
       debugPrint('Fetching marketplace detail from: $url');
       
       final response = await http.get(Uri.parse(url));
@@ -556,7 +445,7 @@ class MarketplaceNotifier extends ChangeNotifier {
   // Fetch user's marketplace listings
   Future<List<MarketplaceListModel>> fetchUserMarketplaceListings(String token) async {
     try {
-      final url = '${Environment.iosAppBaseUrl}/api/marketplace/my_listings/';
+      final url = '${Environment.baseUrl}/api/marketplace/my_listings/';
       debugPrint('Fetching user marketplace listings from: $url');
       
       final response = await http.get(
@@ -595,131 +484,6 @@ class MarketplaceNotifier extends ChangeNotifier {
     }
   }
 
-  // Update marketplace item
-  Future<void> updateMarketplaceItem({
-    required String token,
-    required String itemId,
-    required Map<String, dynamic> marketplaceData,
-    required Function onSuccess,
-    required Function onError,
-  }) async {
-    String apiUrl = '${Environment.iosAppBaseUrl}/api/marketplace/$itemId/';
-
-    try {
-      debugPrint('Updating marketplace item with ID: $itemId');
-      debugPrint('Update data: $marketplaceData');
-      
-      var request = http.MultipartRequest("PUT", Uri.parse(apiUrl));
-      request.headers['Authorization'] = 'Token $token';
-
-      // Handle deleted_images first (this is important for your backend)
-      if (marketplaceData['deleted_images'] != null && (marketplaceData['deleted_images'] as List).isNotEmpty) {
-        List<String> deletedImages = List<String>.from(marketplaceData['deleted_images']);
-        request.fields['deleted_images'] = jsonEncode(deletedImages);
-        debugPrint('Adding deleted images: $deletedImages');
-      }
-
-      // Handle new images (only add new images if provided)
-      List<String>? imagePaths = marketplaceData['images'] as List<String>?;
-      if (imagePaths != null && imagePaths.isNotEmpty) {
-        debugPrint('Adding ${imagePaths.length} new images for update');
-        for (var imagePath in imagePaths) {
-          File imageFile = File(imagePath);
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'images',
-              imageFile.path,
-              filename: path.basename(imageFile.path),
-            ),
-          );
-        }
-      }
-
-      // Add basic fields
-      request.fields['title'] = marketplaceData['title'] ?? '';
-      if (marketplaceData['description'] != null) {
-        request.fields['description'] = marketplaceData['description'];
-      }
-      request.fields['price'] = marketplaceData['price'].toString();
-      
-      // Handle original_price properly - only add if not null
-      if (marketplaceData['original_price'] != null) {
-        request.fields['original_price'] = marketplaceData['original_price'].toString();
-      }
-      
-      request.fields['item_type'] = marketplaceData['item_type'] ?? '';
-      request.fields['item_subtype'] = marketplaceData['item_subtype'] ?? '';
-      request.fields['condition'] = marketplaceData['condition'] ?? '';
-      request.fields['negotiable'] = marketplaceData['negotiable'].toString();
-      request.fields['delivery_available'] = marketplaceData['delivery_available'].toString();
-      request.fields['address'] = marketplaceData['address'] ?? '';
-      
-      if (marketplaceData['property_id'] != null && marketplaceData['property_id'].toString().isNotEmpty) {
-        request.fields['property_id'] = marketplaceData['property_id'].toString();
-      }
-      
-      if (marketplaceData['unit'] != null && marketplaceData['unit'].toString().isNotEmpty) {
-        request.fields['unit'] = marketplaceData['unit'].toString();
-      }
-      
-      if (marketplaceData['latitude'] != null) {
-        request.fields['latitude'] = marketplaceData['latitude'].toString();
-      }
-      
-      if (marketplaceData['longitude'] != null) {
-        request.fields['longitude'] = marketplaceData['longitude'].toString();
-      }
-      
-      // Add address components
-      if (marketplaceData['city'] != null && marketplaceData['city'].toString().isNotEmpty) {
-        request.fields['city'] = marketplaceData['city'].toString();
-      }
-      
-      if (marketplaceData['state'] != null && marketplaceData['state'].toString().isNotEmpty) {
-        request.fields['state'] = marketplaceData['state'].toString();
-      }
-      
-      if (marketplaceData['pincode'] != null && marketplaceData['pincode'].toString().isNotEmpty) {
-        request.fields['pincode'] = marketplaceData['pincode'].toString();
-      }
-      
-      if (marketplaceData['country'] != null && marketplaceData['country'].toString().isNotEmpty) {
-        request.fields['country'] = marketplaceData['country'].toString();
-      }
-      
-      request.fields['hide_address'] = marketplaceData['hide_address'].toString();
-      
-      if (marketplaceData['availability_date'] != null) {
-        request.fields['availability_date'] = marketplaceData['availability_date'];
-      }
-      
-      request.fields['original_receipt_available'] = marketplaceData['original_receipt_available'].toString();
-
-      // Add school_ids if present
-      if (marketplaceData['school_ids'] != null && marketplaceData['school_ids'].isNotEmpty) {
-        String schoolIdsString = marketplaceData['school_ids'].join(',');
-        request.fields['school_ids'] = schoolIdsString;
-      }
-
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-
-      debugPrint('Update API Response Status: ${response.statusCode}');
-      debugPrint('Update API Response Body: $responseBody');
-
-      if (response.statusCode == 200) {
-        debugPrint('✅ Successfully updated marketplace item');
-        onSuccess();
-      } else {
-        debugPrint('❌ Failed to update marketplace item: $responseBody');
-        onError();
-      }
-    } catch (e) {
-      debugPrint('💥 Error updating marketplace item: $e');
-      onError();
-    }
-  }
-
   // Delete marketplace item
   Future<void> deleteMarketplaceItem({
     required String token,
@@ -727,7 +491,7 @@ class MarketplaceNotifier extends ChangeNotifier {
     required Function onSuccess,
     required Function onError,
   }) async {
-    String apiUrl = '${Environment.iosAppBaseUrl}/api/marketplace/$itemId/';
+    String apiUrl = '${Environment.baseUrl}/api/marketplace/$itemId/';
 
     try {
       debugPrint('Deleting marketplace item with ID: $itemId');

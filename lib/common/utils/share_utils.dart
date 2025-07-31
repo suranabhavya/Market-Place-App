@@ -13,7 +13,7 @@ class ShareUtils {
   static Future<void> testShare() async {
     try {
       developer.log('Testing share functionality...');
-      await Share.share('This is a test share from HomiSwap app!');
+      await Share.share('This is a test share from Sublyst app!');
       developer.log('Share test completed successfully');
     } catch (e) {
       developer.log('Share test failed: $e');
@@ -41,7 +41,7 @@ ${property.description}
 
 🔗 View more details and contact the owner through our app!
 
-#PropertyRental #Housing #Apartment #HomiSwap
+#PropertyRental #Housing #Apartment #Sublyst
       '''.trim();
 
       await Share.share(
@@ -78,7 +78,7 @@ ${property.description}
 
 🔗 View more details and contact the owner through our app!
 
-#PropertyRental #Housing #Apartment #HomiSwap
+#PropertyRental #Housing #Apartment #Sublyst
       '''.trim();
 
       await Share.share(
@@ -124,7 +124,7 @@ ${item.description}
 
 🔗 Get this item through our marketplace!
 
-#MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #HomiSwap
+#MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #Sublyst
       '''.trim();
 
       // Share the formatted text
@@ -172,7 +172,7 @@ ${item.description}
 
 🔗 Get this item through our marketplace!
 
-#MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #HomiSwap
+#MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #Sublyst
       '''.trim();
 
       // Share the formatted text

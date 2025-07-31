@@ -237,7 +237,26 @@ class _PropertyPageState extends State<PropertyPage> {
                         if(accessToken == null) {
                           loginBottomSheet(context);
                         } else {
-                          wishlistNotifier.toggleWishlist(property.id, () {});
+                          wishlistNotifier.toggleWishlist(
+                            property.id, 
+                            () {
+                              // Refresh the property details and nearby properties if needed
+                              setState(() {});
+                              
+                              // Show error message if there was an error
+                              if (wishlistNotifier.error != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(wishlistNotifier.error!),
+                                    backgroundColor: Kolors.kRed,
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                                wishlistNotifier.clearError(); // Clear error after showing
+                              }
+                            },
+                            type: 'property',
+                          );
                         }
                       },
                       child: CircleAvatar(
@@ -275,7 +294,7 @@ class _PropertyPageState extends State<PropertyPage> {
                         ),
                       ),
                       height: 350.h,
-                      imageUrl: property.images![i].url,
+                      imageUrl: property.images![i],
                       fit: BoxFit.cover,
                     );
                   }),
@@ -1243,6 +1262,18 @@ class _PropertyPageState extends State<PropertyPage> {
                                                     () {
                                                       // Refetch callback
                                                       setState(() {});
+                                                      
+                                                                                                             // Show error message if there was an error
+                                                       if (wishlistNotifier.error != null) {
+                                                         ScaffoldMessenger.of(context).showSnackBar(
+                                                           SnackBar(
+                                                             content: Text(wishlistNotifier.error!),
+                                                             backgroundColor: Kolors.kRed,
+                                                             duration: const Duration(seconds: 3),
+                                                           ),
+                                                         );
+                                                         wishlistNotifier.clearError(); // Clear error after showing
+                                                       }
                                                     },
                                                     type: 'marketplace',
                                                   );

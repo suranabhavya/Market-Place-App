@@ -179,7 +179,8 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
                     } else {
                       context.read<WishlistNotifier>().toggleWishlist(
                         property.id,
-                        () {}
+                        () {},
+                        type: 'property',
                       );
                     }
                   },

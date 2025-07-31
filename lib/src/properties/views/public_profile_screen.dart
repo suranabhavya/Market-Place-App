@@ -243,6 +243,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                                 () {
                                   setState(() {});
                                 },
+                                type: 'property',
                               );
                             }
                           },
@@ -274,9 +275,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       itemCount: userProfile!["move_out_sale_items"].length,
                       itemBuilder: (context, index) {
                         final item = userProfile!["move_out_sale_items"][index];
+                        debugPrint('Marketplace item $index: ${item["title"]}');
+                        debugPrint('Marketplace item images: ${item["images"]}');
                         final String? imageUrl = item["images"] != null && item["images"].isNotEmpty 
-                            ? item["images"][0]["image"] 
+                            ? item["images"][0]["url"] 
                             : null;
+                        debugPrint('Extracted imageUrl: $imageUrl');
 
                         return GestureDetector(
                           onTap: () => context.push('/marketplace/${item["id"]}'),

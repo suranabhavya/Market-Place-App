@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
+import 'package:marketplace_app/common/services/auth_service.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/services/push_notification_service.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
@@ -90,9 +91,8 @@ class AuthNotifier with ChangeNotifier {
         var responseData = jsonDecode(response.body);
         AuthModel authData = AuthModel.fromJson(responseData);
 
-        // Store token and user details
-        Storage().setString('accessToken', authData.token);
-        Storage().setString('user', jsonEncode(authData.user.toJson()));
+        // Store token and user details with timestamp
+        AuthService().storeAuthData(authData.token, authData.user);
 
         // Update FCM token association with user (skip on iOS if push notifications disabled)
         try {
@@ -138,9 +138,8 @@ class AuthNotifier with ChangeNotifier {
         var responseData = jsonDecode(response.body);
         AuthModel authData = AuthModel.fromJson(responseData);
 
-        // Store token and user details
-        Storage().setString('accessToken', authData.token);
-        Storage().setString('user', jsonEncode(authData.user.toJson()));
+        // Store token and user details with timestamp
+        AuthService().storeAuthData(authData.token, authData.user);
 
         // Update FCM token association with user (skip on iOS if push notifications disabled)
         try {
@@ -167,21 +166,7 @@ class AuthNotifier with ChangeNotifier {
   }
 
   User? getUserData() {
-    // String? accessToken = Storage().getString('accessToken');
-
-    // if(accessToken != null) {
-    //   var data = Storage().getString(accessToken);
-    //   if(data != null) {
-    //     print("data is: $data");
-    //     return profileModelFromJson(data);
-    //   }
-    // }
-    // return null;
-    String? userData = Storage().getString('user');
-    if (userData != null) {
-      return User.fromJson(jsonDecode(userData));
-    }
-    return null;
+    return AuthService().getCurrentUser();
   }
 
   Future<bool> generateOTP(String data) async {
@@ -292,7 +277,7 @@ class AuthNotifier with ChangeNotifier {
     setLoading(true);
 
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/accounts/token/login/');
+      var url = Uri.parse('${Environment.baseUrl}/accounts/token/login/');
       var response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -436,9 +421,8 @@ class AuthNotifier with ChangeNotifier {
         // Parse the response using AuthModel
         final AuthModel authData = AuthModel.fromJson(responseData);
         
-        // Store token and user details
-        Storage().setString('accessToken', authData.token);
-        Storage().setString('user', jsonEncode(authData.user.toJson()));
+        // Store token and user details with timestamp
+        AuthService().storeAuthData(authData.token, authData.user);
         
         // Update FCM token association with user (skip on iOS if push notifications disabled)
         try {

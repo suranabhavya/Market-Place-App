@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 // New class to handle paginated response
 class PaginatedMarketplaceResponse {
@@ -14,14 +15,28 @@ class PaginatedMarketplaceResponse {
     required this.results,
   });
 
-  factory PaginatedMarketplaceResponse.fromJson(Map<String, dynamic> json) =>
-      PaginatedMarketplaceResponse(
+  factory PaginatedMarketplaceResponse.fromJson(Map<String, dynamic> json) {
+    try {
+      debugPrint('PaginatedMarketplaceResponse.fromJson - count: ${json["count"]}');
+      debugPrint('PaginatedMarketplaceResponse.fromJson - results length: ${json["results"]?.length ?? 'null'}');
+      
+      final results = List<MarketplaceListModel>.from(
+          json["results"].map((x) => MarketplaceListModel.fromJson(x)));
+      
+      debugPrint('PaginatedMarketplaceResponse.fromJson - parsed results length: ${results.length}');
+      
+      return PaginatedMarketplaceResponse(
         count: json["count"],
         next: json["next"],
         previous: json["previous"],
-        results: List<MarketplaceListModel>.from(
-            json["results"].map((x) => MarketplaceListModel.fromJson(x))),
+        results: results,
       );
+    } catch (e) {
+      debugPrint('Error parsing PaginatedMarketplaceResponse: $e');
+      debugPrint('JSON data: $json');
+      rethrow;
+    }
+  }
 
   Map<String, dynamic> toJson() => {
         "count": count,
@@ -32,8 +47,18 @@ class PaginatedMarketplaceResponse {
 }
 
 // Parse the paginated response from JSON
-PaginatedMarketplaceResponse paginatedMarketplaceFromJson(String str) =>
-    PaginatedMarketplaceResponse.fromJson(json.decode(str));
+PaginatedMarketplaceResponse paginatedMarketplaceFromJson(String str) {
+  try {
+    debugPrint('paginatedMarketplaceFromJson - input string length: ${str.length}');
+    final jsonData = json.decode(str);
+    debugPrint('paginatedMarketplaceFromJson - decoded JSON type: ${jsonData.runtimeType}');
+    return PaginatedMarketplaceResponse.fromJson(jsonData);
+  } catch (e) {
+    debugPrint('Error in paginatedMarketplaceFromJson: $e');
+    debugPrint('Input string: $str');
+    rethrow;
+  }
+}
 
 String paginatedMarketplaceToJson(PaginatedMarketplaceResponse data) =>
     json.encode(data.toJson());
@@ -51,7 +76,7 @@ class MarketplaceImage {
 
   factory MarketplaceImage.fromJson(Map<String, dynamic> json) => MarketplaceImage(
     id: json["id"],
-    image: json["image"],
+    image: json["image_url"] ?? json["url"] ?? json["image"] ?? '',
     uploadedAt: DateTime.parse(json["uploaded_at"]),
   );
 
@@ -99,28 +124,36 @@ class MarketplaceListModel {
     this.schoolsNearby,
   });
 
-  factory MarketplaceListModel.fromJson(Map<String, dynamic> json) => MarketplaceListModel(
-    id: json["id"],
-    title: json["title"],
-    price: double.parse(json["price"]),
-    originalPrice: json["original_price"] != null ? double.parse(json["original_price"]) : null,
-    itemType: json["item_type"],
-    itemSubtype: json["item_subtype"],
-    address: json["address"],
-    city: json["city"],
-    state: json["state"],
-    pincode: json["pincode"],
-    hideAddress: json["hide_address"] ?? false,
-    createdAt: DateTime.parse(json["created_at"]),
-    updatedAt: DateTime.parse(json["updated_at"]),
-    isActive: json["is_active"],
-    images: json["images"] != null
-        ? List<MarketplaceImage>.from(json["images"].map((x) => MarketplaceImage.fromJson(x)))
-        : [],
-    schoolsNearby: json["schools_nearby"] != null 
-        ? List<Map<String, dynamic>>.from(json["schools_nearby"])
-        : null,
-  );
+  factory MarketplaceListModel.fromJson(Map<String, dynamic> json) {
+    try {
+      return MarketplaceListModel(
+        id: json["id"],
+        title: json["title"],
+        price: double.parse(json["price"]),
+        originalPrice: json["original_price"] != null ? double.parse(json["original_price"]) : null,
+        itemType: json["item_type"],
+        itemSubtype: json["item_subtype"],
+        address: json["address"],
+        city: json["city"],
+        state: json["state"],
+        pincode: json["pincode"],
+        hideAddress: json["hide_address"] ?? false,
+        createdAt: DateTime.parse(json["created_at"]),
+        updatedAt: DateTime.parse(json["updated_at"]),
+        isActive: json["is_active"],
+        images: json["images"] != null
+            ? List<MarketplaceImage>.from(json["images"].map((x) => MarketplaceImage.fromJson(x)))
+            : [],
+        schoolsNearby: json["schools_nearby"] != null 
+            ? List<Map<String, dynamic>>.from(json["schools_nearby"])
+            : null,
+      );
+    } catch (e) {
+      debugPrint('Error parsing MarketplaceListModel: $e');
+      debugPrint('JSON data: $json');
+      rethrow;
+    }
+  }
 
   Map<String, dynamic> toJson() => {
     "id": id,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/auth_service.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -98,13 +99,12 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               // First close the dialog
               Navigator.pop(dialogContext);
               
-              // Clear user data
-              Storage().removeKey('accessToken');
-              Storage().removeKey('user');
+              // Logout using AuthService
+              await AuthService().logout();
               
               // Clear wishlist data
               try {

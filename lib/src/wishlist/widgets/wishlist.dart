@@ -69,6 +69,33 @@ class WishlistWidget extends HookWidget {
                       final property = item.item as PropertyListModel;
                       return StaggeredTileWidget(
                         property: property,
+                        onTap: () {
+                          final accessToken = Storage().getString('accessToken');
+                          if (accessToken == null) {
+                            loginBottomSheet(context);
+                          } else {
+                            final wishlistNotifier = context.read<WishlistNotifier>();
+                            wishlistNotifier.toggleWishlist(
+                              property.id,
+                              () {
+                                refetch();
+                                
+                                // Show error message if there was an error
+                                if (wishlistNotifier.error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(wishlistNotifier.error!),
+                                      backgroundColor: Kolors.kRed,
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                                                         wishlistNotifier.clearError(); // Clear error after showing
+                                }
+                              },
+                              type: 'property',
+                            );
+                          }
+                        },
                       );
                     }),
                   ],
@@ -212,7 +239,21 @@ class WishlistWidget extends HookWidget {
                               } else {
                                 wishlistNotifier.toggleWishlist(
                                   id,
-                                  refetch,
+                                  () {
+                                    refetch();
+                                    
+                                    // Show error message if there was an error
+                                    if (wishlistNotifier.error != null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(wishlistNotifier.error!),
+                                          backgroundColor: Kolors.kRed,
+                                          duration: const Duration(seconds: 3),
+                                        ),
+                                      );
+                                      wishlistNotifier.clearError(); // Clear error after showing
+                                    }
+                                  },
                                   type: 'marketplace',
                                 );
                               }

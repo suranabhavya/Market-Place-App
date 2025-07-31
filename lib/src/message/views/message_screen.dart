@@ -12,6 +12,7 @@ import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/image_utils.dart';
 import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:provider/provider.dart';
@@ -66,65 +67,94 @@ class _MessagePageState extends State<MessagePage> {
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
-    channel = WebSocketChannel.connect(
-      Uri.parse("${Environment.iosWsBaseUrl}/ws/chat/${widget.chatId}/?token=$token"),
-    );
-    channel.stream.listen((message) {
-      try {
-        final decodedMessage = jsonDecode(message);
-        setState(() {
-          messages.insert(0, decodedMessage);
-        });
-        // Optionally scroll to the bottom after receiving a message.
-        _scrollController.animateTo(
-          0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      } catch (e) {
-        debugPrint("Error decoding WS message: $e");
-      }
-    });
+    
+    try {
+      channel = WebSocketChannel.connect(
+        Uri.parse("${Environment.iosWsBaseUrl}/ws/chat/${widget.chatId}/?token=$token"),
+      );
+      channel.stream.listen((message) {
+        try {
+          final decodedMessage = jsonDecode(message);
+          if (mounted) {
+            setState(() {
+              messages.insert(0, decodedMessage);
+            });
+            // Optionally scroll to the bottom after receiving a message.
+            _scrollController.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        } catch (e) {
+          debugPrint("Error decoding WS message: $e");
+        }
+      }, onError: (error) {
+        debugPrint("WebSocket error: $error");
+      });
+    } catch (e) {
+      debugPrint("Error connecting to WebSocket: $e");
+    }
   }
 
   Future<void> fetchMessages() async {
     final String? token = Storage().getString('accessToken');
     if (token == null) {
-      const EmailSignupPage();
       return;
     }
-    final messenger = ScaffoldMessenger.of(context);
-    final response = await http.get(
-      Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/messages/'),
-      headers: {'Authorization': 'Token $token'},
-    );
-    if (response.statusCode == 200) {
-      setState(() {
-        messages = List.from(jsonDecode(response.body).reversed); // Reverse for correct order
-        isLoading = false;
-      });
-      debugPrint("messages are: $messages");
-    } else {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Failed to load messages"), backgroundColor: Colors.red),
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/messages/'),
+        headers: {'Authorization': 'Token $token'},
       );
+      
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            messages = List.from(jsonDecode(response.body).reversed); // Reverse for correct order
+            isLoading = false;
+          });
+          debugPrint("messages are: $messages");
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to load messages"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching messages: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error loading messages"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   Future<void> markMessagesAsRead() async {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
-    final unreadNotifier = context.read<UnreadCountNotifier>();
-    final response = await http.post(
-      Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/read/'),
-      headers: {'Authorization': 'Token $token'},
-    );
-    if (response.statusCode == 200) {
-      debugPrint("Messages marked as read");
-      // Refresh the unread count
-      unreadNotifier.refreshUnreadCount();
-    } else {
-      debugPrint("Failed to mark messages as read");
+    
+    try {
+      final unreadNotifier = context.read<UnreadCountNotifier>();
+      final response = await http.post(
+        Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/read/'),
+        headers: {'Authorization': 'Token $token'},
+      );
+      if (response.statusCode == 200) {
+        debugPrint("Messages marked as read");
+        // Refresh the unread count
+        if (mounted) {
+          unreadNotifier.refreshUnreadCount();
+        }
+      } else {
+        debugPrint("Failed to mark messages as read");
+      }
+    } catch (e) {
+      debugPrint("Error marking messages as read: $e");
     }
   }
 
@@ -135,10 +165,16 @@ class _MessagePageState extends State<MessagePage> {
     channel.sink.add(messageJson);
     _messageController.clear();
   }
+
+
   
   @override
   void dispose() {
-    channel.sink.close(ws_status.goingAway);
+    try {
+      channel.sink.close(ws_status.goingAway);
+    } catch (e) {
+      debugPrint("Error closing WebSocket: $e");
+    }
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -163,10 +199,10 @@ class _MessagePageState extends State<MessagePage> {
               child: CircleAvatar(
                 radius: 18.w,
                 backgroundColor: Colors.grey,
-                backgroundImage: widget.otherParticipantProfilePhoto != null && widget.otherParticipantProfilePhoto!.isNotEmpty
-                    ? NetworkImage(widget.otherParticipantProfilePhoto!)
-                    : null,
-                child: widget.otherParticipantProfilePhoto == null || widget.otherParticipantProfilePhoto!.isEmpty
+                backgroundImage: ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto),
+                child: widget.otherParticipantProfilePhoto == null || 
+                       widget.otherParticipantProfilePhoto!.isEmpty ||
+                       ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto) == null
                     ? Icon(Icons.person, size: 36.w)
                     : null,
               ),

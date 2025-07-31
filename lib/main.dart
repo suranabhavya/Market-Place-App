@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:marketplace_app/common/services/push_notification_service.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/app_routes.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
@@ -70,7 +71,7 @@ void main() async {
   // Initialize notification handlers and token logic (but NOT permission)
   await PushNotificationService().initializeHandlersAndToken();
 
-  await GetStorage.init();
+  await Storage.initialize();
 
   runApp(MultiProvider(
     providers: [

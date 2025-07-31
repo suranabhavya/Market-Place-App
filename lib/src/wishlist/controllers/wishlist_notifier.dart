@@ -18,6 +18,11 @@ class WishlistNotifier with ChangeNotifier {
     notifyListeners();
   }
 
+  void clearError() {
+    error = null;
+    notifyListeners();
+  }
+
   // Clear wishlist data (called on logout)
   void clearWishlist() {
     _wishlist.clear();
@@ -61,7 +66,7 @@ class WishlistNotifier with ChangeNotifier {
     
     try {
       final response = await http.get(
-        Uri.parse('${Environment.iosAppBaseUrl}/api/wishlist/'),
+        Uri.parse('${Environment.baseUrl}/api/wishlist/'),
         headers: {
           "Authorization": "Token $accessToken",
           "Content-Type": "application/json",
@@ -99,12 +104,27 @@ class WishlistNotifier with ChangeNotifier {
     // Check if user changed
     _checkUserChange();
 
-    _isLoading = true;
+    // Store the original state for rollback if needed
+    final bool wasInWishlist = _wishlist.contains(id);
+    
+    // Optimistic update - immediately update UI
+    if (wasInWishlist) {
+      _wishlist.remove(id);
+      debugPrint('Optimistically removed $type item from wishlist: $id');
+    } else {
+      _wishlist.add(id);
+      debugPrint('Optimistically added $type item to wishlist: $id');
+    }
+    
+    // Update UI immediately
     notifyListeners();
+
+    _isLoading = true;
     
     try {
-      Uri url = Uri.parse('${Environment.iosAppBaseUrl}/api/wishlist/toggle/?id=$id&type=$type');
+      Uri url = Uri.parse('${Environment.baseUrl}/api/wishlist/toggle/?id=$id&type=$type');
       debugPrint('Toggling wishlist for $type item: $id');
+      debugPrint('Request URL: $url');
       
       final response = await http.get(
         url,
@@ -112,31 +132,84 @@ class WishlistNotifier with ChangeNotifier {
           "Authorization": "Token $accessToken",
           "Content-Type": "application/json",
         },
-      );
+      ).timeout(const Duration(seconds: 15)); // Increased timeout for Cloud Run cold starts
+
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 201) {
+        // Item was added successfully
         if (!_wishlist.contains(id)) {
           _wishlist.add(id);
-          debugPrint('Added $type item to wishlist: $id');
         }
+        debugPrint('Successfully added $type item to wishlist: $id');
       } else if (response.statusCode == 204) {
+        // Item was removed successfully
         _wishlist.remove(id);
-        debugPrint('Removed $type item from wishlist: $id');
+        debugPrint('Successfully removed $type item from wishlist: $id');
+      } else if (response.statusCode == 401) {
+        // Authentication error
+        debugPrint('Authentication error - clearing access token');
+        Storage().removeKey('accessToken');
+        clearWishlist();
+        error = 'Session expired. Please log in again.';
+        _rollbackOptimisticUpdate(id, wasInWishlist);
+      } else if (response.statusCode == 404) {
+        // Not found error
+        error = 'Item not found.';
+        _rollbackOptimisticUpdate(id, wasInWishlist);
+      } else if (response.statusCode == 502) {
+        // Bad Gateway - Cloud Run cold start issue
+        debugPrint('502 Bad Gateway - likely Cloud Run cold start');
+        error = 'Service temporarily unavailable due to cold start. Please try again.';
+        _rollbackOptimisticUpdate(id, wasInWishlist);
+      } else if (response.statusCode >= 500) {
+        // Server error
+        debugPrint('Server error: ${response.statusCode}');
+        error = 'Server temporarily unavailable. Please try again later.';
+        _rollbackOptimisticUpdate(id, wasInWishlist);
       } else {
+        // Other error
         debugPrint('Error toggling wishlist: ${response.statusCode} ${response.body}');
+        _rollbackOptimisticUpdate(id, wasInWishlist);
+        error = 'Failed to update wishlist. Please try again.';
       }
 
-      // Only save to storage if we have a valid access token
-      Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
-          
-      notifyListeners();
-      refetch();
     } catch (e) {
-      error = e.toString();
-      debugPrint('Error toggling wishlist: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      debugPrint('Network error toggling wishlist: $e');
+      _rollbackOptimisticUpdate(id, wasInWishlist);
+      
+      if (e.toString().contains('TimeoutException')) {
+        error = 'Request timed out. The server may be starting up, please try again.';
+      } else {
+        error = 'Network error. Please check your connection and try again.';
+      }
+    }
+
+    // Save to storage only if no error occurred
+    if (error == null) {
+      Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
+    }
+        
+    _isLoading = false;
+    notifyListeners();
+    refetch();
+  }
+
+  /// Rollback optimistic update to original state
+  void _rollbackOptimisticUpdate(String id, bool wasInWishlist) {
+    if (wasInWishlist) {
+      // Rollback: add it back
+      if (!_wishlist.contains(id)) {
+        _wishlist.add(id);
+        debugPrint('Rolled back: added item back to wishlist: $id');
+      }
+    } else {
+      // Rollback: remove it
+      if (_wishlist.contains(id)) {
+        _wishlist.remove(id);
+        debugPrint('Rolled back: removed item from wishlist: $id');
+      }
     }
   }
 

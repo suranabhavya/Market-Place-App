@@ -3,7 +3,7 @@ description: "A new Flutter project."
 
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+4
 
 environment:
   sdk: ^3.8.0  # Current dart Version Dart 3.8.0 (used by Flutter 3.32.0)
@@ -55,6 +55,8 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   uuid: ^4.3.3
   share_plus: ^10.1.2
+  googleapis_auth: ^1.4.1
+  googleapis: ^11.4.0
 
 dev_dependencies:
   flutter_test:

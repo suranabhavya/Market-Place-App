@@ -161,7 +161,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  "HomiSwap",
+                  "Sublyst",
                   textAlign: TextAlign.center,
                   style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
                 ),
@@ -169,7 +169,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 SizedBox(height: 10.h),
             
                 Text(
-                  "Hey Homie! Let's get you set up and rolling!",
+                  "Hey! Let's get you set up and rolling!",
                   textAlign: TextAlign.center,
                   style: appStyle(13, Kolors.kGray, FontWeight.normal),
                 ),

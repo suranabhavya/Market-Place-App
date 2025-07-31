@@ -24,6 +24,7 @@ import 'package:marketplace_app/src/properties/models/place_autocomplete_respons
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/marketplace/widgets/marketplace_image_picker.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
+import 'package:marketplace_app/src/marketplace/services/marketplace_service_v2.dart';
 
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_date_picker.dart';
@@ -510,6 +511,27 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       String? token = Storage().getString('accessToken');
       if (token == null) throw Exception("User not authenticated");
 
+      // Extract userId from stored user profile
+      String? userJson = Storage().getString('user');
+      String? userId;
+      if (userJson != null) {
+        try {
+          final userMap = jsonDecode(userJson);
+          userId = userMap['id']?.toString();
+        } catch (e) {
+          debugPrint('Error decoding user JSON: $e');
+        }
+      }
+      if (userId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User ID not found. Please re-login.")),
+          );
+        }
+        setState(() { _isLoading = false; });
+        return;
+      }
+
       Map<String, dynamic> marketplaceData = {
         'title': _titleController.text,
         'description': _descriptionController.text,
@@ -530,8 +552,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         'hide_address': hideAddress,
         'availability_date': _availabilityDateController.text,
         'original_receipt_available': originalReceiptAvailable,
-        'images': _images.map((file) => file.path).toList(),
-        if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds,
+        if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds.join(','),
       };
 
       // Only include original_price if it's not empty, otherwise send null
@@ -546,56 +567,54 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       }
 
       if (widget.isEditing && widget.itemId != null) {
-        // For editing, add images and deleted images to the marketplace data
-        if (_images.isNotEmpty) {
-          marketplaceData['images'] = _images.map((file) => file.path).toList();
-        }
         if (_deletedImages.isNotEmpty) {
           marketplaceData['deleted_images'] = _deletedImages;
         }
         
-        // Update existing item
-        await context.read<MarketplaceNotifier>().updateMarketplaceItem(
-          token: token,
+        await MarketplaceServiceV2.updateMarketplaceItem(
           itemId: widget.itemId!,
           marketplaceData: marketplaceData,
-          onSuccess: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Item updated successfully!")),
-              );
-              context.pop();
-            }
+          images: _images,
+          userId: userId,
+          onProgress: (progress) {
+            debugPrint('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
           },
-          onError: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to update item. Please try again.")),
-              );
-            }
-          },
-        );
+        ).then((result) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Item updated successfully!")),
+            );
+            context.pop();
+          }
+        }).catchError((error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to update item: $error")),
+            );
+          }
+        });
       } else {
-        // Create new item
-        await context.read<MarketplaceNotifier>().createMarketplaceItem(
-          token: token,
+        await MarketplaceServiceV2.createMarketplaceItem(
           marketplaceData: marketplaceData,
-          onSuccess: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Item created successfully!")),
-              );
-              context.pop();
-            }
+          images: _images,
+          userId: userId,
+          onProgress: (progress) {
+            debugPrint('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
           },
-          onError: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to create item. Please try again.")),
-              );
-            }
-          },
-        );
+        ).then((result) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Item created successfully!")),
+            );
+            context.pop();
+          }
+        }).catchError((error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to create item: $error")),
+            );
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -604,9 +623,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
