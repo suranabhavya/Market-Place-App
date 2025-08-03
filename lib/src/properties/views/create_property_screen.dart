@@ -449,9 +449,122 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     }
   }
 
+  // Show validation error popup
+  void _showValidationError(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            title,
+            style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+          ),
+          content: Text(
+            message,
+            style: appStyle(14, Kolors.kGray, FontWeight.normal),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "OK",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Validate numeric fields
+  bool _validateNumericFields() {
+    // Validate rent
+    if (_rentController.text.isNotEmpty) {
+      final rent = double.tryParse(_rentController.text);
+      if (rent == null || rent <= 0) {
+        _showValidationError("Invalid Rent", "Rent must be a positive number greater than 0.");
+        return false;
+      }
+      if (rent > 50000) {
+        _showValidationError("Rent Too High", "Rent cannot exceed \$50,000. Please enter a reasonable amount.");
+        return false;
+      }
+    }
+
+    // Validate square footage
+    if (_squareFootageController.text.isNotEmpty) {
+      final sqft = int.tryParse(_squareFootageController.text);
+      if (sqft == null || sqft <= 0) {
+        _showValidationError("Invalid Square Footage", "Square footage must be a positive number greater than 0.");
+        return false;
+      }
+      if (sqft > 10000) {
+        _showValidationError("Square Footage Too Large", "Square footage cannot exceed 10,000 sqft. Please enter a reasonable area.");
+        return false;
+      }
+    }
+
+    // Validate bedrooms
+    if (_bedroomsController.text.isNotEmpty) {
+      final bedrooms = int.tryParse(_bedroomsController.text);
+      if (bedrooms == null || bedrooms < 0) {
+        _showValidationError("Invalid Bedrooms", "Number of bedrooms must be 0 or a positive number.");
+        return false;
+      }
+      if (bedrooms > 20) {
+        _showValidationError("Too Many Bedrooms", "Number of bedrooms cannot exceed 20. Please enter a reasonable number.");
+        return false;
+      }
+    }
+
+    // Validate bathrooms
+    if (_bathroomsController.text.isNotEmpty) {
+      final bathrooms = int.tryParse(_bathroomsController.text);
+      if (bathrooms == null || bathrooms < 0) {
+        _showValidationError("Invalid Bathrooms", "Number of bathrooms must be 0 or a positive number.");
+        return false;
+      }
+      if (bathrooms > 20) {
+        _showValidationError("Too Many Bathrooms", "Number of bathrooms cannot exceed 20. Please enter a reasonable number.");
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Validate images
+  bool _validateImages() {
+    // For new properties, require at least one image
+    if (!widget.isEditing) {
+      if (_images.isEmpty) {
+        _showValidationError("No Images Added", "Please add at least one image of your property. Images help potential tenants better understand your listing.");
+        return false;
+      }
+    } else {
+      // For editing, check if we have either existing images or new images
+      if (_images.isEmpty && _existingImages.isEmpty) {
+        _showValidationError("No Images Available", "Please add at least one image of your property. Images help potential tenants better understand your listing.");
+        return false;
+      }
+    }
+    return true;
+  }
+
   // Validate Form
   bool _validateForm() {
     if (!_formKey.currentState!.validate()) {
+      return false;
+    }
+
+    // Validate images first
+    if (!_validateImages()) {
+      return false;
+    }
+
+    // Validate numeric fields
+    if (!_validateNumericFields()) {
       return false;
     }
 
@@ -1114,6 +1227,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                             if (value == null || value.isEmpty) {
                               return "Rent is required.";
                             }
+                            final rent = double.tryParse(value);
+                            if (rent == null) {
+                              return "Please enter a valid number.";
+                            }
                             return null;
                           },
                           isRequired: true,
@@ -1165,18 +1282,27 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CustomTextField(
-                    controller: _squareFootageController,
-                    labelText: "Square Footage Area",
-                    maxLines: 1,
-                    hintText: "Area of the Room / Apartment in Sqft",
-                    keyboardType: TextInputType.number,
-                    prefixIcon: const Icon(
-                      MaterialCommunityIcons.ruler,
-                      size: 20,
-                      color: Kolors.kGray
-                    ),
-                  ),
+                                          CustomTextField(
+                          controller: _squareFootageController,
+                          labelText: "Square Footage Area",
+                          maxLines: 1,
+                          hintText: "Area of the Room / Apartment in Sqft",
+                          keyboardType: TextInputType.number,
+                          prefixIcon: const Icon(
+                            MaterialCommunityIcons.ruler,
+                            size: 20,
+                            color: Kolors.kGray
+                          ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final sqft = int.tryParse(value);
+                              if (sqft == null) {
+                                return "Please enter a valid number.";
+                              }
+                            }
+                            return null;
+                          },
+                        ),
                 ]
               ),
 
@@ -1199,6 +1325,15 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                             size: 20,
                             color: Kolors.kGray
                           ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final bedrooms = int.tryParse(value);
+                              if (bedrooms == null) {
+                                return "Please enter a valid number.";
+                              }
+                            }
+                            return null;
+                          },
                         ),
                       ]
                     ),
@@ -1219,6 +1354,15 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                             size: 20,
                             color: Kolors.kGray
                           ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final bathrooms = int.tryParse(value);
+                              if (bathrooms == null) {
+                                return "Please enter a valid number.";
+                              }
+                            }
+                            return null;
+                          },
                         ),
                       ]
                     ),

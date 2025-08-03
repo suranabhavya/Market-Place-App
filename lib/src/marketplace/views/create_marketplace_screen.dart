@@ -98,7 +98,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   Map<String, List<String>> itemSubtypes = {
     'furniture': ['sofa', 'cot', 'mattress', 'table', 'chair', 'wardrobe', 'dresser', 'bookshelf', 'desk', 'other'],
     'electronics': ['tv', 'computer', 'accessories', 'printer', 'monitor', 'speaker', 'gaming_console', 'camera', 'phone', 'other'],
-    'appliance': ['refrigerator', 'washing_machine', 'dryer', 'microwave', 'oven', 'toaster', 'coffee_maker', 'blender', 'fan', 'heater' 'other'],
+    'appliance': ['refrigerator', 'washing_machine', 'dryer', 'microwave', 'oven', 'toaster', 'coffee_maker', 'blender', 'fan', 'heater', 'other'],
     'kitchen': ['cookware', 'utensils', 'dishes', 'cutlery', 'other'],
     'decor': ['lighting', 'rug', 'curtain', 'mattress', 'art', 'plants', 'other'],
     'other': ['other'],
@@ -494,16 +494,100 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     }
   }
 
+  // Show validation error popup
+  void _showValidationError(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            title,
+            style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+          ),
+          content: Text(
+            message,
+            style: appStyle(14, Kolors.kGray, FontWeight.normal),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "OK",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Validate numeric fields
+  bool _validateNumericFields() {
+    // Validate price
+    if (_priceController.text.isNotEmpty) {
+      final price = double.tryParse(_priceController.text);
+      if (price == null || price <= 0) {
+        _showValidationError("Invalid Price", "Price must be a positive number greater than 0.");
+        return false;
+      }
+      if (price > 100000) {
+        _showValidationError("Price Too High", "Price cannot exceed \$100,000. Please enter a reasonable amount.");
+        return false;
+      }
+    }
+
+    // Validate original price
+    if (_originalPriceController.text.isNotEmpty) {
+      final originalPrice = double.tryParse(_originalPriceController.text);
+      if (originalPrice == null || originalPrice <= 0) {
+        _showValidationError("Invalid Original Price", "Original price must be a positive number greater than 0.");
+        return false;
+      }
+      if (originalPrice > 100000) {
+        _showValidationError("Original Price Too High", "Original price cannot exceed \$100,000. Please enter a reasonable amount.");
+        return false;
+      }
+
+      // Check if original price is greater than current price
+      if (_priceController.text.isNotEmpty) {
+        final currentPrice = double.tryParse(_priceController.text);
+        if (currentPrice != null && originalPrice < currentPrice) {
+          _showValidationError("Invalid Original Price", "Original price should be greater than or equal to the current selling price.");
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  // Validate images
+  bool _validateImages() {
+    // For new items, require at least one image
+    if (!widget.isEditing) {
+      if (_images.isEmpty) {
+        _showValidationError("No Images Added", "Please add at least one image of your item. Images help buyers better understand what you're selling.");
+        return false;
+      }
+    } else {
+      // For editing, check if we have either existing images or new images
+      if (_images.isEmpty && _existingImages.isEmpty) {
+        _showValidationError("No Images Available", "Please add at least one image of your item. Images help buyers better understand what you're selling.");
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     
-    // For new items, require at least one image
-    if (!widget.isEditing && _images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please add at least one image")),
-      );
-      return;
-    }
+    // Validate images first
+    if (!_validateImages()) return;
+    
+    // Validate numeric fields
+    if (!_validateNumericFields()) return;
 
     setState(() => _isLoading = true);
 
@@ -750,6 +834,10 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                         if (value == null || value.isEmpty) {
                           return "Price is required";
                         }
+                        final price = double.tryParse(value);
+                        if (price == null) {
+                          return "Please enter a valid number";
+                        }
                         return null;
                       },
                     ),
@@ -767,15 +855,15 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                         size: 20,
                         color: Kolors.kGray
                       ),
-                      // validator: (value) {
-                      //   if (value != null && value.isNotEmpty) {
-                      //     final price = double.tryParse(value);
-                      //     if (price == null) {
-                      //       return "Please enter a valid price";
-                      //     }
-                      //   }
-                      //   return null;
-                      // },
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final price = double.tryParse(value);
+                          if (price == null) {
+                            return "Please enter a valid number";
+                          }
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ],
