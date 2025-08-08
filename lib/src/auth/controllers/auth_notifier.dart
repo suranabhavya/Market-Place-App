@@ -94,9 +94,9 @@ class AuthNotifier with ChangeNotifier {
         // Store token and user details with timestamp
         AuthService().storeAuthData(authData.token, authData.user);
 
-        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        // Register FCM device after authentication
         try {
-          await PushNotificationService().updateUserAssociation();
+          await PushNotificationService().registerDeviceAfterAuth();
         } catch (e) {
           // Silently handle iOS APNS errors during development
           debugPrint('Push notification setup skipped: $e');
@@ -141,9 +141,9 @@ class AuthNotifier with ChangeNotifier {
         // Store token and user details with timestamp
         AuthService().storeAuthData(authData.token, authData.user);
 
-        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        // Register FCM device after authentication
         try {
-          await PushNotificationService().updateUserAssociation();
+          await PushNotificationService().registerDeviceAfterAuth();
         } catch (e) {
           // Silently handle iOS APNS errors during development
           debugPrint('Push notification setup skipped: $e');
@@ -293,9 +293,9 @@ class AuthNotifier with ChangeNotifier {
         String accessToken = jsonDecode(response.body)['auth_token'];
         Storage().setString('accessToken', accessToken);
         
-        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        // Register FCM device after authentication
         try {
-          await PushNotificationService().updateUserAssociation();
+          await PushNotificationService().registerDeviceAfterAuth();
         } catch (e) {
           // Silently handle iOS APNS errors during development
           debugPrint('Push notification setup skipped: $e');
@@ -424,9 +424,9 @@ class AuthNotifier with ChangeNotifier {
         // Store token and user details with timestamp
         AuthService().storeAuthData(authData.token, authData.user);
         
-        // Update FCM token association with user (skip on iOS if push notifications disabled)
+        // Register FCM device after authentication
         try {
-          await PushNotificationService().updateUserAssociation();
+          await PushNotificationService().registerDeviceAfterAuth();
         } catch (e) {
           // Silently handle iOS APNS errors during development
           debugPrint('Push notification setup skipped: $e');

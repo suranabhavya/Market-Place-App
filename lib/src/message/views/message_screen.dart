@@ -201,6 +201,7 @@ class _MessagePageState extends State<MessagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         leading: const AppBackButton(),
         title: Row(
@@ -271,6 +272,7 @@ class _MessagePageState extends State<MessagePage> {
                     controller: _scrollController,
                     reverse: true,
                     itemCount: messages.length,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     itemBuilder: (context, index) {
                       final message = messages[index];
                       final bool isMine = (message['sender'] is int && message['sender'] == currentUserId);
@@ -363,65 +365,81 @@ class _MessagePageState extends State<MessagePage> {
                     },
                   ),
           ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        left: false,
-        right: false,
-        bottom: true,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
-          // padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: 100.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: TextField(
-                    controller: _messageController,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                    decoration: InputDecoration(
-                      hintText: "Type a message...",
-                      hintStyle: appStyle(14, Colors.grey, FontWeight.normal),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
+          // Message input area
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: Colors.grey.shade200, width: 1),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: 100.h,
+                        minHeight: 40.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: TextField(
+                        controller: _messageController,
+                        maxLines: null,
+                        minLines: 1,
+                        keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                        onTap: () {
+                          // Scroll to bottom when user taps the text field
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            if (_scrollController.hasClients) {
+                              _scrollController.animateTo(
+                                0.0,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            }
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Type a message...",
+                          hintStyle: appStyle(14, Colors.grey, FontWeight.normal),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  SizedBox(width: 10.w),
+                  Container(
+                    height: 40.h,
+                    width: 40.h,
+                    decoration: const BoxDecoration(
+                      color: Kolors.kPrimaryLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(Icons.send, color: Colors.white, size: 20.h),
+                      onPressed: sendMessage,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: 10.w),
-              Container(
-                height: 40.h,
-                width: 40.h,
-                margin: EdgeInsets.only(bottom: 2.h),
-                decoration: const BoxDecoration(
-                  color: Kolors.kPrimaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(Icons.send, color: Colors.white, size: 25.h),
-                  onPressed: sendMessage,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

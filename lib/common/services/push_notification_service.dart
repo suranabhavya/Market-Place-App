@@ -19,8 +19,8 @@ class PushNotificationService {
   factory PushNotificationService() => _instance;
   PushNotificationService._internal();
 
-  // TODO: Set this to true when you have a paid Apple Developer account and APNS setup
-  static const bool _enableIOSPushNotifications = false;
+  // Set to true since APNS is now configured
+  static const bool _enableIOSPushNotifications = true;
 
   /// Call this in home_screen.dart to only request permission (and only once)
   Future<void> requestPermissionIfNeeded() async {
@@ -38,8 +38,8 @@ class PushNotificationService {
     }
   }
 
-  /// Call this in main.dart to set up handlers and token logic (does NOT request permission)
-  Future<void> initializeHandlersAndToken() async {
+  /// Call this in main.dart to set up handlers only (does NOT request permission or get token)
+  Future<void> initializeHandlersOnly() async {
     await _initializeLocalNotifications();
     
     // Skip Firebase messaging setup on iOS if not enabled
@@ -49,6 +49,19 @@ class PushNotificationService {
     }
     
     await _configureNotificationHandlers();
+    // Don't get token here - wait for user authentication
+    debugPrint('Push notification handlers initialized - token will be generated after authentication');
+  }
+
+  /// Call this after user authentication to get and save FCM token
+  Future<void> initializeTokenAfterAuth() async {
+    // Skip iOS push notifications if not enabled
+    if (Platform.isIOS && !_enableIOSPushNotifications) {
+      debugPrint('Skipping FCM token generation on iOS - push notifications disabled');
+      return;
+    }
+    
+    debugPrint('Initializing FCM token after authentication...');
     await _getAndSaveToken();
   }
 
@@ -180,49 +193,81 @@ class PushNotificationService {
           return;
         }
         
+        debugPrint('Getting APNS token for iOS...');
         // Request APNS token first for iOS
         String? apnsToken = await _fcm.getAPNSToken();
         debugPrint('APNS Token: $apnsToken');
         
-        // Wait a bit for APNS token to be set
+        // If APNS token is not available, wait and retry
         if (apnsToken == null) {
-          debugPrint('APNS token not available - this requires a paid Apple Developer account');
-          return;
+          debugPrint('APNS token not available immediately, waiting...');
+          await Future.delayed(const Duration(seconds: 3));
+          apnsToken = await _fcm.getAPNSToken();
+          debugPrint('APNS Token after wait: $apnsToken');
+        }
+        
+        if (apnsToken == null) {
+          debugPrint('APNS token still not available - checking APNS configuration');
+          // Continue anyway as FCM token might still work
         }
       }
       
+      debugPrint('Getting FCM token...');
       String? token = await _fcm.getToken();
       if (token != null) {
-        debugPrint('FCM Token: $token');
+        debugPrint('FCM Token obtained: ${token.substring(0, 20)}...');
         // Save token to storage
         Storage().setString('fcmToken', token);
         await _saveTokenToBackend(token);
+        
         // Listen for token refresh
         _fcm.onTokenRefresh.listen((newToken) {
-          debugPrint('FCM Token refreshed: $newToken');
+          debugPrint('FCM Token refreshed: ${newToken.substring(0, 20)}...');
           Storage().setString('fcmToken', newToken);
           _saveTokenToBackend(newToken);
         });
+      } else {
+        debugPrint('Failed to get FCM token');
       }
     } catch (e) {
       debugPrint('Error getting FCM token: $e');
-      if (e.toString().contains('apns-token-not-set') || 
-          e.toString().contains('APNS')) {
-        debugPrint('APNS token error - requires paid Apple Developer account for iOS push notifications');
+      
+      // Handle specific iOS APNS errors
+      if (Platform.isIOS && (e.toString().contains('apns-token-not-set') || 
+          e.toString().contains('APNS'))) {
+        debugPrint('APNS configuration issue - please verify:');
+        debugPrint('1. Push Notifications capability is enabled in Xcode');
+        debugPrint('2. APNS key is uploaded to Firebase Console');
+        debugPrint('3. App is signed with valid provisioning profile');
         return;
       }
       
-      // Retry logic for other errors
-      if (e.toString().contains('apns-token-not-set')) {
-        await Future.delayed(const Duration(seconds: 2));
-        _getAndSaveToken();
+      // Retry logic for network errors
+      if (e.toString().contains('network') || e.toString().contains('connection')) {
+        debugPrint('Network error, retrying in 5 seconds...');
+        await Future.delayed(const Duration(seconds: 5));
+        return _getAndSaveToken();
       }
     }
   }
 
-  // Save token to backend
+  // Save token to backend (only call this after authentication)
   Future<void> _saveTokenToBackend(String token) async {
     try {
+      // Check if user is authenticated
+      String? accessToken = Storage().getString('accessToken');
+      if (accessToken == null || accessToken.isEmpty || accessToken == 'null') {
+        debugPrint('No access token available - skipping FCM device registration');
+        return;
+      }
+
+      // Get user data
+      String? userJson = Storage().getString('user');
+      if (userJson == null || userJson.isEmpty) {
+        debugPrint('No user data available - skipping FCM device registration');
+        return;
+      }
+
       // Get device ID or generate a new UUID if not exists
       String deviceId = Storage().getString('device_id') ?? 
           '${Platform.operatingSystem}_${_uuid.v4()}';
@@ -235,7 +280,7 @@ class PushNotificationService {
         Storage().setString('device_id', deviceId);
       }
 
-      debugPrint('Done Saving device ID');
+      debugPrint('Registering FCM device with authentication...');
 
       String url = '${Environment.baseUrl}/api/notifications/devices/';
       debugPrint('URL: $url');
@@ -243,17 +288,16 @@ class PushNotificationService {
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Token $accessToken',
         },
         body: jsonEncode({
           'registration_id': token,
           'device_id': deviceId,
           'active': true,
-          'user_id': Storage().getString('accessToken') != null ? 
-              jsonDecode(Storage().getString('user')!)['id'] : null,
         }),
       );
 
-      debugPrint('Response: ${response.body}');
+      debugPrint('FCM device registration response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         debugPrint('FCM token saved to backend successfully');
@@ -265,39 +309,29 @@ class PushNotificationService {
     }
   }
 
-  // Method to update user association when user logs in
-  Future<void> updateUserAssociation() async {
+  // Method to register FCM device after user authentication
+  Future<void> registerDeviceAfterAuth() async {
     // Skip iOS push notifications if not enabled
     if (Platform.isIOS && !_enableIOSPushNotifications) {
-      debugPrint('Skipping user association update on iOS - push notifications disabled');
+      debugPrint('Skipping FCM device registration on iOS - push notifications disabled');
       return;
     }
 
     try {
-      String? token = Storage().getString('fcmToken');
-      String? deviceId = Storage().getString('device_id');
-      String? accessToken = Storage().getString('accessToken');
+      debugPrint('Starting FCM device registration after authentication...');
       
-      if (token != null && deviceId != null && accessToken != null) {
-        final response = await http.patch(
-          Uri.parse('${Environment.iosAppBaseUrl}/api/notifications/devices/$deviceId/link_user/'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Token $accessToken',
-          },
-          body: jsonEncode({
-            'user_id': jsonDecode(Storage().getString('user')!)['id'],
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          debugPrint('User association updated successfully');
-        } else {
-          debugPrint('Failed to update user association: ${response.statusCode} - ${response.body}');
-        }
+      // Initialize token generation and registration
+      await initializeTokenAfterAuth();
+      
+      // If we already have a token, make sure it's registered with the current user
+      String? existingToken = Storage().getString('fcmToken');
+      if (existingToken != null) {
+        debugPrint('Re-registering existing FCM token with current user...');
+        await _saveTokenToBackend(existingToken);
       }
+      
     } catch (e) {
-      debugPrint('Error updating user association: $e');
+      debugPrint('Error in FCM device registration after auth: $e');
     }
   }
 
