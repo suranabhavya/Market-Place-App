@@ -8,7 +8,7 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
+
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'package:marketplace_app/common/services/storage.dart';
@@ -66,11 +66,17 @@ class _MessagePageState extends State<MessagePage> {
 
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
-    if (token == null) return;
+    if (token == null) {
+      debugPrint("No access token found, cannot connect to WebSocket");
+      return;
+    }
     
     try {
+      final wsUrl = Environment.wsBaseUrl; // Use platform-aware WebSocket URL
+      debugPrint("Connecting to message WebSocket: $wsUrl/ws/chat/${widget.chatId}/?token=${token.substring(0, 10)}...");
+      
       channel = WebSocketChannel.connect(
-        Uri.parse("${Environment.iosWsBaseUrl}/ws/chat/${widget.chatId}/?token=$token"),
+        Uri.parse("$wsUrl/ws/chat/${widget.chatId}/?token=$token"),
       );
       channel.stream.listen((message) {
         try {
@@ -91,6 +97,17 @@ class _MessagePageState extends State<MessagePage> {
         }
       }, onError: (error) {
         debugPrint("WebSocket error: $error");
+        // Try to reconnect after a delay
+        if (mounted) {
+          Future.delayed(const Duration(seconds: 5), () {
+            if (mounted) {
+              debugPrint("Attempting to reconnect message WebSocket...");
+              connectWebSocket();
+            }
+          });
+        }
+      }, onDone: () {
+        debugPrint("Message WebSocket connection closed");
       });
     } catch (e) {
       debugPrint("Error connecting to WebSocket: $e");
@@ -171,6 +188,7 @@ class _MessagePageState extends State<MessagePage> {
   @override
   void dispose() {
     try {
+      debugPrint("Closing message WebSocket connection...");
       channel.sink.close(ws_status.goingAway);
     } catch (e) {
       debugPrint("Error closing WebSocket: $e");

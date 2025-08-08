@@ -47,17 +47,25 @@ class _ChatPageState extends State<ChatPage> {
 
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
-    if (token == null) return;
+    if (token == null) {
+      debugPrint("No access token found, cannot connect to WebSocket");
+      return;
+    }
 
     try {
-      final wsUrl = Environment.iosWsBaseUrl;
+      final wsUrl = Environment.wsBaseUrl; // Use platform-aware WebSocket URL
+      final fullUrl = "$wsUrl/ws/user_chats/?token=$token";
+      debugPrint("Connecting to WebSocket URL: $fullUrl");
+      debugPrint("Token length: ${token.length}");
+      debugPrint("Token starts with: ${token.substring(0, 10)}...");
 
       // Connect to the user chats WebSocket endpoint.
       channel = WebSocketChannel.connect(
-        Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
+        Uri.parse(fullUrl),
       );
       channel!.stream.listen((data) {
         try {
+          debugPrint("WebSocket data received: $data");
           final decoded = jsonDecode(data);
           // If the payload contains the key "chats", update our local chat list.
           if (decoded.containsKey("chats")) {
@@ -66,9 +74,13 @@ class _ChatPageState extends State<ChatPage> {
                 chats = decoded["chats"];
                 isLoading = false;
               });
+              debugPrint("Updated chats list with ${chats.length} chats");
+              
               // Calculate total unread count from all chats.
               final int totalUnread = (decoded["chats"] as List)
                   .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
+              debugPrint("Total unread messages: $totalUnread");
+              
               // Update the global unread count in the notifier.
               if (mounted) {
                 Provider.of<UnreadCountNotifier>(context, listen: false)
@@ -81,6 +93,17 @@ class _ChatPageState extends State<ChatPage> {
         }
       }, onError: (error) {
         debugPrint("WebSocket error: $error");
+        // Try to reconnect after a delay
+        if (mounted) {
+          Future.delayed(const Duration(seconds: 5), () {
+            if (mounted) {
+              debugPrint("Attempting to reconnect WebSocket...");
+              connectWebSocket();
+            }
+          });
+        }
+      }, onDone: () {
+        debugPrint("WebSocket connection closed");
       });
     } catch (e) {
       debugPrint("Error connecting to WebSocket: $e");
@@ -91,6 +114,7 @@ class _ChatPageState extends State<ChatPage> {
   void dispose() {
     if (channel != null) {
       try {
+        debugPrint("Closing WebSocket connection...");
         channel!.sink.close();
       } catch (e) {
         debugPrint("Error closing WebSocket: $e");

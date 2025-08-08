@@ -17,6 +17,7 @@ import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/profile/widgets/tile_widget.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -27,12 +28,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     // Load user data when profile screen initializes
     _loadUserData();
+    _loadAppVersion();
   }
   
   Future<void> _loadUserData() async {
@@ -54,6 +57,19 @@ class _ProfilePageState extends State<ProfilePage> {
           });
         }
       }
+    }
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading app version: $e");
     }
   }
 
@@ -307,6 +323,22 @@ class _ProfilePageState extends State<ProfilePage> {
                           btnWidth: ScreenUtil().screenWidth,
                           onTap: () => _logout(context),
                         ),
+                      ),
+                      
+                      SizedBox(height: 30.h),
+                      
+                      // App Name and Version
+                      Column(
+                        children: [
+                          ReusableText(
+                            text: "Sublyst",
+                            style: appStyle(18, Kolors.kPrimary, FontWeight.bold)
+                          ),
+                          ReusableText(
+                            text: _appVersion.isEmpty ? "Version 1.0.0+10" : "Version $_appVersion",
+                            style: appStyle(12, Kolors.kGray, FontWeight.normal)
+                          ),
+                        ],
                       ),
                       
                       SizedBox(height: 20.h),
