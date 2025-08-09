@@ -7,7 +7,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 
 class GoogleCloudStorageService {
-  static const String _bucketName = 'homiswap-images';
+  static const String _bucketName = 'sublyst-images';
   static const String _baseUrl = 'https://storage.googleapis.com';
   
   // Service account credentials - Load from environment or secure storage
@@ -29,9 +29,13 @@ class GoogleCloudStorageService {
       debugPrint('Loading Google Cloud credentials from environment...');
       
       // Clean and parse the JSON credentials
-      // Replace literal \n with actual newlines for proper JSON parsing
-      final cleanedJson = credentialsJson.replaceAll('\\n', '\n');
-      final credentials = json.decode(cleanedJson) as Map<String, dynamic>;
+      // First decode the JSON to get the credential map
+      final credentials = json.decode(credentialsJson) as Map<String, dynamic>;
+      
+      // Then fix the private key by replacing escaped newlines with actual newlines
+      if (credentials.containsKey('private_key')) {
+        credentials['private_key'] = (credentials['private_key'] as String).replaceAll('\\n', '\n');
+      }
       
       debugPrint('Successfully parsed Google Cloud credentials');
       

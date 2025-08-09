@@ -68,7 +68,7 @@ class PushNotificationService {
   // Initialize local notifications
   Future<void> _initializeLocalNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_notification');
     
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
@@ -160,6 +160,7 @@ class PushNotificationService {
       importance: Importance.high,
       priority: Priority.high,
       showWhen: false,
+      icon: '@drawable/ic_notification', // Use custom home icon
     );
     
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
