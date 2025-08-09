@@ -34,6 +34,7 @@ class PublicProfilePage extends StatefulWidget {
 class _PublicProfilePageState extends State<PublicProfilePage> {
   Map<String, dynamic>? userProfile;
   bool isLoading = true;
+  bool isMessageLoading = false;
   
   @override
   void initState() {
@@ -115,20 +116,44 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   void _handleMessageTap(BuildContext context) async {
-    final chatId = await checkExistingChat(widget.userId);
-    if (!mounted) return;
+    if (isMessageLoading) return; // Prevent double tap
     
-    if (chatId != null) {
-      // Navigate to the existing chat
-      if (mounted) {
-        // ignore: use_build_context_synchronously
-        _navigateToExistingChat(context, chatId);
+    setState(() {
+      isMessageLoading = true;
+    });
+
+    try {
+      final chatId = await checkExistingChat(widget.userId);
+      if (!mounted) return;
+      
+      if (chatId != null) {
+        // Navigate to the existing chat
+        if (mounted) {
+          // ignore: use_build_context_synchronously
+          _navigateToExistingChat(context, chatId);
+        }
+      } else {
+        // Show message modal for new chat
+        if (mounted) {
+          // ignore: use_build_context_synchronously
+          _showNewChatModal(context);
+        }
       }
-    } else {
-      // Show message modal for new chat
+    } catch (e) {
+      debugPrint('Error handling message tap: $e');
       if (mounted) {
-        // ignore: use_build_context_synchronously
-        _showNewChatModal(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to open chat. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isMessageLoading = false;
+        });
       }
     }
   }
@@ -457,6 +482,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   btnHeight: 48.h,
                   textSize: 16,
                   radius: 24,
+                  isLoading: isMessageLoading,
+                  btnColor: Kolors.kPrimary,
+                  borderColor: Colors.white,
                 ),
               ),
             )

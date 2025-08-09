@@ -12,7 +12,7 @@ import 'package:marketplace_app/src/message/views/message_screen.dart';
 import 'package:marketplace_app/src/message/views/message_modal_screen.dart';
 import 'package:provider/provider.dart';
 
-class PropertyBottomBar extends StatelessWidget {
+class PropertyBottomBar extends StatefulWidget {
   const PropertyBottomBar({
     super.key,
     required this.senderId,
@@ -27,12 +27,19 @@ class PropertyBottomBar extends StatelessWidget {
   final bool isMarketplaceItem;
 
   @override
+  State<PropertyBottomBar> createState() => _PropertyBottomBarState();
+}
+
+class _PropertyBottomBarState extends State<PropertyBottomBar> {
+  bool isMessageLoading = false;
+
+  @override
   Widget build(BuildContext context) {
     final String? accessToken = Storage().getString('accessToken');
     final currentUser = context.read<AuthNotifier>().getUserData();
 
     // Don't show the message button if the item is listed by the current user
-    if (currentUser?.id == senderId) {
+    if (currentUser?.id == widget.senderId) {
       return const SizedBox.shrink();
     }
 
@@ -42,12 +49,22 @@ class PropertyBottomBar extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 12.h),
         child: ElevatedButton(
-          onPressed: () async {
-            if (accessToken == null) {
-              loginBottomSheet(context);
-            } else {
-              final chatId = await checkExistingChat(senderId);
+          onPressed: isMessageLoading ? null : () async {
+            if (isMessageLoading) return; // Prevent double tap
+            
+            setState(() {
+              isMessageLoading = true;
+            });
+
+            try {
+              if (accessToken == null) {
+                loginBottomSheet(context);
+                return;
+              }
+              
+              final chatId = await checkExistingChat(widget.senderId);
               if (!context.mounted) return;
+              
               if (chatId != null) {
                 // Navigate to the existing chat
                 Navigator.push(
@@ -55,9 +72,9 @@ class PropertyBottomBar extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => MessagePage(
                       chatId: chatId,
-                      participants: senderName,
-                      otherParticipantId: senderId,
-                      otherParticipantProfilePhoto: senderProfilePhoto,
+                      participants: widget.senderName,
+                      otherParticipantId: widget.senderId,
+                      otherParticipantProfilePhoto: widget.senderProfilePhoto,
                     ),
                   ),
                 );
@@ -76,32 +93,59 @@ class PropertyBottomBar extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                       ),
-                      child: MessageModalContent(senderId: senderId),
+                      child: MessageModalContent(senderId: widget.senderId),
                     );
                   },
                 );
               }
+            } catch (e) {
+              debugPrint('Error handling message tap: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to open chat. Please try again.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            } finally {
+              if (mounted) {
+                setState(() {
+                  isMessageLoading = false;
+                });
+              }
             }
           },
           style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all(Kolors.kPrimary)
+            backgroundColor: WidgetStateProperty.all(
+              isMessageLoading ? Kolors.kPrimary.withOpacity(0.6) : Kolors.kPrimary
+            )
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(
-                MaterialCommunityIcons.message,
-                size: 16,
-                color: Kolors.kWhite,
-              ),
-              SizedBox(width: 12.w),
-              ReusableText(
-                text: isMarketplaceItem ? 'Message Seller' : 'Message',
-                style: appStyle(14, Kolors.kWhite, FontWeight.bold),
-              ),
-            ],
-          ),
+          child: isMessageLoading
+              ? SizedBox(
+                  width: 20.w,
+                  height: 20.h,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      MaterialCommunityIcons.message,
+                      size: 16,
+                      color: Kolors.kWhite,
+                    ),
+                    SizedBox(width: 12.w),
+                    ReusableText(
+                      text: widget.isMarketplaceItem ? 'Message Seller' : 'Message',
+                      style: appStyle(14, Kolors.kWhite, FontWeight.bold),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
