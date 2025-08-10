@@ -26,9 +26,17 @@ class PropertyImagePicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Images", 
-          style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+        RichText(
+          text: TextSpan(
+            text: "Images",
+            style: appStyle(14, Kolors.kPrimary, FontWeight.bold),
+            children: const [
+              TextSpan(
+                text: " *",
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         Row(

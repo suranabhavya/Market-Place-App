@@ -3,7 +3,7 @@ description: "A new Flutter project."
 
 publish_to: 'none'
 
-version: 1.0.0+13
+version: 1.0.0+14
 
 environment:
   sdk: ^3.8.0  # Current dart Version Dart 3.8.0 (used by Flutter 3.32.0)

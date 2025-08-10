@@ -94,6 +94,9 @@ class AuthNotifier with ChangeNotifier {
         // Store token and user details with timestamp
         AuthService().storeAuthData(authData.token, authData.user);
 
+        // Start periodic token validation
+        AuthService().startPeriodicValidation();
+
         // Register FCM device after authentication
         try {
           await PushNotificationService().registerDeviceAfterAuth();
@@ -140,6 +143,9 @@ class AuthNotifier with ChangeNotifier {
 
         // Store token and user details with timestamp
         AuthService().storeAuthData(authData.token, authData.user);
+
+        // Start periodic token validation
+        AuthService().startPeriodicValidation();
 
         // Register FCM device after authentication
         try {
@@ -423,6 +429,9 @@ class AuthNotifier with ChangeNotifier {
         
         // Store token and user details with timestamp
         AuthService().storeAuthData(authData.token, authData.user);
+        
+        // Start periodic token validation
+        AuthService().startPeriodicValidation();
         
         // Register FCM device after authentication
         try {

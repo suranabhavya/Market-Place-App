@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/app_routes.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
 
@@ -9,6 +12,10 @@ class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
   AuthService._internal();
+
+  // Periodic token validation timer
+  Timer? _validationTimer;
+  static const Duration _validationInterval = Duration(minutes: 15);
 
   // Check if user is authenticated (locally first, then server if needed)
   Future<bool> isAuthenticated() async {
@@ -76,6 +83,9 @@ class AuthService {
   Future<void> logout() async {
     final String? token = Storage().getString('accessToken');
     
+    // Stop periodic validation
+    stopPeriodicValidation();
+    
     // Try to logout from server (optional, don't block on this)
     if (token != null) {
       try {
@@ -101,4 +111,59 @@ class AuthService {
     Storage().setTokenWithTimestamp(token);
     Storage().setString('user', jsonEncode(user.toJson()));
   }
+
+  // Start periodic token validation
+  void startPeriodicValidation() {
+    // Stop any existing timer first
+    stopPeriodicValidation();
+    
+    debugPrint('Starting periodic token validation every ${_validationInterval.inMinutes} minutes');
+    
+    _validationTimer = Timer.periodic(_validationInterval, (_) async {
+      try {
+        final String? token = Storage().getString('accessToken');
+        
+        if (token == null) {
+          // No token, stop validation
+          stopPeriodicValidation();
+          return;
+        }
+        
+        debugPrint('Performing periodic token validation...');
+        
+        // Use existing validation method which already handles logout on failure
+        final isValid = await validateTokenWithServer(token);
+        
+        if (!isValid) {
+          // Token invalid - user has already been logged out by validateTokenWithServer()
+          // Navigate to login screen if we have a valid context
+          final context = navigatorKey.currentContext;
+          if (context != null && context.mounted) {
+            debugPrint('Token validation failed - redirecting to login');
+            context.go('/login');
+          }
+          
+          // Stop further validation since user is now logged out
+          stopPeriodicValidation();
+        } else {
+          debugPrint('Token validation successful');
+        }
+      } catch (e) {
+        debugPrint('Error during periodic token validation: $e');
+        // Don't logout on network errors, just log the error
+      }
+    });
+  }
+
+  // Stop periodic token validation
+  void stopPeriodicValidation() {
+    if (_validationTimer != null) {
+      debugPrint('Stopping periodic token validation');
+      _validationTimer?.cancel();
+      _validationTimer = null;
+    }
+  }
+
+  // Check if periodic validation is running
+  bool get isPeriodicValidationActive => _validationTimer?.isActive ?? false;
 } 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:marketplace_app/common/services/auth_service.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -50,6 +51,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
         profileNotifier.loadUserFromStorage();
         wishlistNotifier.loadWishlistFromStorage();
         wishlistNotifier.fetchWishlist();
+        
+        // Start periodic token validation for existing logged-in users
+        AuthService().startPeriodicValidation();
       } else {
         // No user logged in - clear data
         wishlistNotifier.clearWishlist();
@@ -82,6 +86,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
           profileNotifier.loadUserFromStorage();
           wishlistNotifier.loadWishlistFromStorage();
           wishlistNotifier.fetchWishlist();
+          
+          // Start periodic token validation for newly logged-in users
+          AuthService().startPeriodicValidation();
         }
       } catch (e) {
         debugPrint('Notifiers not available: $e');

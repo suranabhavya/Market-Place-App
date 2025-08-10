@@ -204,16 +204,16 @@ ${property.description}
 #PropertyRental #Housing #Apartment #Sublyst
       '''.trim();
 
-      // Share with multiple images if available
+      // Share with primary image if available
       if (property.images != null && property.images!.isNotEmpty) {
-        developer.log('Attempting to share property with multiple images: ${property.images!.length}');
+        developer.log('Attempting to share property with primary image');
         
-        await shareMultipleImages(
-          property.images!,
+        await shareSingleImage(
+          property.images!.first, // Use only the first (primary) image
           shareText,
           subject: 'Check out this property: ${property.title}',
         );
-        developer.log('Property shared with multiple images successfully');
+        developer.log('Property shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
       await Share.share(
@@ -256,16 +256,16 @@ ${property.description}
 #PropertyRental #Housing #Apartment #Sublyst
       '''.trim();
 
-      // Share with multiple images if available
+      // Share with primary image if available
       if (property.images != null && property.images!.isNotEmpty) {
-        developer.log('Attempting to share property list item with multiple images: ${property.images!.length}');
+        developer.log('Attempting to share property list item with primary image');
         
-        await shareMultipleImages(
-          property.images!,
+        await shareSingleImage(
+          property.images!.first, // Use only the first (primary) image
           shareText,
           subject: 'Check out this property: ${property.title}',
         );
-        developer.log('Property list item shared with multiple images successfully');
+        developer.log('Property list item shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
       await Share.share(
@@ -317,19 +317,19 @@ ${item.description}
 #MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #Sublyst
       '''.trim();
 
-      // Share with multiple images if available
+      // Share with primary image if available
       if (item.images.isNotEmpty) {
-        developer.log('Attempting to share marketplace item with multiple images: ${item.images.length}');
+        developer.log('Attempting to share marketplace item with primary image');
         
-        // Extract image URLs from marketplace image objects
-        final imageUrls = item.images.map((img) => img.image).toList();
+        // Use only the first (primary) image
+        final primaryImageUrl = item.images.first.image;
         
-        await shareMultipleImages(
-          imageUrls,
+        await shareSingleImage(
+          primaryImageUrl,
           shareText,
           subject: 'Check out this marketplace item: ${item.title}',
         );
-        developer.log('Marketplace item shared with multiple images successfully');
+        developer.log('Marketplace item shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
       await Share.share(
@@ -382,19 +382,19 @@ ${item.description}
 #MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #Sublyst
       '''.trim();
 
-      // Share with multiple images if available
+      // Share with primary image if available
       if (item.images.isNotEmpty) {
-        developer.log('Attempting to share marketplace list item with multiple images: ${item.images.length}');
+        developer.log('Attempting to share marketplace list item with primary image');
         
-        // Extract image URLs from marketplace image objects
-        final imageUrls = item.images.map((img) => img.image).toList();
+        // Use only the first (primary) image
+        final primaryImageUrl = item.images.first.image;
         
-        await shareMultipleImages(
-          imageUrls,
+        await shareSingleImage(
+          primaryImageUrl,
           shareText,
           subject: 'Check out this marketplace item: ${item.title}',
         );
-        developer.log('Marketplace list item shared with multiple images successfully');
+        developer.log('Marketplace list item shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
       await Share.share(
@@ -423,6 +423,59 @@ ${item.description}
         developer.log('Platform exception details: ${e.message}');
       }
       rethrow;
+    }
+  }
+
+  /// Share a single image (primary photo) with text
+  /// This is a simpler alternative to shareMultipleImages for sharing only the primary photo
+  static Future<void> shareSingleImage(String imageUrl, String text, {String? subject}) async {
+    try {
+      developer.log('Attempting to share single image: $imageUrl');
+      
+      // Check storage space before downloading
+      final hasSpace = await _checkStorageSpace();
+      if (!hasSpace) {
+        developer.log('Insufficient storage space, sharing text only');
+        await Share.share(text, subject: subject);
+        return;
+      }
+      
+      // Download the image
+      final imagePath = await _downloadAndCacheImage(imageUrl);
+      
+      if (imagePath != null) {
+        developer.log('Sharing single image...');
+        
+        // Share single image with text
+        await Share.shareXFiles(
+          [XFile(imagePath)],
+          text: text,
+          subject: subject,
+        );
+        developer.log('Single image shared successfully');
+        
+        // Schedule cleanup for later (don't block sharing)
+        Future.delayed(const Duration(minutes: 30), () {
+          cleanupTempImages().catchError((e) {
+            developer.log('Background cleanup failed: $e');
+          });
+        });
+      } else {
+        // Fallback to text only if image download failed
+        developer.log('Image download failed, sharing text only');
+        await Share.share(text, subject: subject);
+      }
+      
+    } catch (e) {
+      developer.log('Error sharing single image: $e');
+      // Fallback to text-only sharing
+      try {
+        await Share.share(text, subject: subject);
+        developer.log('Fallback text sharing successful');
+      } catch (fallbackError) {
+        developer.log('Fallback text sharing also failed: $fallbackError');
+        rethrow;
+      }
     }
   }
 
@@ -465,6 +518,7 @@ ${item.description}
   
   /// Share multiple images with text (advanced feature - limited platform support)
   /// Note: This works well on Android, limited support on iOS
+  /// @deprecated Use shareSingleImage instead - app now shares only primary photo
   static Future<void> shareMultipleImages(List<String> imageUrls, String text, {String? subject}) async {
     try {
       developer.log('Attempting to share multiple images: ${imageUrls.length}');

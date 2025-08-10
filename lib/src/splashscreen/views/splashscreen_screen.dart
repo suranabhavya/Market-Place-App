@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/services/auth_service.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/debug_utils.dart';
@@ -28,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 		
 		// Initialize animations for smooth logo appearance
 		_animationController = AnimationController(
-			duration: const Duration(milliseconds: 2000),
+			duration: const Duration(milliseconds: 1500),
 			vsync: this,
 		);
 		
@@ -121,11 +119,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 									child: Column(
 										mainAxisAlignment: MainAxisAlignment.center,
 										children: [
-											// SVG Logo with responsive sizing
-											SvgPicture.asset(
-												R.ASSETS_ICONS_COMPANY_LOGO_SVG,
-												width: ScreenUtil().screenWidth * 0.25, // 25% of screen width (reduced from 30%)
-												height: ScreenUtil().screenWidth * 0.29, // Maintain aspect ratio (798/694 ≈ 1.15)
+											// PNG Logo with responsive sizing
+											Image.asset(
+												R.ASSETS_ICONS_COMPANY_LOGO_PNG,
+												width: ScreenUtil().screenWidth * 0.35,
+												height: ScreenUtil().screenWidth * 0.35,
 												fit: BoxFit.contain,
 											),
 										],
