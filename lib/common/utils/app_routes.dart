@@ -27,6 +27,7 @@ import 'package:marketplace_app/src/properties/views/property_screen.dart';
 import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
 import 'package:marketplace_app/src/search/views/search_screen.dart';
 import 'package:marketplace_app/src/splashscreen/views/splashscreen_screen.dart';
+import 'package:marketplace_app/src/message/views/message_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -180,6 +181,19 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/marketplace/filter',
       builder: (context, state) => const MarketplaceFilterPage(),
+    ),
+    GoRoute(
+      path: '/chat/:chatId',
+      builder: (context, state) {
+        final chatId = int.parse(state.pathParameters['chatId']!);
+        final extra = state.extra as Map<String, dynamic>?;
+        return MessagePage(
+          chatId: chatId,
+          participants: extra?['participants'] ?? 'Unknown',
+          otherParticipantProfilePhoto: extra?['otherParticipantProfilePhoto'],
+          otherParticipantId: extra?['otherParticipantId'],
+        );
+      },
     ),
   ],
 );

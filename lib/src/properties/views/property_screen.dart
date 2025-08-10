@@ -198,10 +198,14 @@ class _PropertyPageState extends State<PropertyPage> {
             leading: const AppBackButton(),
             actions: [
               // Share Button
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: GestureDetector(
-                  onTap: () async {
+              Container(
+                margin: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     try {
                       await ShareUtils.shareProperty(property);
@@ -217,24 +221,27 @@ class _PropertyPageState extends State<PropertyPage> {
                       }
                     }
                   },
-                  child: CircleAvatar(
-                    backgroundColor: Kolors.kSecondaryLight,
-                    child: Icon(
-                      MaterialCommunityIcons.share,
-                      color: Kolors.kGray,
-                      size: 30.h,
-                    ),
+                  icon: const Icon(
+                    MaterialCommunityIcons.share,
+                    color: Kolors.kWhite,
                   ),
                 ),
               ),
               // Wishlist Button
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
+              Container(
+                margin: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Consumer<WishlistNotifier>(
-                  builder: (context, wishlistNotifier, child) { 
-                    return GestureDetector(
-                      onTap: () {
-                        if(accessToken == null) {
+                  builder: (context, wishlistNotifier, child) {
+                    final isInWishlist = wishlistNotifier.wishlist
+                        .contains(property.id);
+                    
+                    return IconButton(
+                      onPressed: () {
+                        if (accessToken == null) {
                           loginBottomSheet(context);
                         } else {
                           wishlistNotifier.toggleWishlist(
@@ -259,16 +266,13 @@ class _PropertyPageState extends State<PropertyPage> {
                           );
                         }
                       },
-                      child: CircleAvatar(
-                        backgroundColor: Kolors.kSecondaryLight,
-                        child: Icon(
-                          AntDesign.heart,
-                          color: wishlistNotifier.wishlist.contains(property.id)? Kolors.kRed : Kolors.kGray,
-                        ),
+                      icon: Icon(
+                        isInWishlist ? Icons.favorite : Icons.favorite_border,
+                        color: isInWishlist ? Kolors.kRed : Kolors.kWhite,
                       ),
                     );
-                  }
-                )
+                  },
+                ),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(

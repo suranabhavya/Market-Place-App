@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'package:get_storage/get_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/utils/app_routes.dart';
 
 class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
@@ -364,10 +366,10 @@ class PushNotificationService {
           }
           break;
         case 'new_message':
-          String? conversationId = data['conversation_id'];
-          if (conversationId != null) {
-            debugPrint('Navigate to conversation: $conversationId');
-            // TODO: Implement navigation to conversation
+          String? chatId = data['chat_id'];
+          if (chatId != null) {
+            debugPrint('Navigate to chat: $chatId');
+            _navigateToChat(chatId, data);
           }
           break;
         default:
@@ -376,5 +378,97 @@ class PushNotificationService {
     } catch (e) {
       debugPrint('Error handling notification data: $e');
     }
+  }
+
+  // Navigate to chat screen with notification data
+  Future<void> _navigateToChat(String chatId, Map<String, dynamic> data) async {
+    try {
+      final context = navigatorKey.currentContext;
+      if (context == null) {
+        debugPrint('No navigation context available');
+        return;
+      }
+
+      // Try to get chat details from notification data first
+      Map<String, dynamic>? chatDetails = await _getChatDetailsFromNotification(data);
+      
+      // If not available in notification, fetch from API
+      chatDetails ??= await _fetchChatDetails(chatId);
+
+      if (chatDetails != null) {
+        // Navigate using GoRouter
+        context.go('/chat/$chatId', extra: chatDetails);
+      } else {
+        debugPrint('Unable to get chat details for navigation');
+      }
+    } catch (e) {
+      debugPrint('Error navigating to chat: $e');
+    }
+  }
+
+  // Extract chat details from notification data
+  Map<String, dynamic>? _getChatDetailsFromNotification(Map<String, dynamic> data) {
+    try {
+      final senderName = data['sender_name'];
+      final senderProfilePhoto = data['sender_profile_photo'];
+      final senderId = data['sender_id'];
+
+      if (senderName != null && senderId != null) {
+        return {
+          'participants': senderName,
+          'otherParticipantProfilePhoto': senderProfilePhoto,
+          'otherParticipantId': int.tryParse(senderId.toString()),
+        };
+      }
+    } catch (e) {
+      debugPrint('Error extracting chat details from notification: $e');
+    }
+    return null;
+  }
+
+  // Fetch chat details from API if not available in notification
+  Future<Map<String, dynamic>?> _fetchChatDetails(String chatId) async {
+    try {
+      final String? token = Storage().getString('accessToken');
+      if (token == null) {
+        debugPrint('No access token available for fetching chat details');
+        return null;
+      }
+
+      final response = await http.get(
+        Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/$chatId/'),
+        headers: {'Authorization': 'Token $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final chatData = jsonDecode(response.body);
+        final participants = chatData['participants'] as List?;
+        
+        if (participants != null && participants.isNotEmpty) {
+          // Get the other participant (not the current user)
+          final currentUserData = Storage().getString('user');
+          int? currentUserId;
+          if (currentUserData != null) {
+            currentUserId = jsonDecode(currentUserData)['id'];
+          }
+
+          final otherParticipant = participants.firstWhere(
+            (p) => p['id'] != currentUserId,
+            orElse: () => participants.first,
+          );
+
+          return {
+            'participants': otherParticipant['name'] ?? 'Unknown',
+            'otherParticipantProfilePhoto': otherParticipant['profile_photo'],
+            'otherParticipantId': otherParticipant['id'],
+          };
+        }
+      } else {
+        debugPrint('Failed to fetch chat details: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching chat details: $e');
+    }
+    return null;
   }
 } 

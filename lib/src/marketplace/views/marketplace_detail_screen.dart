@@ -174,17 +174,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
           SliverAppBar(
             expandedHeight: 300.h,
             pinned: true,
-            leading: Container(
-              margin: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: AppBackButton(
-                onTap: () => context.pop(),
-                color: Kolors.kWhite,
-              ),
-            ),
+            leading: const AppBackButton(),
             actions: [
               // Share Button
               Container(

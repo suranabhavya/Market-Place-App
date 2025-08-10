@@ -151,10 +151,10 @@ class _MarketplacePageState extends State<MarketplacePage> {
                     ],
                   ),
                 )
-              : ExploreMarketplace(
+                              : ExploreMarketplace(
                   marketplaceItems: items,
-                  onWishlistUpdated: _refreshItems,
-                  onRefresh: _handleRefresh,
+                  onWishlistUpdated: () => _refreshItems(),
+                  onRefresh: () => _handleRefresh(),
                 ),
         ),
       ),
