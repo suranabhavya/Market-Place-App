@@ -270,7 +270,7 @@ class _FilterPageState extends State<FilterPage> {
     }
   }
 
-  void _applyFilters(FilterNotifier filterNotifier) {
+  void _applyFilters(FilterNotifier filterNotifier) async {
     final double? minRent = double.tryParse(_minRentController.text);
     final double? maxRent = double.tryParse(_maxRentController.text);
     if (minRent == null || maxRent == null || minRent > maxRent) {
@@ -280,7 +280,17 @@ class _FilterPageState extends State<FilterPage> {
       return;
     }
     filterNotifier.setPriceRange(RangeValues(minRent, maxRent));
-    filterNotifier.applyFilters();
+    
+    // Apply filters and wait for completion
+    await filterNotifier.applyFilters();
+    
+    // Navigate back to home screen to show filtered results
+    if (mounted && context.canPop()) {
+      context.pop();
+    } else if (mounted) {
+      // If can't pop, navigate to home
+      context.go('/home');
+    }
   }
 
   void _resetFilters(FilterNotifier filterNotifier) {
@@ -709,7 +719,9 @@ class _FilterPageState extends State<FilterPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _applyFilters(filterNotifier),
+                      onPressed: filterNotifier.isLoading 
+                          ? null 
+                          : () => _applyFilters(filterNotifier),
                       child: filterNotifier.isLoading
                           ? const CircularProgressIndicator()
                           : const Text("Apply Filter"),

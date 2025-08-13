@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -80,22 +81,90 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: 48.w),
-        child: FloatingActionButton(
-          onPressed: () {
-            if (accessToken == null) {
-              loginBottomSheet(context);
-            } else {
-              final filterNotifier = context.read<FilterNotifier>();
-              context.push("/property/create").then((_) async {
-                if (mounted) {
-                  await filterNotifier.applyFilters();
-                }
-              });
-            }
-          },
-          backgroundColor: Kolors.kPrimary,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, size: 32, color: Kolors.kWhite),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Kolors.kPrimary.withOpacity(0.8),
+                    Kolors.kPrimaryLight.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(25.r),
+                border: Border.all(
+                  color: Kolors.kPrimaryLight.withOpacity(0.8),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Kolors.kPrimary.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Kolors.kPrimaryLight.withOpacity(0.1),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(25.r),
+                  onTap: () {
+                    if (accessToken == null) {
+                      loginBottomSheet(context);
+                    } else {
+                      final filterNotifier = context.read<FilterNotifier>();
+                      context.push("/property/create").then((_) async {
+                        if (mounted) {
+                          await filterNotifier.applyFilters();
+                        }
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 12.h,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add,
+                          color: Kolors.kWhite,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'List your Place',
+                          style: TextStyle(
+                            color: Kolors.kWhite,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            shadows: [
+                              Shadow(
+                                color: Kolors.kDark.withOpacity(0.5),
+                                offset: const Offset(0, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

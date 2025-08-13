@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -160,37 +161,105 @@ class _MarketplacePageState extends State<MarketplacePage> {
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: 48.w),
-        child: FloatingActionButton(
-          onPressed: () {
-            if (accessToken == null) {
-              loginBottomSheet(context);
-            } else {
-              // Capture notifiers before async operation
-              final marketplaceNotifier = context.read<MarketplaceNotifier>();
-              final wishlistNotifier = context.read<WishlistNotifier>();
-              
-              // Navigate to create screen with a callback when returning
-              context.push("/marketplace/create").then((_) async {
-                if (mounted) {
-                  // Refresh the marketplace items when returning from create screen
-                  
-                  // Clear any filtered items to show all items including the new one
-                  setState(() {
-                    _currentItems = null;
-                  });
-                  
-                  // Force refresh of marketplace items
-                  await marketplaceNotifier.refreshMarketplaceItems();
-                  
-                  // Also refresh wishlist in case the new item was added to wishlist
-                  await wishlistNotifier.fetchWishlist();
-                }
-              });
-            }
-          },
-          backgroundColor: Kolors.kPrimary,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, size: 32, color: Kolors.kWhite),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Kolors.kPrimary.withOpacity(0.8),
+                    Kolors.kPrimaryLight.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(25.r),
+                border: Border.all(
+                  color: Kolors.kPrimary.withOpacity(0.8),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Kolors.kPrimaryLight.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Kolors.kPrimaryLight.withOpacity(0.1),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(25.r),
+                  onTap: () {
+                    if (accessToken == null) {
+                      loginBottomSheet(context);
+                    } else {
+                      // Capture notifiers before async operation
+                      final marketplaceNotifier = context.read<MarketplaceNotifier>();
+                      final wishlistNotifier = context.read<WishlistNotifier>();
+                      
+                      // Navigate to create screen with a callback when returning
+                      context.push("/marketplace/create").then((_) async {
+                        if (mounted) {
+                          // Refresh the marketplace items when returning from create screen
+                          
+                          // Clear any filtered items to show all items including the new one
+                          setState(() {
+                            _currentItems = null;
+                          });
+                          
+                          // Force refresh of marketplace items
+                          await marketplaceNotifier.refreshMarketplaceItems();
+                          
+                          // Also refresh wishlist in case the new item was added to wishlist
+                          await wishlistNotifier.fetchWishlist();
+                        }
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 12.h,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add,
+                          color: Kolors.kWhite,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'List Items',
+                          style: TextStyle(
+                            color: Kolors.kWhite,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            shadows: [
+                              Shadow(
+                                color: Kolors.kDark.withOpacity(0.5),
+                                offset: const Offset(0, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

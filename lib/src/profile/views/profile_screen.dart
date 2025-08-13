@@ -247,16 +247,32 @@ class _ProfilePageState extends State<ProfilePage> {
                             SizedBox(height: 8.h),
                             InkWell(
                               onTap: () => context.push('/profile/verify-school-email'),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24.sp),
-                                  SizedBox(width: 5.w),
-                                  Text(
-                                    "Verify your account",
-                                    style: appStyle(12.sp, Colors.amber.shade700, FontWeight.w500),
-                                  ),
-                                ],
+                              borderRadius: BorderRadius.circular(8.r),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20.sp),
+                                    SizedBox(width: 6.w),
+                                    Container(
+                                      padding: EdgeInsets.only(bottom: 2.h),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.amber.shade700,
+                                            width: 1.2,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        "Verify your account",
+                                        style: appStyle(12.sp, Colors.amber.shade700, FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

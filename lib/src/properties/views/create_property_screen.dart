@@ -1418,7 +1418,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 const SizedBox(height: 16),
 
                 const SectionTitle(
-                  title: "Lifestyle (Optional)",
+                  title: "Your Lifestyle (Optional)",
                 ),
 
                 const SizedBox(height: 16),

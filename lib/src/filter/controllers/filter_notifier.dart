@@ -12,6 +12,11 @@ class FilterNotifier extends ChangeNotifier {
   DateTime? availableTo;
   String _searchKey = '';
   String get searchKey => _searchKey;
+  
+  // Flexibility properties
+  String dateFlexibility = "Exact dates";
+  DateTime? actualFromDate;
+  DateTime? actualToDate;
 
   // New state variables for property type and flatmate preferences
   List<String> selectedPropertyTypes = [];
@@ -76,6 +81,13 @@ class FilterNotifier extends ChangeNotifier {
 
   void setMoveOutDate(DateTime? date) {
     availableTo = date;
+    notifyListeners();
+  }
+  
+  void setDateFlexibility(String flexibility, DateTime? actualFrom, DateTime? actualTo) {
+    dateFlexibility = flexibility;
+    actualFromDate = actualFrom;
+    actualToDate = actualTo;
     notifyListeners();
   }
 
@@ -175,11 +187,15 @@ class FilterNotifier extends ChangeNotifier {
     if (selectedSchools.isNotEmpty) {
       url += "schools=${selectedSchools.join(',')}&";
     }
-    if (availableFrom != null) {
-      url += "available_from=${availableFrom!.toIso8601String().split('T')[0]}&";
+    // Use actual dates for API filtering if flexibility is applied, otherwise use selected dates
+    DateTime? filterFromDate = actualFromDate ?? availableFrom;
+    DateTime? filterToDate = actualToDate ?? availableTo;
+    
+    if (filterFromDate != null) {
+      url += "available_from=${filterFromDate.toIso8601String().split('T')[0]}&";
     }
-    if (availableTo != null) {
-      url += "available_to=${availableTo!.toIso8601String().split('T')[0]}&";
+    if (filterToDate != null) {
+      url += "available_to=${filterToDate.toIso8601String().split('T')[0]}&";
     }
     
     return url;
@@ -273,6 +289,9 @@ class FilterNotifier extends ChangeNotifier {
     selectedSchools = [];
     availableFrom = null;
     availableTo = null;
+    dateFlexibility = "Exact dates";
+    actualFromDate = null;
+    actualToDate = null;
     selectedPropertyTypes = [];
     smokingPreference = '';
     partyingPreference = '';
