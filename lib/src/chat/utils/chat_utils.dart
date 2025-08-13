@@ -1,22 +1,40 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 
 Future<int?> checkExistingChat(int userId) async {
   final String? token = Storage().getString('accessToken');
-  if (token == null) return null;
-
-  final response = await http.get(
-    Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/check/$userId/'),
-    headers: {'Authorization': 'Token $token'},
-  );
-
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    return data['chat_id'];
+  if (token == null) {
+    debugPrint('checkExistingChat: No access token found');
+    return null;
   }
-  return null;
+
+  try {
+    debugPrint('checkExistingChat: Checking for existing chat with userId: $userId');
+    
+    final response = await http.get(
+      Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/check/$userId/'),
+      headers: {'Authorization': 'Token $token'},
+    );
+
+    debugPrint('checkExistingChat: Response status: ${response.statusCode}');
+    debugPrint('checkExistingChat: Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final chatId = data['chat_id'];
+      debugPrint('checkExistingChat: Found existing chat with ID: $chatId');
+      return chatId;
+    } else {
+      debugPrint('checkExistingChat: No existing chat found or error occurred');
+      return null;
+    }
+  } catch (e) {
+    debugPrint('checkExistingChat: Error occurred: $e');
+    return null;
+  }
 }
 
 // void showMessageModal(BuildContext context, TextEditingController messageController, Function sendMessage) {

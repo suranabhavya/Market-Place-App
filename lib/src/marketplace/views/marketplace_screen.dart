@@ -177,12 +177,12 @@ class _MarketplacePageState extends State<MarketplacePage> {
                 ),
                 borderRadius: BorderRadius.circular(25.r),
                 border: Border.all(
-                  color: Kolors.kPrimary.withOpacity(0.8),
+                  color: Kolors.kPrimaryLight.withOpacity(0.8),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Kolors.kPrimaryLight.withOpacity(0.2),
+                    color: Kolors.kPrimary.withOpacity(0.2),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                   ),

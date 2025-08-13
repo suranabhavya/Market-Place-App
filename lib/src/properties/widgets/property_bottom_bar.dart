@@ -62,11 +62,16 @@ class _PropertyBottomBarState extends State<PropertyBottomBar> {
                 return;
               }
               
+              debugPrint('PropertyBottomBar: Checking existing chat for senderId: ${widget.senderId}');
+              
               final chatId = await checkExistingChat(widget.senderId);
               if (!context.mounted) return;
               
+              debugPrint('PropertyBottomBar: Existing chat check result - chatId: $chatId');
+              
               if (chatId != null) {
                 // Navigate to the existing chat
+                debugPrint('PropertyBottomBar: Navigating to existing chat with ID: $chatId');
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -80,6 +85,7 @@ class _PropertyBottomBarState extends State<PropertyBottomBar> {
                 );
               } else {
                 // Show message modal for new chat
+                debugPrint('PropertyBottomBar: No existing chat found, showing message modal');
                 showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
@@ -99,11 +105,11 @@ class _PropertyBottomBarState extends State<PropertyBottomBar> {
                 );
               }
             } catch (e) {
-              debugPrint('Error handling message tap: $e');
+              debugPrint('PropertyBottomBar: Error handling message tap: $e');
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Failed to open chat. Please try again.'),
+                  SnackBar(
+                    content: Text('Failed to open chat: $e'),
                     backgroundColor: Colors.red,
                   ),
                 );

@@ -4,12 +4,19 @@ import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
+import 'package:flutter/gestures.dart';
 
 Future<void> _launchGoogleForm() async {
   final Uri url = Uri.parse('https://forms.gle/3fmFBd5qdLHkM8Eq9');
   if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
     throw Exception('Could not launch $url');
   }
+}
+
+Future<void> _launchExternalUrl(String url) async {
+  final Uri uri = Uri.parse(url);
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
 Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
@@ -124,6 +131,35 @@ Future<dynamic> showHelpCenterBottomSheet(BuildContext context) {
                         description: 'Share your overall experience and thoughts about the app.',
                       ),
                       SizedBox(height: 30.h),
+                      Center(
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: appStyle(12.0, Kolors.kGray, FontWeight.w400),
+                            children: [
+                              const TextSpan(text: 'By using Sublyst you agree to our '),
+                              TextSpan(
+                                text: 'Terms of Service',
+                                style: appStyle(12.0, Kolors.kGray, FontWeight.w600).copyWith(
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => _launchExternalUrl('${Environment.baseUrl}/legal/terms/'),
+                              ),
+                              const TextSpan(text: ' and '),
+                              TextSpan(
+                                text: 'Privacy Policy',
+                                style: appStyle(12.0, Kolors.kGray, FontWeight.w600).copyWith(
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () => _launchExternalUrl('${Environment.baseUrl}/legal/privacy/'),
+                              ),
+                              const TextSpan(text: '.'),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

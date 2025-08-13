@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -191,6 +194,34 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                   btnColor: Colors.white,
                   svgPath: R.ASSETS_ICONS_GOOGLE_SVG,
                 ),
+            SizedBox(height: 20.h),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: appStyle(12.0, Kolors.kGray, FontWeight.w400),
+                children: [
+                  const TextSpan(text: 'By clicking sign in or sign up you agree to our '),
+                  TextSpan(
+                    text: 'Terms of Service',
+                    style: appStyle(12.0, Kolors.kGray, FontWeight.w600).copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openUrl('${Environment.baseUrl}/legal/terms/'),
+                  ),
+                  const TextSpan(text: ' and '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: appStyle(12.0, Kolors.kGray, FontWeight.w600).copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openUrl('${Environment.baseUrl}/legal/privacy/'),
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -227,5 +258,10 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
         );
       }
     }
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }

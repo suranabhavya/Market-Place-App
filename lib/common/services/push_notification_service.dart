@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/utils/environment.dart';
@@ -15,6 +16,9 @@ class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final _uuid = const Uuid();
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  
+  // iOS method channel for native notification handling
+  static const MethodChannel _iOSNotificationChannel = MethodChannel('com.surana.homiswap/notifications');
   
   // Singleton pattern
   static final PushNotificationService _instance = PushNotificationService._internal();
@@ -44,6 +48,11 @@ class PushNotificationService {
   Future<void> initializeHandlersOnly() async {
     await _initializeLocalNotifications();
     
+    // Set up iOS method channel listener
+    if (Platform.isIOS) {
+      _setupIOSNotificationChannel();
+    }
+    
     // Skip Firebase messaging setup on iOS if not enabled
     if (Platform.isIOS && !_enableIOSPushNotifications) {
       debugPrint('Skipping Firebase messaging setup on iOS - APNS not configured');
@@ -65,6 +74,22 @@ class PushNotificationService {
     
     debugPrint('Initializing FCM token after authentication...');
     await _getAndSaveToken();
+  }
+
+  // Set up iOS method channel for native notification handling
+  void _setupIOSNotificationChannel() {
+    _iOSNotificationChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onNotificationTapped') {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments);
+        debugPrint('iOS: Received notification data from native: $data');
+        
+        // Add a small delay to ensure the app is fully loaded
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _handleNotificationData(data);
+        });
+      }
+    });
+    debugPrint('iOS notification method channel set up');
   }
 
   // Initialize local notifications
@@ -383,24 +408,37 @@ class PushNotificationService {
   // Navigate to chat screen with notification data
   Future<void> _navigateToChat(String chatId, Map<String, dynamic> data) async {
     try {
-      final context = navigatorKey.currentContext;
-      if (context == null) {
-        debugPrint('No navigation context available');
-        return;
-      }
-
-      // Try to get chat details from notification data first
-      Map<String, dynamic>? chatDetails = await _getChatDetailsFromNotification(data);
+      // For iOS, we might need to retry navigation if context is not ready
+      int retryCount = 0;
+      const maxRetries = 10;
       
-      // If not available in notification, fetch from API
-      chatDetails ??= await _fetchChatDetails(chatId);
+      while (retryCount < maxRetries) {
+        final context = navigatorKey.currentContext;
+        if (context != null) {
+          // Try to get chat details from notification data first
+          Map<String, dynamic>? chatDetails = await _getChatDetailsFromNotification(data);
+          
+          // If not available in notification, fetch from API
+          chatDetails ??= await _fetchChatDetails(chatId);
 
-      if (chatDetails != null) {
-        // Navigate using GoRouter
-        context.go('/chat/$chatId', extra: chatDetails);
-      } else {
-        debugPrint('Unable to get chat details for navigation');
+          if (chatDetails != null) {
+            // Navigate using GoRouter
+            context.go('/chat/$chatId', extra: chatDetails);
+            debugPrint('Successfully navigated to chat: $chatId');
+            return;
+          } else {
+            debugPrint('Unable to get chat details for navigation');
+            return;
+          }
+        }
+        
+        // Wait a bit before retrying
+        retryCount++;
+        debugPrint('Navigation context not ready, retrying... ($retryCount/$maxRetries)');
+        await Future.delayed(Duration(milliseconds: 200 * retryCount));
       }
+      
+      debugPrint('Failed to get navigation context after $maxRetries retries');
     } catch (e) {
       debugPrint('Error navigating to chat: $e');
     }

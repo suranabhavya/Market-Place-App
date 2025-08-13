@@ -123,28 +123,34 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     });
 
     try {
+      debugPrint('PublicProfile: Checking existing chat for userId: ${widget.userId}');
+      
       final chatId = await checkExistingChat(widget.userId);
       if (!mounted) return;
       
+      debugPrint('PublicProfile: Existing chat check result - chatId: $chatId');
+      
       if (chatId != null) {
         // Navigate to the existing chat
+        debugPrint('PublicProfile: Navigating to existing chat with ID: $chatId');
         if (mounted) {
           // ignore: use_build_context_synchronously
           _navigateToExistingChat(context, chatId);
         }
       } else {
         // Show message modal for new chat
+        debugPrint('PublicProfile: No existing chat found, showing message modal');
         if (mounted) {
           // ignore: use_build_context_synchronously
           _showNewChatModal(context);
         }
       }
     } catch (e) {
-      debugPrint('Error handling message tap: $e');
+      debugPrint('PublicProfile: Error handling message tap: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to open chat. Please try again.'),
+          SnackBar(
+            content: Text('Failed to open chat: $e'),
             backgroundColor: Colors.red,
           ),
         );
