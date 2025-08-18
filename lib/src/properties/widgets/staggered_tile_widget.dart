@@ -292,7 +292,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                                 loginBottomSheet(context);
                               } else {
                                 wishlistNotifier.toggleWishlist(
-                                  widget.property.id,
+                                  widget.property.id.toString(),
                                   () => setState(() {}), // Simple refresh callback
                                   type: 'property', // Specify this is a property
                                 );
@@ -303,7 +303,10 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                               backgroundColor: Kolors.kWhite,
                               child: Icon(
                                 AntDesign.heart,
-                                color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
+                                color: wishlistNotifier.isWishlisted(
+                                  type: 'property',
+                                  id: widget.property.id.toString(),
+                                ) ? Kolors.kRed : Kolors.kGray,
                                 size: 15.r,
                               ),
                             ),

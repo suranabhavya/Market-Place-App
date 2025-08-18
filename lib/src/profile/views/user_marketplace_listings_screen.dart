@@ -324,7 +324,10 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                               // Wishlist button (for all users)
                                               Consumer<WishlistNotifier>(
                                                 builder: (context, wishlistNotifier, child) {
-                                                  final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
+                                                  final isInWishlist = wishlistNotifier.isWishlisted(
+                                                    type: 'marketplace',
+                                                    id: item.id.toString(),
+                                                  );
                                                   
                                                   return GestureDetector(
                                                     onTap: () {
@@ -333,7 +336,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                                         loginBottomSheet(context);
                                                       } else {
                                                         wishlistNotifier.toggleWishlist(
-                                                          item.id,
+                                                          item.id.toString(),
                                                           () {},
                                                           type: 'marketplace',
                                                         );

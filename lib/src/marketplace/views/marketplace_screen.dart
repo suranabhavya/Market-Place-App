@@ -69,10 +69,6 @@ class _MarketplacePageState extends State<MarketplacePage> {
     });
   }
   
-  // Refresh the current items display
-  void _refreshItems() {
-    setState(() {});
-  }
 
   // Handle refresh from pull-to-refresh
   Future<void> _handleRefresh() async {
@@ -100,8 +96,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
     
     // Use current items if we have them, otherwise use items from notifier
     final List<MarketplaceListModel> items = _currentItems ?? marketplaceNotifier.marketplaceItems;
-    final bool isLoading = (_currentItems == null && marketplaceNotifier.isLoading) || 
-                         context.watch<WishlistNotifier>().isLoading;
+    final bool isLoading = (_currentItems == null && marketplaceNotifier.isLoading);
     
     // Debug logging
     debugPrint('MarketplaceScreen - _currentItems: ${_currentItems?.length ?? 'null'}');
@@ -109,7 +104,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
     debugPrint('MarketplaceScreen - final items: ${items.length}');
     debugPrint('MarketplaceScreen - isLoading: $isLoading');
     debugPrint('MarketplaceScreen - marketplaceNotifier.isLoading: ${marketplaceNotifier.isLoading}');
-    debugPrint('MarketplaceScreen - wishlistNotifier.isLoading: ${context.watch<WishlistNotifier>().isLoading}');
+    // Removed wishlist loading from overall loading to avoid UI flashing on heart tap
     debugPrint('MarketplaceScreen - items.isEmpty: ${items.isEmpty}');
     
     // Force refresh if items are empty but notifier has items
@@ -152,9 +147,9 @@ class _MarketplacePageState extends State<MarketplacePage> {
                     ],
                   ),
                 )
-                              : ExploreMarketplace(
+              : ExploreMarketplace(
                   marketplaceItems: items,
-                  onWishlistUpdated: () => _refreshItems(),
+                  onWishlistUpdated: () {},
                   onRefresh: () => _handleRefresh(),
                 ),
         ),

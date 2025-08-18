@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
+import 'package:marketplace_app/common/utils/image_compression_util.dart';
 
 class GoogleCloudStorageService {
   static const String _bucketName = 'sublyst-images';
@@ -77,6 +78,8 @@ class GoogleCloudStorageService {
     required String userId,
     String? itemId,
     Function(double)? onProgress,
+    bool applyFinalCompression = true, // Apply final compression before upload
+    bool useUltraAggressive = false, // Use ultra-aggressive compression for maximum size reduction
   }) async {
     AuthClient? authClient;
     try {
@@ -90,6 +93,17 @@ class GoogleCloudStorageService {
       for (int i = 0; i < imageFiles.length; i++) {
         debugPrint('Processing image ${i + 1}/${imageFiles.length}');
         File imageFile = imageFiles[i];
+        
+        // Apply final compression if requested
+        if (applyFinalCompression) {
+          if (useUltraAggressive) {
+            debugPrint('🔧⚡ Applying ULTRA-AGGRESSIVE compression for maximum size reduction...');
+            imageFile = await ImageCompressionUtil.compressUltraAggressive(imageFile);
+          } else {
+            debugPrint('🔧 Applying aggressive compression for upload optimization...');
+            imageFile = await ImageCompressionUtil.compressForUpload(imageFile);
+          }
+        }
         
         // Generate unique filename
         String fileName = _generateFileName(

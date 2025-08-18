@@ -6,12 +6,41 @@ import 'package:http/http.dart' as http;
 
 class WishlistNotifier with ChangeNotifier {
   String? error;
+  // Composite keys: "property:<id>" or "marketplace:<id>"
   List<String> _wishlist = [];
   bool _isLoading = false;
   String? _currentAccessToken;
+  
+  // Pending optimistic operations overlay
+  final Set<String> _pendingAdds = <String>{};
+  final Set<String> _pendingRemoves = <String>{};
 
-  List<String> get wishlist => _wishlist;
+  // Expose a merged view that applies optimistic overlays
+  List<String> get wishlist {
+    // Start from server/base list
+    final Set<String> merged = _wishlist.toSet();
+    // Apply optimistic adds
+    for (final k in _pendingAdds) {
+      merged.add(k);
+    }
+    // Apply optimistic removes
+    for (final k in _pendingRemoves) {
+      merged.remove(k);
+    }
+    return merged.toList(growable: false);
+  }
   bool get isLoading => _isLoading;
+
+  // Build a composite key for wishlist items
+  String compositeKey(String type, String id) {
+    return '$type:${id.toString()}';
+  }
+
+  // Check wishlist state using merged optimistic view
+  bool isWishlisted({required String type, required String id}) {
+    final String key = compositeKey(type, id);
+    return wishlist.contains(key);
+  }
 
   void setError(String e) {
     error = e;
@@ -26,6 +55,8 @@ class WishlistNotifier with ChangeNotifier {
   // Clear wishlist data (called on logout)
   void clearWishlist() {
     _wishlist.clear();
+    _pendingAdds.clear();
+    _pendingRemoves.clear();
     _currentAccessToken = null;
     error = null;
     notifyListeners();
@@ -75,7 +106,11 @@ class WishlistNotifier with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        _wishlist = data.map((item) => item['id'].toString()).toList();
+        _wishlist = data.map((item) {
+          final String type = (item['wishlist_item_type'] ?? 'property').toString();
+          final String itemId = item['id'].toString();
+          return '$type:$itemId';
+        }).toList();
         Storage().setString('${accessToken}_wishlist', jsonEncode(_wishlist));
         _currentAccessToken = accessToken;
         debugPrint('Fetched ${_wishlist.length} wishlist items for user');
@@ -101,18 +136,25 @@ class WishlistNotifier with ChangeNotifier {
       return;
     }
 
+    // Clear previous error and check if user changed
+    error = null;
+    
     // Check if user changed
     _checkUserChange();
 
-    // Store the original state for rollback if needed
-    final bool wasInWishlist = _wishlist.contains(id);
+    // Normalize id to string and build composite key for rollback if needed
+    final String idStr = id.toString();
+    final String key = '$type:$idStr';
+    final bool wasInWishlist = wishlist.contains(key); // use merged view
     
     // Optimistic update - immediately update UI
     if (wasInWishlist) {
-      _wishlist.remove(id);
+      _pendingRemoves.add(key);
+      _pendingAdds.remove(key);
       debugPrint('Optimistically removed $type item from wishlist: $id');
     } else {
-      _wishlist.add(id);
+      _pendingAdds.add(key);
+      _pendingRemoves.remove(key);
       debugPrint('Optimistically added $type item to wishlist: $id');
     }
     
@@ -122,7 +164,7 @@ class WishlistNotifier with ChangeNotifier {
     _isLoading = true;
     
     try {
-      Uri url = Uri.parse('${Environment.baseUrl}/api/wishlist/toggle/?id=$id&type=$type');
+      Uri url = Uri.parse('${Environment.baseUrl}/api/wishlist/toggle/?id=$idStr&type=$type');
       debugPrint('Toggling wishlist for $type item: $id');
       debugPrint('Request URL: $url');
       
@@ -139,13 +181,17 @@ class WishlistNotifier with ChangeNotifier {
 
       if (response.statusCode == 201) {
         // Item was added successfully
-        if (!_wishlist.contains(id)) {
-          _wishlist.add(id);
+        _pendingAdds.remove(key);
+        _pendingRemoves.remove(key);
+        if (!_wishlist.contains(key)) {
+          _wishlist.add(key);
         }
         debugPrint('Successfully added $type item to wishlist: $id');
       } else if (response.statusCode == 204) {
         // Item was removed successfully
-        _wishlist.remove(id);
+        _pendingAdds.remove(key);
+        _pendingRemoves.remove(key);
+        _wishlist.remove(key);
         debugPrint('Successfully removed $type item from wishlist: $id');
       } else if (response.statusCode == 401) {
         // Authentication error
@@ -153,31 +199,32 @@ class WishlistNotifier with ChangeNotifier {
         Storage().removeKey('accessToken');
         clearWishlist();
         error = 'Session expired. Please log in again.';
-        _rollbackOptimisticUpdate(id, wasInWishlist);
+        _rollbackOptimisticUpdate(key, wasInWishlist);
       } else if (response.statusCode == 404) {
         // Not found error
         error = 'Item not found.';
-        _rollbackOptimisticUpdate(id, wasInWishlist);
+        _rollbackOptimisticUpdate(key, wasInWishlist);
       } else if (response.statusCode == 502) {
         // Bad Gateway - Cloud Run cold start issue
         debugPrint('502 Bad Gateway - likely Cloud Run cold start');
-        error = 'Service temporarily unavailable due to cold start. Please try again.';
-        _rollbackOptimisticUpdate(id, wasInWishlist);
+        // Use a generic message to avoid exposing infrastructure details
+        error = 'Please try again.';
+        _rollbackOptimisticUpdate(key, wasInWishlist);
       } else if (response.statusCode >= 500) {
         // Server error
         debugPrint('Server error: ${response.statusCode}');
         error = 'Server temporarily unavailable. Please try again later.';
-        _rollbackOptimisticUpdate(id, wasInWishlist);
+        _rollbackOptimisticUpdate(key, wasInWishlist);
       } else {
         // Other error
         debugPrint('Error toggling wishlist: ${response.statusCode} ${response.body}');
-        _rollbackOptimisticUpdate(id, wasInWishlist);
+        _rollbackOptimisticUpdate(key, wasInWishlist);
         error = 'Failed to update wishlist. Please try again.';
       }
 
     } catch (e) {
       debugPrint('Network error toggling wishlist: $e');
-      _rollbackOptimisticUpdate(id, wasInWishlist);
+      _rollbackOptimisticUpdate(key, wasInWishlist);
       
       if (e.toString().contains('TimeoutException')) {
         error = 'Request timed out. The server may be starting up, please try again.';
@@ -193,19 +240,28 @@ class WishlistNotifier with ChangeNotifier {
         
     _isLoading = false;
     notifyListeners();
-    refetch();
+    // Only refetch on error to reconcile; avoid racing with server eventually-consistent state
+    if (error != null) {
+      try {
+        refetch();
+      } catch (e) {
+        debugPrint('Refetch callback error: $e');
+      }
+    }
   }
 
   /// Rollback optimistic update to original state
   void _rollbackOptimisticUpdate(String id, bool wasInWishlist) {
+    // Clear optimistic overlays for this key
+    _pendingAdds.remove(id);
+    _pendingRemoves.remove(id);
+    // Restore base list to original state
     if (wasInWishlist) {
-      // Rollback: add it back
       if (!_wishlist.contains(id)) {
         _wishlist.add(id);
         debugPrint('Rolled back: added item back to wishlist: $id');
       }
     } else {
-      // Rollback: remove it
       if (_wishlist.contains(id)) {
         _wishlist.remove(id);
         debugPrint('Rolled back: removed item from wishlist: $id');

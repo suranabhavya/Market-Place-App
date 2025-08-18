@@ -14,6 +14,7 @@ import 'package:marketplace_app/src/auth/models/check_email_model.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:provider/provider.dart';
 
 class AuthNotifier with ChangeNotifier {
@@ -41,6 +42,15 @@ class AuthNotifier with ChangeNotifier {
   
   void setGoogleLoading(bool b) {
     _isGoogleLoading = b;
+    notifyListeners();
+  }
+  
+  bool _isAppleLoading = false;
+  
+  bool get isAppleLoading => _isAppleLoading;
+  
+  void setAppleLoading(bool b) {
+    _isAppleLoading = b;
     notifyListeners();
   }
   
@@ -464,6 +474,137 @@ class AuthNotifier with ChangeNotifier {
       setGoogleLoading(false);
       if (context.mounted) {
         _handleApiError(context, "Failed to sign in with Google. Please try again.");
+      }
+      return false;
+    }
+  }
+
+  // Handle Apple Sign-In
+  Future<bool> signInWithApple(BuildContext context) async {
+    if (!context.mounted) return false;
+    
+    setAppleLoading(true);
+    
+    try {
+      debugPrint("Starting Apple Sign-In process...");
+      
+      // Check if Apple Sign-In is available
+      if (!await SignInWithApple.isAvailable()) {
+        debugPrint("Apple Sign-In is not available on this device");
+        setAppleLoading(false);
+        if (context.mounted) {
+          _handleApiError(context, "Apple Sign-In is not available on this device");
+        }
+        return false;
+      }
+      
+      // Perform Apple Sign-In
+      debugPrint("Requesting Apple Sign-In credentials...");
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      
+      debugPrint("Successfully obtained Apple ID credential");
+      debugPrint("User ID: ${credential.userIdentifier}");
+      debugPrint("Email: ${credential.email}");
+      debugPrint("Given Name: ${credential.givenName}");
+      debugPrint("Family Name: ${credential.familyName}");
+      
+      // Prepare user data for backend
+      String? email = credential.email;
+      String? fullName;
+      
+      if (credential.givenName != null || credential.familyName != null) {
+        fullName = '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim();
+      }
+      
+      // Apple only provides email and name on first sign-in
+      // For subsequent sign-ins, we rely on the stored user data on the server
+      debugPrint("Email provided: ${email != null ? 'Yes' : 'No (subsequent sign-in or hidden)'}");
+      debugPrint("Name provided: ${fullName != null && fullName.isNotEmpty ? 'Yes' : 'No'}");
+      
+      // Send to Django backend for authentication/registration
+      final url = Uri.parse('${Environment.baseUrl}/accounts/apple-auth/');
+      
+      final requestData = {
+        "user_id": credential.userIdentifier,
+        "email": email,
+        "full_name": fullName,
+        "identity_token": credential.identityToken,
+        "authorization_code": credential.authorizationCode,
+      };
+      
+      debugPrint("Sending Apple authentication request to server...");
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(requestData),
+      );
+      
+      setAppleLoading(false);
+      
+      if (!context.mounted) return false;
+      
+      debugPrint("Server response status: ${response.statusCode}");
+      debugPrint("Server response body: ${response.body}");
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        
+        // Parse the response using AuthModel
+        final AuthModel authData = AuthModel.fromJson(responseData);
+        
+        // Store token and user details with timestamp
+        AuthService().storeAuthData(authData.token, authData.user);
+        
+        // Start periodic token validation
+        AuthService().startPeriodicValidation();
+        
+        // Register FCM device after authentication
+        try {
+          await PushNotificationService().registerDeviceAfterAuth();
+        } catch (e) {
+          // Silently handle iOS APNS errors during development
+          debugPrint('Push notification setup skipped: $e');
+        }
+        
+        // Reconnect WebSocket for unread messages
+        if (context.mounted) {
+          _initializeUserState(context);
+        }
+        
+        return true;
+      } else {
+        if (context.mounted) {
+          String errorMessage;
+          try {
+            final errorData = jsonDecode(response.body);
+            errorMessage = errorData['error'] ?? "Apple sign-in failed";
+            
+            // Handle specific error cases
+            if (errorMessage.contains("User not found")) {
+              errorMessage = "Please reset Apple Sign-In:\n\n1. Go to Settings > Apple ID > Sign in with Apple\n2. Find and remove this app\n3. Sign in again to provide your email";
+            }
+          } catch (e) {
+            errorMessage = "Apple sign-in failed: Server error (${response.statusCode})";
+          }
+          _handleApiError(context, errorMessage);
+        }
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Apple Sign-In Error: $e");
+      setAppleLoading(false);
+      if (context.mounted) {
+        // Handle specific Apple Sign-In errors
+        String errorMessage = "Failed to sign in with Apple. Please try again.";
+        if (e.toString().contains('The user canceled the sign in request')) {
+          errorMessage = "Apple Sign-In was cancelled";
+        }
+        _handleApiError(context, errorMessage);
       }
       return false;
     }

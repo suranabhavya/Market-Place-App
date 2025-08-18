@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/utils/image_compression_util.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
@@ -52,7 +53,6 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   bool _isLoading = false;
 
   // Controllers for input fields
-  final ImagePicker _picker = ImagePicker();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -527,8 +527,8 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     // Validate price
     if (_priceController.text.isNotEmpty) {
       final price = double.tryParse(_priceController.text);
-      if (price == null || price <= 0) {
-        _showValidationError("Invalid Price", "Price must be a positive number greater than 0.");
+      if (price == null || price < 0) {
+        _showValidationError("Invalid Price", "Price must be a positive number or 0 for free items.");
         return false;
       }
       if (price > 100000) {
@@ -540,8 +540,8 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     // Validate original price
     if (_originalPriceController.text.isNotEmpty) {
       final originalPrice = double.tryParse(_originalPriceController.text);
-      if (originalPrice == null || originalPrice <= 0) {
-        _showValidationError("Invalid Original Price", "Original price must be a positive number greater than 0.");
+      if (originalPrice == null || originalPrice < 0) {
+        _showValidationError("Invalid Original Price", "Original price must be a positive number or 0.");
         return false;
       }
       if (originalPrice > 100000) {
@@ -738,31 +738,30 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                 onPickImage: (source) async {
                   try {
                     if (source == ImageSource.gallery) {
-                      final List<XFile> pickedImages = await _picker.pickMultiImage(
-                        maxWidth: 800,
-                        maxHeight: 800,
-                        imageQuality: 50,
+                      final List<File> compressedImages = await ImageCompressionUtil.pickAndCompressFromGallery(
+                        multiple: true,
+                        maxImages: 10, // Limit to 10 images
+                        forUpload: true, // Optimize for cloud upload (smaller file sizes)
                       );
                       
-                      setState(() {
-                        _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
-                      });
-                                        } else {
-                      final XFile? pickedImage = await _picker.pickImage(
-                        source: source,
-                        maxWidth: 800,
-                        maxHeight: 800,
-                        imageQuality: 50,
-                      );
-                      
-                      if (pickedImage != null) {
+                      if (compressedImages.isNotEmpty && mounted) {
                         setState(() {
-                          _images.add(File(pickedImage.path));
+                          _images.addAll(compressedImages);
+                        });
+                      }
+                    } else {
+                      final File? compressedImage = await ImageCompressionUtil.pickAndCompressFromCamera(
+                        forUpload: true, // Optimize for cloud upload
+                      );
+                      
+                      if (compressedImage != null && mounted) {
+                        setState(() {
+                          _images.add(compressedImage);
                         });
                       }
                     }
                   } catch (e) {
-                    debugPrint("Error picking images: $e");
+                    debugPrint("Error picking and compressing images: $e");
                   }
                 },
                 onRemoveImage: (index) {

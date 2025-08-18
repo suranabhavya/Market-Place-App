@@ -236,7 +236,10 @@ class _MarketplaceStaggeredTileState extends State<MarketplaceStaggeredTile> {
                       // Wishlist button
                       Consumer<WishlistNotifier>(
                         builder: (context, wishlistNotifier, child) {
-                          final isInWishlist = wishlistNotifier.wishlist.contains(widget.item.id);
+                          final isInWishlist = wishlistNotifier.isWishlisted(
+                            type: 'marketplace',
+                            id: widget.item.id.toString(),
+                          );
                           
                           return GestureDetector(
                             onTap: widget.onTap ?? () {
@@ -245,7 +248,7 @@ class _MarketplaceStaggeredTileState extends State<MarketplaceStaggeredTile> {
                                 loginBottomSheet(context);
                               } else {
                                 wishlistNotifier.toggleWishlist(
-                                  widget.item.id,
+                                  widget.item.id.toString(),
                                   () {
                                     if (widget.onWishlistUpdated != null) {
                                       widget.onWishlistUpdated!();

@@ -198,6 +198,39 @@ class _MessagePageState extends State<MessagePage> {
     super.dispose();
   }
 
+  void _showDeletedUserDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.info_outline, color: Kolors.kGray),
+              SizedBox(width: 8.w),
+              Text(
+                "Account Deleted",
+                style: appStyle(16, Kolors.kDark, FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Text(
+            "This user account has been deleted and is no longer available.",
+            style: appStyle(14, Kolors.kGray, FontWeight.normal),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "OK",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -208,18 +241,26 @@ class _MessagePageState extends State<MessagePage> {
           children: [
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
-                  ),
-                );
+                if (widget.participants == "Deleted User") {
+                  // Show dialog for deleted user
+                  _showDeletedUserDialog();
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
+                    ),
+                  );
+                }
               },
               child: CircleAvatar(
                 radius: 18.w,
                 backgroundColor: Colors.grey,
-                backgroundImage: ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto),
-                child: widget.otherParticipantProfilePhoto == null || 
+                backgroundImage: widget.participants == "Deleted User" 
+                    ? null 
+                    : ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto),
+                child: widget.participants == "Deleted User" ||
+                       widget.otherParticipantProfilePhoto == null || 
                        widget.otherParticipantProfilePhoto!.isEmpty ||
                        ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto) == null
                     ? Icon(Icons.person, size: 36.w)
@@ -230,12 +271,17 @@ class _MessagePageState extends State<MessagePage> {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
-                    ),
-                  );
+                  if (widget.participants == "Deleted User") {
+                    // Show dialog for deleted user
+                    _showDeletedUserDialog();
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
+                      ),
+                    );
+                  }
                 },
                 child: ReusableText(
                   text: widget.participants,

@@ -11,6 +11,7 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
+import 'package:marketplace_app/common/utils/image_compression_util.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
@@ -59,7 +60,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   bool _isLoading = false;
 
   // Controllers for input fields
-  final ImagePicker _picker = ImagePicker();
   String _lastSearchQuery = '';
   final Map<String, Map<String, String>> _selectedSchoolsMap = {};
   final TextEditingController _titleController = TextEditingController();
@@ -111,66 +111,36 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   bool _hasMoreSchools = true;
   bool _isLoadingMoreSchools = false;
 
-  // Method to pick an image
+  // Method to pick and compress images optimized for upload
   Future<void> _pickImage(ImageSource source) async {
     try {
       if (source == ImageSource.gallery) {
-        final List<XFile> pickedImages = await _picker.pickMultiImage(
-          maxWidth: 800,  // Reduced from 1200
-          maxHeight: 800, // Reduced from 1200
-          imageQuality: 50, // Reduced from 70 for better compression
+        final List<File> compressedImages = await ImageCompressionUtil.pickAndCompressFromGallery(
+          multiple: true,
+          maxImages: 10, // Limit to 10 images
+          forUpload: true, // Optimize for cloud upload (smaller file sizes)
         );
         
-        setState(() {
-          _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
-        });
-            } else {
-        // For camera, we can't use pickMultiImage
-        final XFile? pickedImage = await _picker.pickImage(
-          source: source,
-          maxWidth: 800,  // Reduced from 1200
-          maxHeight: 800, // Reduced from 1200
-          imageQuality: 50, // Reduced from 70 for better compression
-        );
-        
-        if (pickedImage != null) {
+        if (compressedImages.isNotEmpty && mounted) {
           setState(() {
-            _images.add(File(pickedImage.path));
+            _images.addAll(compressedImages);
+          });
+        }
+      } else {
+        final File? compressedImage = await ImageCompressionUtil.pickAndCompressFromCamera(
+          forUpload: true, // Optimize for cloud upload
+        );
+        
+        if (compressedImage != null && mounted) {
+          setState(() {
+            _images.add(compressedImage);
           });
         }
       }
     } catch (e) {
-      debugPrint("Error picking images: $e");
+      debugPrint("Error picking and compressing images: $e");
     }
   }
-
-  // Alternative method using advanced compression (uncomment to use)
-  // Future<void> _pickImageAdvanced(ImageSource source) async {
-  //   try {
-  //     if (source == ImageSource.gallery) {
-  //       final List<File> compressedImages = await ImageCompressionUtil.pickAndCompressFromGallery(
-  //         multiple: true,
-  //         maxImages: 10, // Limit to 10 images
-  //       );
-  //       
-  //       if (compressedImages.isNotEmpty) {
-  //         setState(() {
-  //           _images.addAll(compressedImages);
-  //         });
-  //       }
-  //     } else {
-  //       final File? compressedImage = await ImageCompressionUtil.pickAndCompressFromCamera();
-  //       
-  //       if (compressedImage != null) {
-  //         setState(() {
-  //           _images.add(compressedImage);
-  //         });
-  //       }
-  //     }
-  //   } catch (e) {
-  //     print("Error picking and compressing images: $e");
-  //   }
-  // }
 
   // Method to remove an image
   void _removeImage(int index) {
@@ -482,8 +452,8 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     // Validate rent
     if (_rentController.text.isNotEmpty) {
       final rent = double.tryParse(_rentController.text);
-      if (rent == null || rent <= 0) {
-        _showValidationError("Invalid Rent", "Rent must be a positive number greater than 0.");
+      if (rent == null || rent < 0) {
+        _showValidationError("Invalid Rent", "Rent must be a positive number or 0 for free listings.");
         return false;
       }
       if (rent > 50000) {

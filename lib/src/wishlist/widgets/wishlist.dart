@@ -36,7 +36,7 @@ class WishlistWidget extends HookWidget {
             builder: (context, wishlistNotifier, child) {
               // Ensure that only items in the local wishlist are displayed
               final filteredItems = wishlistItems
-                  .where((item) => wishlistNotifier.wishlist.contains(item.id))
+                  .where((item) => wishlistNotifier.wishlist.contains('${item.itemType}:${item.id}'))
                   .toList();
 
               if (filteredItems.isEmpty) {
@@ -76,7 +76,7 @@ class WishlistWidget extends HookWidget {
                           } else {
                             final wishlistNotifier = context.read<WishlistNotifier>();
                             wishlistNotifier.toggleWishlist(
-                              property.id,
+                              property.id.toString(),
                               () {
                                 refetch();
                                 
@@ -231,14 +231,18 @@ class WishlistWidget extends HookWidget {
                       // Wishlist button
                       Consumer<WishlistNotifier>(
                         builder: (context, wishlistNotifier, child) {
+                          final isInWishlist = wishlistNotifier.isWishlisted(
+                            type: 'marketplace',
+                            id: id.toString(),
+                          );
                           return GestureDetector(
                             onTap: () {
                               final accessToken = Storage().getString('accessToken');
                               if (accessToken == null) {
                                 loginBottomSheet(context);
                               } else {
-                                wishlistNotifier.toggleWishlist(
-                                  id,
+                                 wishlistNotifier.toggleWishlist(
+                                  id.toString(),
                                   () {
                                     refetch();
                                     
@@ -258,14 +262,14 @@ class WishlistWidget extends HookWidget {
                                 );
                               }
                             },
-                            child: CircleAvatar(
+                              child: CircleAvatar(
                               radius: 15.r,
-                              backgroundColor: Kolors.kWhite,
-                              child: Icon(
-                                Icons.favorite,
-                                color: Kolors.kRed,
-                                size: 15.r,
-                              ),
+                                backgroundColor: Kolors.kWhite,
+                                child: Icon(
+                                  isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                  color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                  size: 15.r,
+                                ),
                             ),
                           );
                         },

@@ -178,7 +178,7 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
                       loginBottomSheet(context);
                     } else {
                       context.read<WishlistNotifier>().toggleWishlist(
-                        property.id,
+                        property.id.toString(),
                         () {},
                         type: 'property',
                       );

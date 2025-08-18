@@ -181,6 +181,58 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       );
     }
 
+    // Check if user is deleted
+    final bool isDeletedUser = userProfile!["is_deleted"] == true;
+    
+    if (isDeletedUser) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: ReusableText(
+            text: "Profile",
+            style: appStyle(16, Kolors.kPrimary, FontWeight.bold)
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.account_circle_outlined,
+                  size: 100.sp,
+                  color: Kolors.kGray,
+                ),
+                SizedBox(height: 24.h),
+                Text(
+                  "Account Deleted",
+                  style: appStyle(24, Kolors.kDark, FontWeight.bold),
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  "This user account has been deleted and is no longer available.",
+                  textAlign: TextAlign.center,
+                  style: appStyle(16, Kolors.kGray, FontWeight.normal),
+                ),
+                SizedBox(height: 32.h),
+                CustomButton(
+                  text: "Go Back",
+                  textSize: 16,
+                  btnColor: Kolors.kPrimary,
+                  btnHeight: 45.h,
+                  radius: 12,
+                  btnWidth: 200.w,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
@@ -269,11 +321,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             if (accessToken == null) {
                               loginBottomSheet(context);
                             } else {
-                              wishlistNotifier.toggleWishlist(
-                                property["id"],
-                                () {
-                                  setState(() {});
-                                },
+                               wishlistNotifier.toggleWishlist(
+                                property["id"].toString(),
+                                () { setState(() {}); },
                                 type: 'property',
                               );
                             }
@@ -411,7 +461,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                                   top: 8.h,
                                   child: Consumer<WishlistNotifier>(
                                     builder: (context, wishlistNotifier, child) {
-                                      final isInWishlist = wishlistNotifier.wishlist.contains(item["id"]);
+                                      final isInWishlist = wishlistNotifier.wishlist.contains('marketplace:${item["id"]}');
                                       
                                       return GestureDetector(
                                         onTap: () {
@@ -419,10 +469,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                                             loginBottomSheet(context);
                                           } else {
                                             wishlistNotifier.toggleWishlist(
-                                              item["id"],
-                                              () {
-                                                setState(() {});
-                                              },
+                                              item["id"].toString(),
+                                              () { setState(() {}); },
                                               type: 'marketplace',
                                             );
                                           }

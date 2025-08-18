@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
-import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
@@ -60,6 +59,12 @@ class ProfileNotifier with ChangeNotifier {
   // Force refresh user data and notify listeners
   void refreshUserData() {
     loadUserFromStorage();
+  }
+
+  // Clear user data (for logout or account deletion)
+  void clearUserData() {
+    _user = null;
+    notifyListeners();
   }
 
   // Update user profile details (name, email, password, mobile)
@@ -123,14 +128,15 @@ class ProfileNotifier with ChangeNotifier {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 50,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
       );
       if (image == null) {
         setUpdating(false);
         return false;
       }
+      // Use native downsampled file directly (fast)
       File imageFile = File(image.path);
       String? userJson = Storage().getString('user');
       String userId = '';

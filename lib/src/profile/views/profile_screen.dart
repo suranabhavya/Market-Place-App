@@ -316,11 +316,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               onTap: () => showHelpCenterBottomSheet(context),
                             ),
                             
-                            // ProfileTileWidget(
-                            //   title: 'Settings',
-                            //   leading: MaterialIcons.settings,
-                            //   onTap: () => context.push('/settings'),
-                            // ),
+                            ProfileTileWidget(
+                              title: 'Settings',
+                              leading: MaterialIcons.settings,
+                              onTap: () => context.push('/settings'),
+                            ),
                           ],
                         ),
                       ),

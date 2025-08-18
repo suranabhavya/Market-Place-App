@@ -166,4 +166,36 @@ class AuthService {
 
   // Check if periodic validation is running
   bool get isPeriodicValidationActive => _validationTimer?.isActive ?? false;
+
+  // Delete account permanently
+  Future<bool> deleteAccount() async {
+    final String? token = Storage().getString('accessToken');
+    
+    if (token == null) {
+      return false;
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('${Environment.baseUrl}/accounts/delete-account/'),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Account successfully deleted, clear all local data
+        stopPeriodicValidation();
+        await Storage().clearAuthData();
+        return true;
+      } else {
+        debugPrint('Failed to delete account: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error deleting account: $e');
+      return false;
+    }
+  }
 } 

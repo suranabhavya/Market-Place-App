@@ -236,8 +236,10 @@ class _PropertyPageState extends State<PropertyPage> {
                 ),
                 child: Consumer<WishlistNotifier>(
                   builder: (context, wishlistNotifier, child) {
-                    final isInWishlist = wishlistNotifier.wishlist
-                        .contains(property.id);
+                    final isInWishlist = wishlistNotifier.isWishlisted(
+                      type: 'property',
+                      id: property.id.toString(),
+                    );
                     
                     return IconButton(
                       onPressed: () {
@@ -245,7 +247,7 @@ class _PropertyPageState extends State<PropertyPage> {
                           loginBottomSheet(context);
                         } else {
                           wishlistNotifier.toggleWishlist(
-                            property.id, 
+                            property.id.toString(), 
                             () {
                               // Refresh the property details and nearby properties if needed
                               setState(() {});
@@ -1252,8 +1254,11 @@ class _PropertyPageState extends State<PropertyPage> {
                                         right: 8.h,
                                         top: 8.h,
                                         child: Consumer<WishlistNotifier>(
-                                          builder: (context, wishlistNotifier, child) {
-                                            final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
+                                            builder: (context, wishlistNotifier, child) {
+                                              final isInWishlist = wishlistNotifier.isWishlisted(
+                                                type: 'marketplace',
+                                                id: item.id.toString(),
+                                              );
                                             
                                             return GestureDetector(
                                               onTap: () {
@@ -1262,7 +1267,7 @@ class _PropertyPageState extends State<PropertyPage> {
                                                   loginBottomSheet(context);
                                                 } else {
                                                   wishlistNotifier.toggleWishlist(
-                                                    item.id,
+                                                    item.id.toString(),
                                                     () {
                                                       // Refetch callback
                                                       setState(() {});

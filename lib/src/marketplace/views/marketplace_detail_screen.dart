@@ -217,8 +217,10 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                 ),
                 child: Consumer<WishlistNotifier>(
                   builder: (context, wishlistNotifier, child) {
-                    final isInWishlist = wishlistNotifier.wishlist
-                        .contains(_item!.id);
+                    final isInWishlist = wishlistNotifier.isWishlisted(
+                      type: 'marketplace',
+                      id: _item!.id.toString(),
+                    );
                     
                     return IconButton(
                       onPressed: () {
@@ -226,7 +228,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                           loginBottomSheet(context);
                         } else {
                           wishlistNotifier.toggleWishlist(
-                            _item!.id, 
+                            _item!.id.toString(), 
                             () {}, // Empty refetch function since we're not on a list screen
                             type: 'marketplace'
                           );
