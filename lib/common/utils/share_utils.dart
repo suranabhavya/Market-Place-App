@@ -5,6 +5,7 @@ import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:async';
@@ -14,14 +15,45 @@ import 'package:path/path.dart' as path;
 
 class ShareUtils {
   
+  /// Check if the current device is an iPad
+  static bool get _isIPad {
+    return Platform.isIOS && 
+           (MediaQueryData.fromView(WidgetsBinding.instance.platformDispatcher.views.first).size.shortestSide >= 600);
+  }
+  
+  /// Get the share position origin for iPad popover positioning
+  static Rect? _getSharePositionOrigin(BuildContext? context) {
+    if (!_isIPad || context == null) return null;
+    
+    // Get the screen size
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    
+    // Position the popover in the center-right of the screen for better UX
+    final centerX = screenSize.width * 0.75;
+    final centerY = screenSize.height * 0.5;
+    
+    return Rect.fromCenter(
+      center: Offset(centerX, centerY),
+      width: 1,
+      height: 1,
+    );
+  }
+  
   /// Simple test method to verify share plugin is working
-  static Future<void> testShare() async {
+  static Future<void> testShare([BuildContext? context]) async {
     try {
       developer.log('Testing share functionality...');
-      await Share.share('This is a test share from Sublyst app!');
+      await Share.share(
+        'This is a test share from Sublyst app!',
+        sharePositionOrigin: _getSharePositionOrigin(context),
+      );
       developer.log('Share test completed successfully');
     } catch (e) {
       developer.log('Share test failed: $e');
+      if (e is PlatformException) {
+        developer.log('Platform exception details: ${e.message}');
+      }
       rethrow;
     }
   }
@@ -182,7 +214,7 @@ class ShareUtils {
   }
   
   /// Share a property detail with formatted text and multiple images (up to 5)
-  static Future<void> shareProperty(PropertyDetailModel property) async {
+  static Future<void> shareProperty(PropertyDetailModel property, [BuildContext? context]) async {
     try {
       final String formattedRent = NumberFormat.currency(
         symbol: '\$',
@@ -199,7 +231,12 @@ class ShareUtils {
 📝 Description:
 ${property.description}
 
-🔗 View more details and contact the owner through our app!
+🔗 Get more details about this property and contact verified owner through Sublyst!
+
+🏘️ Explore properties similar to this near your area.
+
+📱 Download Sublyst for iOS:
+https://apps.apple.com/us/app/sublyst/id6749684934
 
 #PropertyRental #Housing #Apartment #Sublyst
       '''.trim();
@@ -212,14 +249,16 @@ ${property.description}
           property.images!.first, // Use only the first (primary) image
           shareText,
           subject: 'Check out this property: ${property.title}',
+          context: context,
         );
         developer.log('Property shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
-      await Share.share(
-        shareText,
-        subject: 'Check out this property: ${property.title}',
-      );
+        await Share.share(
+          shareText,
+          subject: 'Check out this property: ${property.title}',
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
         developer.log('Property shared (text only - no images available)');
       }
       
@@ -233,7 +272,7 @@ ${property.description}
   }
 
   /// Share a property from list model with formatted text and multiple images (up to 5)
-  static Future<void> sharePropertyFromList(PropertyListModel property) async {
+  static Future<void> sharePropertyFromList(PropertyListModel property, [BuildContext? context]) async {
     try {
       final String formattedRent = NumberFormat.currency(
         symbol: '\$',
@@ -251,7 +290,12 @@ ${property.description}
 💰 Rent: $formattedRent/${property.rentFrequency}
 📍 Location: $address
 
-🔗 View more details and contact the owner through our app!
+🔗 Get more details about this property and contact verified owner through Sublyst!
+
+🏘️ Explore properties similar to this near your area.
+
+📱 Download Sublyst for iOS:
+https://apps.apple.com/us/app/sublyst/id6749684934
 
 #PropertyRental #Housing #Apartment #Sublyst
       '''.trim();
@@ -264,14 +308,16 @@ ${property.description}
           property.images!.first, // Use only the first (primary) image
           shareText,
           subject: 'Check out this property: ${property.title}',
+          context: context,
         );
         developer.log('Property list item shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
-      await Share.share(
-        shareText,
-        subject: 'Check out this property: ${property.title}',
-      );
+        await Share.share(
+          shareText,
+          subject: 'Check out this property: ${property.title}',
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
         developer.log('Property list item shared (text only - no images available)');
       }
       
@@ -285,7 +331,7 @@ ${property.description}
   }
 
   /// Share a marketplace item with formatted text and multiple images (up to 5)
-  static Future<void> shareMarketplaceItem(MarketplaceDetailModel item) async {
+  static Future<void> shareMarketplaceItem(MarketplaceDetailModel item, [BuildContext? context]) async {
     try {
       final String formattedPrice = NumberFormat.currency(
         symbol: '\$',
@@ -312,7 +358,12 @@ ${property.description}
 📝 Description:
 ${item.description}
 
-🔗 Get this item through our marketplace!
+🔗 Get more details about this item and contact verified seller through Sublyst!
+
+🛒 Explore items similar to this near your area.
+
+📱 Download Sublyst for iOS:
+https://apps.apple.com/us/app/sublyst/id6749684934
 
 #MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #Sublyst
       '''.trim();
@@ -328,14 +379,16 @@ ${item.description}
           primaryImageUrl,
           shareText,
           subject: 'Check out this marketplace item: ${item.title}',
+          context: context,
         );
         developer.log('Marketplace item shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
-      await Share.share(
-        shareText,
-        subject: 'Check out this marketplace item: ${item.title}',
-      );
+        await Share.share(
+          shareText,
+          subject: 'Check out this marketplace item: ${item.title}',
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
         developer.log('Marketplace item shared (text only - no images available)');
       }
       
@@ -349,7 +402,7 @@ ${item.description}
   }
 
   /// Share a marketplace item from list model with formatted text and multiple images (up to 5)
-  static Future<void> shareMarketplaceItemFromList(MarketplaceListModel item) async {
+  static Future<void> shareMarketplaceItemFromList(MarketplaceListModel item, [BuildContext? context]) async {
     try {
       final String formattedPrice = NumberFormat.currency(
         symbol: '\$',
@@ -377,7 +430,12 @@ ${item.description}
 📍 Location: $address
 🏷️ Type: ${item.itemType.toUpperCase()}
 
-🔗 Get this item through our marketplace!
+🔗 Get more details about this item and contact verified seller through Sublyst!
+
+🛒 Explore items similar to this near your area.
+
+📱 Download Sublyst for iOS:
+https://apps.apple.com/us/app/sublyst/id6749684934
 
 #MarketplaceDeal #ForSale #${item.itemType.replaceAll(' ', '')} #Sublyst
       '''.trim();
@@ -393,14 +451,16 @@ ${item.description}
           primaryImageUrl,
           shareText,
           subject: 'Check out this marketplace item: ${item.title}',
+          context: context,
         );
         developer.log('Marketplace list item shared with primary image successfully');
       } else {
         // Fallback to text-only sharing if no images
-      await Share.share(
-        shareText,
-        subject: 'Check out this marketplace item: ${item.title}',
-      );
+        await Share.share(
+          shareText,
+          subject: 'Check out this marketplace item: ${item.title}',
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
         developer.log('Marketplace list item shared (text only - no images available)');
       }
       
@@ -428,7 +488,7 @@ ${item.description}
 
   /// Share a single image (primary photo) with text
   /// This is a simpler alternative to shareMultipleImages for sharing only the primary photo
-  static Future<void> shareSingleImage(String imageUrl, String text, {String? subject}) async {
+  static Future<void> shareSingleImage(String imageUrl, String text, {String? subject, BuildContext? context}) async {
     try {
       developer.log('Attempting to share single image: $imageUrl');
       
@@ -436,7 +496,11 @@ ${item.description}
       final hasSpace = await _checkStorageSpace();
       if (!hasSpace) {
         developer.log('Insufficient storage space, sharing text only');
-        await Share.share(text, subject: subject);
+        await Share.share(
+          text, 
+          subject: subject,
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
         return;
       }
       
@@ -451,6 +515,7 @@ ${item.description}
           [XFile(imagePath)],
           text: text,
           subject: subject,
+          sharePositionOrigin: _getSharePositionOrigin(context),
         );
         developer.log('Single image shared successfully');
         
@@ -463,14 +528,22 @@ ${item.description}
       } else {
         // Fallback to text only if image download failed
         developer.log('Image download failed, sharing text only');
-        await Share.share(text, subject: subject);
+        await Share.share(
+          text, 
+          subject: subject,
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
       }
       
     } catch (e) {
       developer.log('Error sharing single image: $e');
       // Fallback to text-only sharing
       try {
-        await Share.share(text, subject: subject);
+        await Share.share(
+          text, 
+          subject: subject,
+          sharePositionOrigin: _getSharePositionOrigin(context),
+        );
         developer.log('Fallback text sharing successful');
       } catch (fallbackError) {
         developer.log('Fallback text sharing also failed: $fallbackError');

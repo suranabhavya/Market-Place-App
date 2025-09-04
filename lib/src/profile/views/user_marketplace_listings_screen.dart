@@ -296,7 +296,7 @@ class _UserMarketplaceListingsPageState extends State<UserMarketplaceListingsPag
                                               GestureDetector(
                                                 onTap: () async {
                                                   try {
-                                                    await ShareUtils.shareMarketplaceItemFromList(item);
+                                                    await ShareUtils.shareMarketplaceItemFromList(item, context);
                                                   } catch (e) {
                                                     if (context.mounted) {
                                                       ScaffoldMessenger.of(context).showSnackBar(

@@ -205,7 +205,7 @@ class WishlistWidget extends HookWidget {
                                 uploadedAt: DateTime.now(), // Default timestamp
                               )).toList(),
                             );
-                            await ShareUtils.shareMarketplaceItemFromList(marketplaceItem);
+                            await ShareUtils.shareMarketplaceItemFromList(marketplaceItem, context);
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

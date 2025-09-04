@@ -85,7 +85,7 @@ class _MarketplaceStaggeredTileState extends State<MarketplaceStaggeredTile> {
 
   void _handleShare() async {
     try {
-      await ShareUtils.shareMarketplaceItemFromList(widget.item);
+      await ShareUtils.shareMarketplaceItemFromList(widget.item, context);
     } catch (e) {
       debugPrint('Error sharing marketplace item: $e');
       if (mounted) {

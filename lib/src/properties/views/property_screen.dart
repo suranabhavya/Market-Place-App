@@ -208,7 +208,7 @@ class _PropertyPageState extends State<PropertyPage> {
                   onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     try {
-                      await ShareUtils.shareProperty(property);
+                      await ShareUtils.shareProperty(property, context);
                     } catch (e) {
                       debugPrint('Error sharing property: $e');
                       if (mounted) {

@@ -316,4 +316,14 @@ class FilterNotifier extends ChangeNotifier {
     nextPageUrl = null;
     totalPropertiesCount = 0;
   }
+
+  // Method to initialize filtered properties from property notifier (used when no filters are applied)
+  void initializeFromProperties(List<PropertyListModel> properties, int totalCount, String? nextPage) {
+    filteredProperties = List.from(properties);
+    totalPropertiesCount = totalCount;
+    nextPageUrl = nextPage;
+    isLoading = false;
+    notifyListeners();
+    debugPrint("FilterNotifier: Initialized with ${properties.length} properties from PropertyNotifier");
+  }
 }

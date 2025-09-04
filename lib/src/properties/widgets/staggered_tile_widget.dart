@@ -131,7 +131,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
 
   void _handleShare() async {
     try {
-      await ShareUtils.sharePropertyFromList(widget.property);
+      await ShareUtils.sharePropertyFromList(widget.property, context);
     } catch (e) {
       debugPrint('Error sharing property: $e');
       if (mounted) {

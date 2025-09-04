@@ -51,7 +51,19 @@ class _MarketplacePageState extends State<MarketplacePage> {
       // Only fetch items if we don't have filtered items
       if (_currentItems == null) {
         final marketplaceNotifier = context.read<MarketplaceNotifier>();
-        marketplaceNotifier.refreshMarketplaceItems();
+        
+        // Check if we need to fetch due to active filters or empty cache
+        bool shouldFetch = marketplaceNotifier.hasActiveFilters || 
+                          (marketplaceNotifier.marketplaceItems.isEmpty && !marketplaceNotifier.isLoading);
+        
+        if (shouldFetch) {
+          debugPrint("MarketplaceScreen: Fetching items due to ${marketplaceNotifier.hasActiveFilters ? 'active filters' : 'empty cache'}");
+          marketplaceNotifier.refreshMarketplaceItems();
+        } else if (marketplaceNotifier.marketplaceItems.isNotEmpty) {
+          debugPrint("MarketplaceScreen: Using cached items from splash screen (${marketplaceNotifier.marketplaceItems.length} items)");
+        } else if (marketplaceNotifier.isLoading) {
+          debugPrint("MarketplaceScreen: Items are currently loading from splash screen - waiting for completion");
+        }
       }
     });
   }

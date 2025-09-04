@@ -188,7 +188,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                     if (_item != null) {
                       final messenger = ScaffoldMessenger.of(context);
                       try {
-                        await ShareUtils.shareMarketplaceItem(_item!);
+                        await ShareUtils.shareMarketplaceItem(_item!, context);
                       } catch (e) {
                         debugPrint('Error sharing marketplace item: $e');
                         if (mounted) {

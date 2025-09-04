@@ -5,6 +5,7 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/debug_utils.dart';
 import 'package:marketplace_app/const/resource.dart';
+import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:provider/provider.dart';
 
@@ -63,24 +64,35 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 		DebugUtils.logStorageState();
 		DebugUtils.logAuthenticationState();
 		
-		// Preload properties data during splash screen
-		// Use addPostFrameCallback to avoid calling setState during build
-		WidgetsBinding.instance.addPostFrameCallback((_) {
-			try {
-				debugPrint("SplashScreen: Starting properties preload...");
-				final propertyNotifier = context.read<PropertyNotifier>();
-				// Start the API call without waiting for it to complete
-				// This allows the splash screen to show for 3 seconds while data loads in background
-				propertyNotifier.fetchProperties().catchError((error) {
-					debugPrint("SplashScreen: Error preloading properties: $error");
+		// Preload properties and marketplace data during splash screen
+		// Start property loading first, then marketplace items sequentially
+		Future<void> dataLoadingFuture = Future.value();
+		try {
+			debugPrint("SplashScreen: Starting data preload...");
+			final propertyNotifier = context.read<PropertyNotifier>();
+			final marketplaceNotifier = context.read<MarketplaceNotifier>();
+			
+			// Sequential loading: properties first, then marketplace items
+			dataLoadingFuture = propertyNotifier.fetchProperties()
+				.then((_) {
+					debugPrint("SplashScreen: Properties loaded, now loading marketplace items...");
+					return marketplaceNotifier.refreshMarketplaceItems();
+				})
+				.then((_) {
+					debugPrint("SplashScreen: All data preloading completed");
+				})
+				.catchError((error) {
+					debugPrint("SplashScreen: Error during data preload: $error");
 				});
-			} catch (e) {
-				debugPrint("SplashScreen: Exception during properties preload: $e");
-			}
-		});
+		} catch (e) {
+			debugPrint("SplashScreen: Exception during data preload: $e");
+		}
 
-		// Wait for the splash screen duration
-		await Future.delayed(const Duration(milliseconds: 3000));
+		// Wait for both splash screen duration and data loading to complete
+		await Future.wait([
+			Future.delayed(const Duration(milliseconds: 3000)),
+			dataLoadingFuture,
+		]);
 		
 		// Check if widget is still mounted before using context
 		if (!mounted) return;

@@ -484,6 +484,20 @@ class MarketplaceNotifier extends ChangeNotifier {
     }
   }
 
+  // Check if there are any active filters
+  bool get hasActiveFilters {
+    return _searchKey.isNotEmpty ||
+        _selectedConditions.isNotEmpty ||
+        _negotiable != null ||
+        _deliveryAvailable != null ||
+        _originalReceiptAvailable != null ||
+        _selectedItemTypes.isNotEmpty ||
+        _selectedItemSubtypes.isNotEmpty ||
+        _selectedSchoolIds.isNotEmpty ||
+        _minPrice > 0 ||
+        _maxPrice < 10000;
+  }
+
   // Delete marketplace item
   Future<void> deleteMarketplaceItem({
     required String token,

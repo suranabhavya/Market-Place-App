@@ -9,6 +9,7 @@ import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
+import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
@@ -29,10 +30,39 @@ class _HomePageState extends State<HomePage> {
     
     // Initialize both filters and wishlist when the page loads
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Apply filters
       final filterNotifier = context.read<FilterNotifier>();
-      final wishlistNotifier = context.read<WishlistNotifier>(); // capture before async
-      await filterNotifier.applyFilters();
+      final wishlistNotifier = context.read<WishlistNotifier>();
+      final propertyNotifier = context.read<PropertyNotifier>();
+      
+      // Only apply filters if we have specific filter criteria or if properties aren't loaded yet
+      // This avoids redundant API call since splash screen already fetched basic properties
+      bool hasActiveFilters = filterNotifier.searchKey.isNotEmpty ||
+          filterNotifier.selectedBedrooms.isNotEmpty ||
+          filterNotifier.selectedBathrooms.isNotEmpty ||
+          filterNotifier.selectedPropertyTypes.isNotEmpty ||
+          filterNotifier.selectedSchools.isNotEmpty ||
+          filterNotifier.latitude != null ||
+          filterNotifier.longitude != null ||
+          filterNotifier.availableFrom != null ||
+          filterNotifier.availableTo != null ||
+          filterNotifier.smokingPreference.isNotEmpty ||
+          filterNotifier.partyingPreference.isNotEmpty ||
+          filterNotifier.dietaryPreference.isNotEmpty ||
+          filterNotifier.nationalityPreference.isNotEmpty ||
+          filterNotifier.amenities.values.any((selected) => selected);
+      
+      if (hasActiveFilters || propertyNotifier.properties.isEmpty) {
+        debugPrint("HomeScreen: Applying filters due to active filters or empty properties");
+        await filterNotifier.applyFilters();
+      } else {
+        debugPrint("HomeScreen: Skipping filter application - using properties from splash screen (${propertyNotifier.properties.length} items)");
+        // Initialize filtered properties with data from splash screen
+        filterNotifier.initializeFromProperties(
+          propertyNotifier.properties,
+          propertyNotifier.totalPropertiesCount,
+          propertyNotifier.nextPageUrl,
+        );
+      }
       
       // Initialize wishlist state
       final accessToken = Storage().getString('accessToken');
