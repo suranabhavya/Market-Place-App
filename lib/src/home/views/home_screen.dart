@@ -34,8 +34,7 @@ class _HomePageState extends State<HomePage> {
       final wishlistNotifier = context.read<WishlistNotifier>();
       final propertyNotifier = context.read<PropertyNotifier>();
       
-      // Only apply filters if we have specific filter criteria or if properties aren't loaded yet
-      // This avoids redundant API call since splash screen already fetched basic properties
+      // Check if we have active filters
       bool hasActiveFilters = filterNotifier.searchKey.isNotEmpty ||
           filterNotifier.selectedBedrooms.isNotEmpty ||
           filterNotifier.selectedBathrooms.isNotEmpty ||
@@ -51,17 +50,24 @@ class _HomePageState extends State<HomePage> {
           filterNotifier.nationalityPreference.isNotEmpty ||
           filterNotifier.amenities.values.any((selected) => selected);
       
-      if (hasActiveFilters || propertyNotifier.properties.isEmpty) {
-        debugPrint("HomeScreen: Applying filters due to active filters or empty properties");
+      if (hasActiveFilters) {
+        debugPrint("HomeScreen: Applying filters due to active filter criteria");
         await filterNotifier.applyFilters();
-      } else {
-        debugPrint("HomeScreen: Skipping filter application - using properties from splash screen (${propertyNotifier.properties.length} items)");
-        // Initialize filtered properties with data from splash screen
+      } else if (propertyNotifier.properties.isNotEmpty) {
+        debugPrint("HomeScreen: Using properties from background loading (${propertyNotifier.properties.length} items)");
+        // Initialize filtered properties with data from splash screen background loading
         filterNotifier.initializeFromProperties(
           propertyNotifier.properties,
           propertyNotifier.totalPropertiesCount,
           propertyNotifier.nextPageUrl,
         );
+      } else if (propertyNotifier.isLoading) {
+        debugPrint("HomeScreen: Properties are still loading from splash screen - showing loading state");
+        // Properties are still loading from splash screen - let the loading indicator show
+      } else {
+        debugPrint("HomeScreen: No properties loaded and not loading - fetching new data");
+        // No data and not loading - something went wrong, fetch fresh data
+        await filterNotifier.applyFilters();
       }
       
       // Initialize wishlist state
@@ -76,6 +82,71 @@ class _HomePageState extends State<HomePage> {
         wishlistNotifier.clearWishlist();
       }
     });
+  }
+
+  /// Build the main content area with improved loading state handling
+  Widget _buildHomeContent(BuildContext context, FilterNotifier filterNotifier) {
+    final propertyNotifier = context.watch<PropertyNotifier>();
+    
+    // Check if we're loading or have data
+    bool isLoading = filterNotifier.isLoading || 
+                    (filterNotifier.filteredProperties.isEmpty && propertyNotifier.isLoading);
+    
+    if (isLoading) {
+      return const ListShimmer();
+    } else if (filterNotifier.filteredProperties.isNotEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: ExploreProperties(filteredProperties: filterNotifier.filteredProperties),
+      );
+    } else {
+      // Show empty state or retry option
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.home_outlined,
+                size: 64.w,
+                color: Colors.grey[400],
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'No properties available',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'Properties are loading in the background.\nTap to refresh if needed.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey[500],
+                ),
+              ),
+              SizedBox(height: 20.h),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final filterNotifier = context.read<FilterNotifier>();
+                  await filterNotifier.applyFilters();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -99,12 +170,7 @@ class _HomePageState extends State<HomePage> {
             
             // Expandable content section
             Expanded(
-              child: filterNotifier.isLoading
-                  ? const ListShimmer()
-                  : Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      child: ExploreProperties(filteredProperties: filterNotifier.filteredProperties),
-                    ),
+              child: _buildHomeContent(context, filterNotifier),
             ),
           ],
         ),

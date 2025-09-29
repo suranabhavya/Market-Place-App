@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,7 +22,6 @@ import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/services/property_service_v2.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
-import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/properties/widgets/property_image_picker.dart';
@@ -75,7 +75,12 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
   final TextEditingController _availableFromController = TextEditingController();
   final TextEditingController _availableTillController = TextEditingController();
 
+  // Debounce timer for address autocomplete
+  Timer? _debounceTimer;
+
   Map<String, bool> amenities = {};
+  bool _isLoadingAmenities = false;
+  String? _amenitiesError;
   // List to store selected images
   final List<File> _images = [];
   // List to store existing images when editing (URLs)
@@ -165,6 +170,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _titleController.dispose();
     _descriptionController.dispose();
     _addressController.dispose();
@@ -181,35 +187,112 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
     super.dispose();
   }
 
-  Future<void> placeAutocomplete(String query) async {
-    Uri uri = Uri.https(
-      "maps.googleapis.com",
-      "maps/api/place/autocomplete/json",
-      {
-        "input": query,
-        "key": Environment.googleApiKey,
-      }
-    );
-    String? response = await PropertyNotifier().fetchLocation(uri);
+  // Debounced version of place autocomplete
+  void _debouncedPlaceAutocomplete(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      placeAutocomplete(query);
+    });
+  }
 
-    if(response != null) {
-      PlaceAutocompleteResponse result = PlaceAutocompleteResponse.parseAutocompleteResult(response);
-      if(result.predictions != null) {
+  Future<void> placeAutocomplete(String query) async {
+    // Clear suggestions for empty query
+    if (query.isEmpty) {
+      setState(() {
+        placePredictions = [];
+      });
+      return;
+    }
+
+    debugPrint("🔍 Starting place autocomplete for query: '$query'");
+    debugPrint("🔑 Using Google API Key: ${Environment.googleApiKey}");
+    
+    try {
+      // Use new Places API (New) endpoint
+      Uri uri = Uri.https("places.googleapis.com", "/v1/places:autocomplete");
+      
+      // Create request body for new API
+      Map<String, dynamic> requestBody = {
+        "input": query,
+        "regionCode": "US", // Restrict to US addresses
+        "languageCode": "en",
+      };
+      
+      debugPrint("🌐 Making POST request to: $uri");
+      debugPrint("📤 Request body: ${jsonEncode(requestBody)}");
+      
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': Environment.googleApiKey,
+          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
+        },
+        body: jsonEncode(requestBody),
+      );
+      
+      debugPrint("📡 Response status code: ${response.statusCode}");
+      debugPrint("📄 Response body length: ${response.body.length}");
+      debugPrint("📡 Raw API response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['suggestions'] != null) {
+          List<AutocompletePrediction> predictions = [];
+          
+          for (var suggestion in data['suggestions']) {
+            if (suggestion['placePrediction'] != null) {
+              var placePrediction = suggestion['placePrediction'];
+              predictions.add(AutocompletePrediction(
+                description: placePrediction['text']?['text'] ?? '',
+                placeId: placePrediction['placeId'] ?? '',
+              ));
+            }
+          }
+          
+          debugPrint("✅ Successfully parsed ${predictions.length} predictions");
+          for (int i = 0; i < predictions.length; i++) {
+            debugPrint("   $i: ${predictions[i].description}");
+          }
+          
+          setState(() {
+            placePredictions = predictions;
+          });
+        } else {
+          debugPrint("⚠️ No suggestions found in response");
+          setState(() {
+            placePredictions = [];
+          });
+        }
+      } else {
+        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
         setState(() {
-          placePredictions = result.predictions;
+          placePredictions = [];
         });
       }
+    } catch (e) {
+      debugPrint("💥 Exception occurred: $e");
+      setState(() {
+        placePredictions = [];
+      });
     }
   }
 
   Future<void> _fetchNearbySchools(double lat, double lng) async {
+    debugPrint("🏫 Fetching nearby schools for coordinates: lat=$lat, lng=$lng");
     String url = "${Environment.iosAppBaseUrl}/api/school/nearby/?lat=$lat&lng=$lng";
+    debugPrint("🌐 Nearby schools API URL: $url");
 
     try {
       final response = await http.get(Uri.parse(url));
+      debugPrint("📡 Nearby schools response status: ${response.statusCode}");
+      debugPrint("📄 Nearby schools response body: ${response.body}");
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        debugPrint("✅ Found ${data.length} nearby schools");
+        
         setState(() {
           // Clear previous selections
           selectedSchoolIds = [];
@@ -217,88 +300,141 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
           // Update selected schools and map
           for (var school in data) {
-            String id = school['id'] as String;
+            String id = school['id'].toString();
+            String name = school['name'] as String;
+            debugPrint("   Adding school: $name (ID: $id)");
             selectedSchoolIds.add(id);
             _selectedSchoolsMap[id] = {
               'id': id,
-              'name': school['name'] as String
+              'name': name
             };
+
+            // Also add to schoolOptions if not already present
+            bool existsInOptions = schoolOptions.any((option) => option['id'] == id);
+            if (!existsInOptions) {
+              schoolOptions.add({
+                'id': id,
+                'name': name
+              });
+              debugPrint("   Added school to options: $name");
+            }
           }
 
-          // Fetch full school details to ensure we have them in schoolOptions
-          _fetchSchools();
+          debugPrint("🎯 Selected school IDs: $selectedSchoolIds");
+          debugPrint("🗺️ Selected schools map: $_selectedSchoolsMap");
+          debugPrint("📚 Total schools in options: ${schoolOptions.length}");
         });
+
+        // Fetch full school details to ensure we have them in schoolOptions
+        // This needs to be called after setState to ensure the UI updates
+        await _fetchSchools();
+        
+        // Force UI update to show selected schools
+        if (mounted) {
+          setState(() {
+            // This setState forces the dropdown to refresh and show selected schools
+          });
+        }
       } else {
+        debugPrint("❌ Failed to load nearby schools: HTTP ${response.statusCode}");
         throw Exception("Failed to load nearby schools");
       }
     } catch (e) {
-      debugPrint("Error fetching nearby schools: $e");
+      debugPrint("💥 Error fetching nearby schools: $e");
     }
   }
 
-  // Function to fetch place details (lat/lng) based on the place_id
+  // Function to fetch place details (lat/lng) based on the place_id using new Places API
   Future<void> fetchPlaceDetails(String placeId) async {
     final messenger = ScaffoldMessenger.of(context);
-    Uri uri = Uri.https(
-      "maps.googleapis.com",
-      "maps/api/place/details/json",
-      {
-        "place_id": placeId,
-        "key": Environment.googleApiKey,
-      },
-    );
+    
+    debugPrint("🔍 Fetching place details for placeId: $placeId");
+    
+    try {
+      // Use new Places API (New) endpoint for place details
+      Uri uri = Uri.https("places.googleapis.com", "/v1/places/$placeId");
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': Environment.googleApiKey,
+          'X-Goog-FieldMask': 'location,addressComponents,formattedAddress',
+        },
+      );
+      
+      debugPrint("📡 Place details response status: ${response.statusCode}");
+      debugPrint("📡 Place details response: ${response.body}");
 
-    String? response = await PropertyNotifier().fetchLocation(uri);
-
-    if (response != null) {
-      final data = jsonDecode(response);
-
-      if (data['status'] == 'OK') {
-        final location = data['result']['geometry']['location'];
-        double lat = location['lat'];
-        double lng = location['lng'];
-
-        // Extract address components
-        String? pincode;
-        String? city;
-        String? state;
-        String? country;
-
-        List<dynamic> addressComponents = data['result']['address_components'];
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         
-        for (var component in addressComponents) {
-          List types = component['types'];
+        if (data['location'] != null) {
+          // Extract coordinates
+          double lat = data['location']['latitude']?.toDouble() ?? 0.0;
+          double lng = data['location']['longitude']?.toDouble() ?? 0.0;
+          
+          debugPrint("📍 Extracted coordinates: lat=$lat, lng=$lng");
 
-          if (types.contains('postal_code')) {
-            pincode = component['long_name'];
+          // Extract address components
+          String? pincode;
+          String? city;
+          String? state;
+          String? country;
+
+          if (data['addressComponents'] != null) {
+            List<dynamic> addressComponents = data['addressComponents'];
+            
+            for (var component in addressComponents) {
+              List types = component['types'] ?? [];
+
+              if (types.contains('postal_code')) {
+                pincode = component['longText'];
+              }
+              if (types.contains('locality')) {
+                city = component['longText'];
+              }
+              if (types.contains('administrative_area_level_1')) {
+                state = component['longText'];
+              }
+              if (types.contains('country')) {
+                country = component['longText'];
+              }
+            }
           }
-          if (types.contains('locality')) {
-            city = component['long_name'];
-          }
-          if (types.contains('administrative_area_level_1')) {
-            state = component['long_name'];
-          }
-          if (types.contains('country')) {
-            country = component['long_name'];
-          }
+
+          debugPrint("🏠 Extracted address components: city=$city, state=$state, pincode=$pincode, country=$country");
+
+          setState(() {
+            _latitudeController.text = lat.toString();
+            _longitudeController.text = lng.toString();
+            _pincode = pincode;
+            _city = city;
+            _state = state;
+            _country = country;
+          });
+
+          // **Fetch Nearby Schools After Address Selection**
+          debugPrint("🎯 About to fetch nearby schools for coordinates: lat=$lat, lng=$lng");
+          await _fetchNearbySchools(lat, lng);
+          debugPrint("✅ Completed fetching nearby schools");
+        } else {
+          debugPrint("❌ No location data found in response");
+          messenger.showSnackBar(
+            const SnackBar(content: Text("Failed to get location details from the selected address")),
+          );
         }
-
-        setState(() {
-          _latitudeController.text = lat.toString();
-          _longitudeController.text = lng.toString();
-          _pincode = pincode;
-          _city = city;
-          _state = state;
-          _country = country;
-        });
-
-        // **Fetch Nearby Schools After Address Selection**
-        _fetchNearbySchools(lat, lng);
       } else {
+        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
         messenger.showSnackBar(
-          SnackBar(content: Text("Failed to get location details: ${data['status']}")),
+          SnackBar(content: Text("Failed to get location details: HTTP ${response.statusCode}")),
         );
       }
+    } catch (e) {
+      debugPrint("💥 Exception fetching place details: $e");
+      messenger.showSnackBar(
+        SnackBar(content: Text("Error fetching location details: $e")),
+      );
     }
   }
 
@@ -563,35 +699,146 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
   // Fetch Amenities from API
   Future<void> _fetchAmenities() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingAmenities = true;
+      _amenitiesError = null;
+    });
+    
     String url = '${Environment.iosAppBaseUrl}/api/amenities/';
+    debugPrint("🏢 Fetching amenities from URL: $url");
+    
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      debugPrint("📡 Amenities API response status: ${response.statusCode}");
+      debugPrint("📄 Amenities API response headers: ${response.headers}");
+      debugPrint("📄 Amenities API response body: ${response.body}");
 
       if (response.statusCode == 200) {
-        String responseBody = utf8.decode(response.bodyBytes);
-        List<dynamic> data = json.decode(responseBody);
-
-        setState(() {
-          // Initialize all amenities as false
-          amenities = {for (var item in data) item["name"]: false};
+        try {
+          String responseBody = utf8.decode(response.bodyBytes);
+          dynamic decodedData = json.decode(responseBody);
           
-          // If editing mode and we have initial data with amenities
-          if (widget.isEditing && widget.initialData != null && widget.initialData!['amenities'] != null) {
-            List<dynamic> selectedAmenities = widget.initialData!['amenities'];
-            
-            // Mark selected amenities as true
-            for (String amenity in selectedAmenities) {
-              if (amenities.containsKey(amenity)) {
-                amenities[amenity] = true;
-              }
-            }
+          debugPrint("📋 Decoded amenities data type: ${decodedData.runtimeType}");
+          debugPrint("📋 Decoded amenities data: $decodedData");
+
+          List<dynamic> data;
+          
+          // Handle both direct array and paginated response formats
+          if (decodedData is List) {
+            data = decodedData;
+          } else if (decodedData is Map && decodedData.containsKey('results')) {
+            data = decodedData['results'] as List<dynamic>;
+          } else if (decodedData is Map && decodedData.containsKey('data')) {
+            data = decodedData['data'] as List<dynamic>;
+          } else {
+            debugPrint("⚠️ Unexpected amenities response format: $decodedData");
+            throw Exception("Unexpected response format from amenities API");
           }
-        });
+
+          debugPrint("✅ Found ${data.length} amenities in response");
+          
+          if (data.isEmpty) {
+            debugPrint("⚠️ No amenities found in the database. You may need to add some amenities through the admin panel.");
+            if (mounted) {
+              setState(() {
+                amenities = {};
+                _isLoadingAmenities = false;
+                _amenitiesError = "No amenities available at the moment.";
+              });
+            }
+            return;
+          }
+
+          if (mounted) {
+            setState(() {
+              // Initialize all amenities as false
+              amenities = {};
+              for (var item in data) {
+                if (item is Map && item.containsKey("name")) {
+                  String amenityName = item["name"].toString();
+                  amenities[amenityName] = false;
+                  debugPrint("   Added amenity: $amenityName");
+                } else {
+                  debugPrint("⚠️ Skipping invalid amenity item: $item");
+                }
+              }
+              
+              debugPrint("🎯 Total amenities loaded: ${amenities.length}");
+              
+              // If editing mode and we have initial data with amenities
+              if (widget.isEditing && widget.initialData != null && widget.initialData!['amenities'] != null) {
+                List<dynamic> selectedAmenities = widget.initialData!['amenities'];
+                debugPrint("🔄 Applying selected amenities from initial data: $selectedAmenities");
+                
+                // Mark selected amenities as true
+                for (String amenity in selectedAmenities) {
+                  if (amenities.containsKey(amenity)) {
+                    amenities[amenity] = true;
+                    debugPrint("   ✅ Marked amenity as selected: $amenity");
+                  } else {
+                    debugPrint("   ⚠️ Amenity not found in available list: $amenity");
+                  }
+                }
+              }
+              
+              _isLoadingAmenities = false;
+              _amenitiesError = null;
+            });
+          }
+        } catch (jsonError) {
+          debugPrint("❌ JSON parsing error: $jsonError");
+          if (mounted) {
+            setState(() {
+              _isLoadingAmenities = false;
+              _amenitiesError = "Failed to parse amenities data. Please try again.";
+            });
+          }
+        }
+      } else if (response.statusCode == 404) {
+        debugPrint("❌ Amenities endpoint not found (404). Check if the API endpoint exists.");
+        if (mounted) {
+          setState(() {
+            _isLoadingAmenities = false;
+            _amenitiesError = "Amenities service is currently unavailable.";
+          });
+        }
+      } else if (response.statusCode >= 500) {
+        debugPrint("❌ Server error (${response.statusCode}): ${response.body}");
+        if (mounted) {
+          setState(() {
+            _isLoadingAmenities = false;
+            _amenitiesError = "Server error. Please try again later.";
+          });
+        }
       } else {
-        throw Exception("Failed to load amenities");
+        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
+        if (mounted) {
+          setState(() {
+            _isLoadingAmenities = false;
+            _amenitiesError = "Failed to load amenities. Please check your connection.";
+          });
+        }
       }
     } catch (e) {
-      debugPrint("Error fetching amenities: $e");
+      debugPrint("💥 Exception occurred while fetching amenities: $e");
+      debugPrint("💥 Exception type: ${e.runtimeType}");
+      
+      if (mounted) {
+        setState(() {
+          amenities = {};
+          _isLoadingAmenities = false;
+          _amenitiesError = "Network error. Please check your internet connection and try again.";
+        });
+      }
     }
   }
 
@@ -973,7 +1220,7 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                       ),
                       keyboardType: TextInputType.name,
                       onChanged: (value) {
-                        placeAutocomplete(value);
+                        _debouncedPlaceAutocomplete(value);
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -1053,9 +1300,20 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               SearchableMultiSelectDropdown(
                 title: "Schools",
                 options: schoolOptions.map((school) => school['name']!).toList(),
-                selectedValues: selectedSchoolIds.map((id) =>
-                  schoolOptions.firstWhere((school) => school['id'] == id, orElse: () => _selectedSchoolsMap[id] ?? {'name': '', 'id': id})['name']!
-                ).toList(),
+                selectedValues: selectedSchoolIds.map((id) {
+                  // First try to find in schoolOptions
+                  try {
+                    return schoolOptions.firstWhere((school) => school['id'] == id)['name']!;
+                  } catch (e) {
+                    // If not found in schoolOptions, try selectedSchoolsMap
+                    if (_selectedSchoolsMap.containsKey(id)) {
+                      return _selectedSchoolsMap[id]!['name']!;
+                    }
+                    // Last resort: return empty string (should not happen)
+                    debugPrint("⚠️ Could not find school name for ID: $id");
+                    return '';
+                  }
+                }).where((name) => name.isNotEmpty).toList(),
                 hintText: "Select Nearby Schools",
                 onSelectionChanged: (List<String> selectedNames) {
                   setState(() {
@@ -1356,24 +1614,120 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
               const SizedBox(height: 16),
 
-              amenities.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: amenities.keys.map((String key) {
-                      bool isSelected = amenities[key]!;
-                                              return AmenityChip(
-                          label: key,
-                          isSelected: isSelected,
-                          onTap: () {
-                            setState(() {
-                              amenities[key] = !isSelected;
-                            });
-                          },
-                        );
-                    }).toList(),
+              // Amenities loading, error, or content display
+              if (_isLoadingAmenities)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 8),
+                        Text("Loading amenities...")
+                      ],
+                    ),
                   ),
+                )
+              else if (_amenitiesError != null)
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 20.sp,
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Failed to load amenities",
+                              style: appStyle(13, Colors.red, FontWeight.w600),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              _amenitiesError!,
+                              style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                            ),
+                            SizedBox(height: 8.h),
+                            GestureDetector(
+                              onTap: _fetchAmenities,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                                decoration: BoxDecoration(
+                                  color: Kolors.kPrimary,
+                                  borderRadius: BorderRadius.circular(6.r),
+                                ),
+                                child: Text(
+                                  "Retry",
+                                  style: appStyle(12, Colors.white, FontWeight.w500),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (amenities.isEmpty)
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Kolors.kGrayLight.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: Kolors.kGrayLight.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Kolors.kGray,
+                        size: 20.sp,
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Text(
+                          "No amenities available at the moment. You can still create your property listing without selecting amenities.",
+                          style: appStyle(12, Kolors.kGray, FontWeight.w400),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: amenities.keys.map((String key) {
+                    bool isSelected = amenities[key]!;
+                    return AmenityChip(
+                      label: key,
+                      isSelected: isSelected,
+                      onTap: () {
+                        setState(() {
+                          amenities[key] = !isSelected;
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
 
               const SizedBox(height: 16),
 

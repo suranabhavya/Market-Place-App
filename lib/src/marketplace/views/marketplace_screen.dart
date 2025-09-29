@@ -27,6 +27,7 @@ class MarketplacePage extends StatefulWidget {
 
 class _MarketplacePageState extends State<MarketplacePage> {
   List<MarketplaceListModel>? _currentItems;
+  String _lastSearchKey = ''; // Track the last search key to detect changes
   
   @override
   void initState() {
@@ -52,17 +53,17 @@ class _MarketplacePageState extends State<MarketplacePage> {
       if (_currentItems == null) {
         final marketplaceNotifier = context.read<MarketplaceNotifier>();
         
-        // Check if we need to fetch due to active filters or empty cache
-        bool shouldFetch = marketplaceNotifier.hasActiveFilters || 
-                          (marketplaceNotifier.marketplaceItems.isEmpty && !marketplaceNotifier.isLoading);
-        
-        if (shouldFetch) {
-          debugPrint("MarketplaceScreen: Fetching items due to ${marketplaceNotifier.hasActiveFilters ? 'active filters' : 'empty cache'}");
+        // Improved loading logic for background data
+        if (marketplaceNotifier.hasActiveFilters) {
+          debugPrint("MarketplaceScreen: Fetching items due to active filters");
           marketplaceNotifier.refreshMarketplaceItems();
         } else if (marketplaceNotifier.marketplaceItems.isNotEmpty) {
-          debugPrint("MarketplaceScreen: Using cached items from splash screen (${marketplaceNotifier.marketplaceItems.length} items)");
+          debugPrint("MarketplaceScreen: Using cached items from background loading (${marketplaceNotifier.marketplaceItems.length} items)");
         } else if (marketplaceNotifier.isLoading) {
-          debugPrint("MarketplaceScreen: Items are currently loading from splash screen - waiting for completion");
+          debugPrint("MarketplaceScreen: Items are currently loading from splash screen background - will show loading state");
+        } else {
+          debugPrint("MarketplaceScreen: No items and not loading - fetching fresh data");
+          marketplaceNotifier.refreshMarketplaceItems();
         }
       }
     });
@@ -70,6 +71,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
   
   // Handle filtered items from the filter screen
   void _handleFilteredItems(List<MarketplaceListModel> filteredItems) {
+    debugPrint('MarketplaceScreen - _handleFilteredItems called with ${filteredItems.length} items');
     setState(() {
       _currentItems = filteredItems;
     });
@@ -80,6 +82,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
       }
     });
   }
+
   
 
   // Handle refresh from pull-to-refresh
@@ -105,6 +108,23 @@ class _MarketplacePageState extends State<MarketplacePage> {
   Widget build(BuildContext context) {
     String? accessToken = Storage().getString('accessToken');
     final marketplaceNotifier = context.watch<MarketplaceNotifier>();
+    
+    // Check if search key has changed and clear local state if needed
+    if (_lastSearchKey != marketplaceNotifier.searchKey) {
+      debugPrint('MarketplaceScreen - Search key changed from "$_lastSearchKey" to "${marketplaceNotifier.searchKey}"');
+      if (marketplaceNotifier.searchKey.isEmpty && _lastSearchKey.isNotEmpty) {
+        // Search was cleared, reset local state
+        debugPrint('MarketplaceScreen - Search was cleared, resetting local state');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _currentItems = null;
+            });
+          }
+        });
+      }
+      _lastSearchKey = marketplaceNotifier.searchKey;
+    }
     
     // Use current items if we have them, otherwise use items from notifier
     final List<MarketplaceListModel> items = _currentItems ?? marketplaceNotifier.marketplaceItems;

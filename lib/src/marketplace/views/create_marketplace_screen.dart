@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,9 +20,7 @@ import 'package:marketplace_app/common/widgets/custom_text_field.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
-import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
-import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/marketplace/widgets/marketplace_image_picker.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
@@ -81,6 +80,9 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   final List<String> _deletedImages = [];
   List<AutocompletePrediction>? placePredictions = [];
 
+  // Debounce timer for address autocomplete
+  Timer? _debounceTimer;
+
   // Form fields
   String itemType = 'furniture';
   String itemSubtype = 'table';
@@ -113,13 +115,19 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   };
 
   Future<void> _fetchNearbySchools(double lat, double lng) async {
+    debugPrint("🏫 Fetching nearby schools for coordinates: lat=$lat, lng=$lng");
     String url = "${Environment.iosAppBaseUrl}/api/school/nearby/?lat=$lat&lng=$lng";
+    debugPrint("🌐 Nearby schools API URL: $url");
 
     try {
       final response = await http.get(Uri.parse(url));
+      debugPrint("📡 Nearby schools response status: ${response.statusCode}");
+      debugPrint("📄 Nearby schools response body: ${response.body}");
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        debugPrint("✅ Found ${data.length} nearby schools");
+        
         setState(() {
           // Clear previous selections
           selectedSchoolIds = [];
@@ -127,22 +135,47 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
           // Update selected schools and map
           for (var school in data) {
-            String id = school['id'] as String;
+            String id = school['id'].toString();
+            String name = school['name'] as String;
+            debugPrint("   Adding school: $name (ID: $id)");
             selectedSchoolIds.add(id);
             _selectedSchoolsMap[id] = {
               'id': id,
-              'name': school['name'] as String
+              'name': name
             };
+
+            // Also add to schoolOptions if not already present
+            bool existsInOptions = schoolOptions.any((option) => option['id'] == id);
+            if (!existsInOptions) {
+              schoolOptions.add({
+                'id': id,
+                'name': name
+              });
+              debugPrint("   Added school to options: $name");
+            }
           }
 
-          // Fetch full school details to ensure we have them in schoolOptions
-          _fetchSchools();
+          debugPrint("🎯 Selected school IDs: $selectedSchoolIds");
+          debugPrint("🗺️ Selected schools map: $_selectedSchoolsMap");
+          debugPrint("📚 Total schools in options: ${schoolOptions.length}");
         });
+
+        // Fetch full school details to ensure we have them in schoolOptions
+        // This needs to be called after setState to ensure the UI updates
+        await _fetchSchools();
+        
+        // Force UI update to show selected schools
+        if (mounted) {
+          setState(() {
+            // This setState forces the dropdown to refresh and show selected schools
+          });
+        }
       } else {
+        debugPrint("❌ Failed to load nearby schools: HTTP ${response.statusCode}");
         throw Exception("Failed to load nearby schools");
       }
     } catch (e) {
-      debugPrint("Error fetching nearby schools: $e");
+      debugPrint("💥 Error fetching nearby schools: $e");
     }
   }
 
@@ -400,6 +433,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
@@ -413,84 +447,177 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     super.dispose();
   }
 
-  Future<void> placeAutocomplete(String query) async {
-    Uri uri = Uri.https(
-      "maps.googleapis.com",
-      "maps/api/place/autocomplete/json",
-      {
-        "input": query,
-        "key": Environment.googleApiKey,
-      }
-    );
-    String? response = await PropertyNotifier().fetchLocation(uri);
+  // Debounced version of place autocomplete
+  void _debouncedPlaceAutocomplete(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      placeAutocomplete(query);
+    });
+  }
 
-    if(response != null) {
-      PlaceAutocompleteResponse result = PlaceAutocompleteResponse.parseAutocompleteResult(response);
-      if(result.predictions != null) {
+  Future<void> placeAutocomplete(String query) async {
+    // Clear suggestions for empty query
+    if (query.isEmpty) {
+      setState(() {
+        placePredictions = [];
+      });
+      return;
+    }
+
+    debugPrint("🔍 Starting place autocomplete for query: '$query'");
+    debugPrint("🔑 Using Google API Key: ${Environment.googleApiKey}");
+    
+    try {
+      // Use new Places API (New) endpoint
+      Uri uri = Uri.https("places.googleapis.com", "/v1/places:autocomplete");
+      
+      // Create request body for new API
+      Map<String, dynamic> requestBody = {
+        "input": query,
+        "regionCode": "US", // Restrict to US addresses
+        "languageCode": "en",
+      };
+      
+      debugPrint("🌐 Making POST request to: $uri");
+      debugPrint("📤 Request body: ${jsonEncode(requestBody)}");
+      
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': Environment.googleApiKey,
+          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
+        },
+        body: jsonEncode(requestBody),
+      );
+      
+      debugPrint("📡 Response status code: ${response.statusCode}");
+      debugPrint("📄 Response body length: ${response.body.length}");
+      debugPrint("📡 Raw API response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['suggestions'] != null) {
+          List<AutocompletePrediction> predictions = [];
+          
+          for (var suggestion in data['suggestions']) {
+            if (suggestion['placePrediction'] != null) {
+              var placePrediction = suggestion['placePrediction'];
+              predictions.add(AutocompletePrediction(
+                description: placePrediction['text']?['text'] ?? '',
+                placeId: placePrediction['placeId'] ?? '',
+              ));
+            }
+          }
+          
+          debugPrint("✅ Successfully parsed ${predictions.length} predictions");
+          for (int i = 0; i < predictions.length; i++) {
+            debugPrint("   $i: ${predictions[i].description}");
+          }
+          
+          setState(() {
+            placePredictions = predictions;
+          });
+        } else {
+          debugPrint("⚠️ No suggestions found in response");
+          setState(() {
+            placePredictions = [];
+          });
+        }
+      } else {
+        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
         setState(() {
-          placePredictions = result.predictions;
+          placePredictions = [];
         });
       }
+    } catch (e) {
+      debugPrint("💥 Exception occurred: $e");
+      setState(() {
+        placePredictions = [];
+      });
     }
   }
 
   Future<void> fetchPlaceDetails(String placeId) async {
-    Uri uri = Uri.https(
-      "maps.googleapis.com",
-      "maps/api/place/details/json",
-      {
-        "place_id": placeId,
-        "key": Environment.googleApiKey,
-      },
-    );
+    debugPrint("🔍 Fetching place details for placeId: $placeId");
+    
+    try {
+      // Use new Places API (New) endpoint for place details
+      Uri uri = Uri.https("places.googleapis.com", "/v1/places/$placeId");
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': Environment.googleApiKey,
+          'X-Goog-FieldMask': 'location,addressComponents,formattedAddress',
+        },
+      );
+      
+      debugPrint("📡 Place details response status: ${response.statusCode}");
+      debugPrint("📡 Place details response: ${response.body}");
 
-    String? response = await PropertyNotifier().fetchLocation(uri);
-
-    if (response != null) {
-      final data = jsonDecode(response);
-
-      if (data['status'] == 'OK') {
-        final location = data['result']['geometry']['location'];
-        double lat = location['lat'];
-        double lng = location['lng'];
-
-        // Extract address components
-        String? pincode;
-        String? city;
-        String? state;
-        String? country;
-
-        List<dynamic> addressComponents = data['result']['address_components'];
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         
-        for (var component in addressComponents) {
-          List types = component['types'];
+        if (data['location'] != null) {
+          // Extract coordinates
+          double lat = data['location']['latitude']?.toDouble() ?? 0.0;
+          double lng = data['location']['longitude']?.toDouble() ?? 0.0;
+          
+          debugPrint("📍 Extracted coordinates: lat=$lat, lng=$lng");
 
-          if (types.contains('postal_code')) {
-            pincode = component['long_name'];
+          // Extract address components
+          String? pincode;
+          String? city;
+          String? state;
+          String? country;
+
+          if (data['addressComponents'] != null) {
+            List<dynamic> addressComponents = data['addressComponents'];
+            
+            for (var component in addressComponents) {
+              List types = component['types'] ?? [];
+
+              if (types.contains('postal_code')) {
+                pincode = component['longText'];
+              }
+              if (types.contains('locality')) {
+                city = component['longText'];
+              }
+              if (types.contains('administrative_area_level_1')) {
+                state = component['longText'];
+              }
+              if (types.contains('country')) {
+                country = component['longText'];
+              }
+            }
           }
-          if (types.contains('locality')) {
-            city = component['long_name'];
-          }
-          if (types.contains('administrative_area_level_1')) {
-            state = component['long_name'];
-          }
-          if (types.contains('country')) {
-            country = component['long_name'];
-          }
+
+          debugPrint("🏠 Extracted address components: city=$city, state=$state, pincode=$pincode, country=$country");
+
+          setState(() {
+            _latitudeController.text = lat.toString();
+            _longitudeController.text = lng.toString();
+            _pincode = pincode;
+            _city = city;
+            _state = state;
+            _country = country;
+          });
+
+          // **Fetch Nearby Schools After Address Selection**
+          debugPrint("🎯 About to fetch nearby schools for coordinates: lat=$lat, lng=$lng");
+          await _fetchNearbySchools(lat, lng);
+          debugPrint("✅ Completed fetching nearby schools");
+        } else {
+          debugPrint("❌ No location data found in response");
         }
-
-        setState(() {
-          _latitudeController.text = lat.toString();
-          _longitudeController.text = lng.toString();
-          _pincode = pincode;
-          _city = city;
-          _state = state;
-          _country = country;
-        });
-
-        // Fetch nearby schools after getting location
-        _fetchNearbySchools(lat, lng);
+      } else {
+        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
       }
+    } catch (e) {
+      debugPrint("💥 Exception fetching place details: $e");
     }
   }
 
@@ -1006,7 +1133,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                         color: Kolors.kGray
                       ),
                       onChanged: (value) {
-                        placeAutocomplete(value);
+                        _debouncedPlaceAutocomplete(value);
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {

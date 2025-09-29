@@ -64,35 +64,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 		DebugUtils.logStorageState();
 		DebugUtils.logAuthenticationState();
 		
-		// Preload properties and marketplace data during splash screen
-		// Start property loading first, then marketplace items sequentially
-		Future<void> dataLoadingFuture = Future.value();
-		try {
-			debugPrint("SplashScreen: Starting data preload...");
-			final propertyNotifier = context.read<PropertyNotifier>();
-			final marketplaceNotifier = context.read<MarketplaceNotifier>();
-			
-			// Sequential loading: properties first, then marketplace items
-			dataLoadingFuture = propertyNotifier.fetchProperties()
-				.then((_) {
-					debugPrint("SplashScreen: Properties loaded, now loading marketplace items...");
-					return marketplaceNotifier.refreshMarketplaceItems();
-				})
-				.then((_) {
-					debugPrint("SplashScreen: All data preloading completed");
-				})
-				.catchError((error) {
-					debugPrint("SplashScreen: Error during data preload: $error");
-				});
-		} catch (e) {
-			debugPrint("SplashScreen: Exception during data preload: $e");
-		}
-
-		// Wait for both splash screen duration and data loading to complete
-		await Future.wait([
-			Future.delayed(const Duration(milliseconds: 3000)),
-			dataLoadingFuture,
-		]);
+		// Start background data loading (but don't wait for completion)
+		_startBackgroundDataLoading();
+		
+		// Wait only for minimum splash screen duration
+		await Future.delayed(const Duration(milliseconds: 2000)); // Reduced from 3000ms
 		
 		// Check if widget is still mounted before using context
 		if (!mounted) return;
@@ -110,6 +86,33 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 			// Not first time - always go to home screen
 			// Home screen will handle authentication state internally
 			GoRouter.of(context).go('/home');
+		}
+	}
+
+	/// Start background data loading without blocking the splash screen
+	void _startBackgroundDataLoading() {
+		try {
+			debugPrint("SplashScreen: Starting background data preload...");
+			final propertyNotifier = context.read<PropertyNotifier>();
+			final marketplaceNotifier = context.read<MarketplaceNotifier>();
+			
+			// Start both API calls in parallel (non-blocking)
+			propertyNotifier.fetchProperties().then((_) {
+				debugPrint("SplashScreen: Properties loaded in background (${propertyNotifier.properties.length} items)");
+			}).catchError((error) {
+				debugPrint("SplashScreen: Error loading properties in background: $error");
+			});
+
+			marketplaceNotifier.refreshMarketplaceItems().then((_) {
+				debugPrint("SplashScreen: Marketplace items loaded in background (${marketplaceNotifier.marketplaceItems.length} items)");
+			}).catchError((error) {
+				debugPrint("SplashScreen: Error loading marketplace items in background: $error");
+			});
+			
+			debugPrint("SplashScreen: Background loading initiated - splash screen will proceed without waiting");
+		} catch (e) {
+			debugPrint("SplashScreen: Exception starting background data preload: $e");
+			// Continue anyway - screens will handle empty data gracefully
 		}
 	}
 

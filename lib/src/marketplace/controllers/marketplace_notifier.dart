@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
@@ -52,6 +53,10 @@ class MarketplaceNotifier extends ChangeNotifier {
   double _minPrice = 0;
   double _maxPrice = 10000;
 
+  // Location for proximity search
+  double? _latitude;
+  double? _longitude;
+
   bool get isLoading => _isLoading;
   String get searchKey => _searchKey;
   List<MarketplaceListModel> get marketplaceItems => _marketplaceItems;
@@ -73,6 +78,10 @@ class MarketplaceNotifier extends ChangeNotifier {
   double get minPrice => _minPrice;
   double get maxPrice => _maxPrice;
 
+  // Location getters
+  double? get latitude => _latitude;
+  double? get longitude => _longitude;
+
   void setSearchKey(String value) {
     _searchKey = value;
     notifyListeners();
@@ -86,6 +95,15 @@ class MarketplaceNotifier extends ChangeNotifier {
   // Add a method to set search key and apply filters in one go
   Future<void> setSearchKeyAndApplyFilters(String searchKey) async {
     _searchKey = searchKey;
+    notifyListeners();
+    await refreshMarketplaceItems();
+  }
+
+  // Add a method to set search key with location and apply filters
+  Future<void> setSearchKeyWithLocationAndApplyFilters(String searchKey, double lat, double lng) async {
+    _searchKey = searchKey;
+    _latitude = lat;
+    _longitude = lng;
     notifyListeners();
     await refreshMarketplaceItems();
   }
@@ -201,6 +219,19 @@ class MarketplaceNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Location setters
+  void setLocation(double lat, double lng) {
+    _latitude = lat;
+    _longitude = lng;
+    notifyListeners();
+  }
+
+  void resetLocation() {
+    _latitude = null;
+    _longitude = null;
+    notifyListeners();
+  }
+
   void resetFilters() {
     _selectedConditions = [];
     _negotiable = null;
@@ -211,6 +242,9 @@ class MarketplaceNotifier extends ChangeNotifier {
     _selectedSchoolIds = [];
     _minPrice = 0;
     _maxPrice = 10000;
+    // Reset location as well when resetting all filters
+    _latitude = null;
+    _longitude = null;
     notifyListeners();
   }
 
@@ -300,6 +334,14 @@ class MarketplaceNotifier extends ChangeNotifier {
       // Add school IDs
       if (_selectedSchoolIds.isNotEmpty) {
         queryParams['schools_nearby'] = _selectedSchoolIds.join(',');
+      }
+
+      // Add location parameters for proximity search
+      if (_latitude != null && _longitude != null) {
+        queryParams['latitude'] = _latitude.toString();
+        queryParams['longitude'] = _longitude.toString();
+        // Default max distance of 5 miles (same as properties)
+        queryParams['max_distance'] = '5';
       }
 
       final uri = Uri.parse(url).replace(queryParameters: queryParams);
@@ -392,14 +434,23 @@ class MarketplaceNotifier extends ChangeNotifier {
         queryParams['schools_nearby'] = _selectedSchoolIds.join(',');
       }
 
+      // Add location parameters for proximity search
+      if (_latitude != null && _longitude != null) {
+        queryParams['latitude'] = _latitude.toString();
+        queryParams['longitude'] = _longitude.toString();
+        // Default max distance of 5 miles (same as properties)
+        queryParams['max_distance'] = '5';
+      }
+
       final uri = Uri.parse(url).replace(queryParameters: queryParams);
       debugPrint("Fetching items from URL: $uri");
       
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
         },
+        timeout: AppHttpClient.splashTimeout,
       );
 
       if (response.statusCode == 200) {
@@ -495,7 +546,8 @@ class MarketplaceNotifier extends ChangeNotifier {
         _selectedItemSubtypes.isNotEmpty ||
         _selectedSchoolIds.isNotEmpty ||
         _minPrice > 0 ||
-        _maxPrice < 10000;
+        _maxPrice < 10000 ||
+        (_latitude != null && _longitude != null);
   }
 
   // Delete marketplace item

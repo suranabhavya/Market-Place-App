@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:http/http.dart' as http;
@@ -91,11 +92,12 @@ class PropertyNotifier extends ChangeNotifier {
       
       debugPrint("Fetching properties from URL: $url");
       
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         Uri.parse(url),
         headers: {
           "Content-Type": "application/json",
         },
+        timeout: AppHttpClient.splashTimeout,
       );
 
       if (response.statusCode == 200) {
@@ -139,7 +141,7 @@ class PropertyNotifier extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         Uri.parse(nextPageUrl!),
         headers: {
           "Content-Type": "application/json",
@@ -336,7 +338,7 @@ class PropertyNotifier extends ChangeNotifier {
     });
 
     try {
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         Uri.parse('${Environment.baseUrl}/api/properties/?latitude=$latitude&longitude=$longitude&max_distance=2'),
       );
 
