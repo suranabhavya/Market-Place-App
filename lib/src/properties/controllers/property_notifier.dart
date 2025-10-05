@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as path;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
@@ -82,7 +80,9 @@ class PropertyNotifier extends ChangeNotifier {
     
     isLoading = true;
     nextPageUrl = null; // Reset pagination when fetching from the beginning
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
     
     try {
       String url = '${Environment.baseUrl}/api/properties/';
@@ -115,9 +115,7 @@ class PropertyNotifier extends ChangeNotifier {
         debugPrint("Total count: $totalPropertiesCount");
         debugPrint("Next page URL: $nextPageUrl");
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          notifyListeners();
-        });
+        // Defer notifying listeners until after this frame in the finally block
       } else {
         debugPrint("Error fetching properties: ${response.body}");
       }
@@ -126,7 +124,9 @@ class PropertyNotifier extends ChangeNotifier {
     }
     
     isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Load more properties for infinite scrolling

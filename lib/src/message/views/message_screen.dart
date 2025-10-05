@@ -205,7 +205,7 @@ class _MessagePageState extends State<MessagePage> {
         return AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.info_outline, color: Kolors.kGray),
+              const Icon(Icons.info_outline, color: Kolors.kGray),
               SizedBox(width: 8.w),
               Text(
                 "Account Deleted",

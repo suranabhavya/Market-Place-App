@@ -174,7 +174,7 @@ class ShareUtils {
               await file.delete();
               deletedCount++;
               totalSize += fileSize;
-              developer.log('Deleted temp file: ${path.basename(file.path)} (${fileSize} bytes, ${fileAge.inMinutes} minutes old)');
+              developer.log('Deleted temp file: ${path.basename(file.path)} ($fileSize bytes, ${fileAge.inMinutes} minutes old)');
             }
           } catch (e) {
             developer.log('Could not delete temp file: ${file.path} - $e');

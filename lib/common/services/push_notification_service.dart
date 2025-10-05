@@ -416,7 +416,7 @@ class PushNotificationService {
         final context = navigatorKey.currentContext;
         if (context != null) {
           // Try to get chat details from notification data first
-          Map<String, dynamic>? chatDetails = await _getChatDetailsFromNotification(data);
+          Map<String, dynamic>? chatDetails = _getChatDetailsFromNotification(data);
           
           // If not available in notification, fetch from API
           chatDetails ??= await _fetchChatDetails(chatId);

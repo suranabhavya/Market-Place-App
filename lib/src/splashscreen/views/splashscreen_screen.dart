@@ -92,24 +92,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 	/// Start background data loading without blocking the splash screen
 	void _startBackgroundDataLoading() {
 		try {
-			debugPrint("SplashScreen: Starting background data preload...");
-			final propertyNotifier = context.read<PropertyNotifier>();
-			final marketplaceNotifier = context.read<MarketplaceNotifier>();
-			
-			// Start both API calls in parallel (non-blocking)
-			propertyNotifier.fetchProperties().then((_) {
-				debugPrint("SplashScreen: Properties loaded in background (${propertyNotifier.properties.length} items)");
-			}).catchError((error) {
-				debugPrint("SplashScreen: Error loading properties in background: $error");
-			});
+      debugPrint("SplashScreen: Starting background data preload...");
+      // Ensure background loads start only after the first frame to avoid notifications during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final propertyNotifier = context.read<PropertyNotifier>();
+        final marketplaceNotifier = context.read<MarketplaceNotifier>();
 
-			marketplaceNotifier.refreshMarketplaceItems().then((_) {
-				debugPrint("SplashScreen: Marketplace items loaded in background (${marketplaceNotifier.marketplaceItems.length} items)");
-			}).catchError((error) {
-				debugPrint("SplashScreen: Error loading marketplace items in background: $error");
-			});
-			
-			debugPrint("SplashScreen: Background loading initiated - splash screen will proceed without waiting");
+        // Start both API calls in parallel (non-blocking)
+        propertyNotifier.fetchProperties().then((_) {
+          debugPrint("SplashScreen: Properties loaded in background (${propertyNotifier.properties.length} items)");
+        }).catchError((error) {
+          debugPrint("SplashScreen: Error loading properties in background: $error");
+        });
+
+        marketplaceNotifier.refreshMarketplaceItems().then((_) {
+          debugPrint("SplashScreen: Marketplace items loaded in background (${marketplaceNotifier.marketplaceItems.length} items)");
+        }).catchError((error) {
+          debugPrint("SplashScreen: Error loading marketplace items in background: $error");
+        });
+
+        debugPrint("SplashScreen: Background loading initiated - splash screen will proceed without waiting");
+      });
 		} catch (e) {
 			debugPrint("SplashScreen: Exception starting background data preload: $e");
 			// Continue anyway - screens will handle empty data gracefully

@@ -1,15 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
-import 'package:marketplace_app/common/services/google_cloud_storage_service.dart';
 
 class PropertyListItem {
   final String id;

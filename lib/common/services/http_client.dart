@@ -85,7 +85,7 @@ class AppHttpClient {
         debugPrint('Network error for $url: $e');
         if (retryCount < maxRetries) {
           retryCount++;
-          debugPrint('Retrying network request ${retryCount}/${maxRetries} after ${retryDelay.inSeconds}s...');
+          debugPrint('Retrying network request $retryCount/$maxRetries after ${retryDelay.inSeconds}s...');
           await Future.delayed(retryDelay * retryCount);
           continue;
         }
@@ -95,7 +95,7 @@ class AppHttpClient {
         debugPrint('Request error for $url: $e');
         if (retryCount < maxRetries && _isRetryableError(e)) {
           retryCount++;
-          debugPrint('Retrying request ${retryCount}/${maxRetries} after ${retryDelay.inSeconds}s...');
+          debugPrint('Retrying request $retryCount/$maxRetries after ${retryDelay.inSeconds}s...');
           await Future.delayed(retryDelay * retryCount);
           continue;
         }

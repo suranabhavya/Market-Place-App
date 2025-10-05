@@ -28,6 +28,7 @@ class MarketplacePage extends StatefulWidget {
 class _MarketplacePageState extends State<MarketplacePage> {
   List<MarketplaceListModel>? _currentItems;
   String _lastSearchKey = ''; // Track the last search key to detect changes
+  bool _isFirstFrame = true; // Prevent empty-state flash before splash data arrives
   
   @override
   void initState() {
@@ -65,6 +66,13 @@ class _MarketplacePageState extends State<MarketplacePage> {
           debugPrint("MarketplaceScreen: No items and not loading - fetching fresh data");
           marketplaceNotifier.refreshMarketplaceItems();
         }
+      }
+      
+      // Clear first-frame guard after initial post-frame work completes
+      if (mounted) {
+        setState(() {
+          _isFirstFrame = false;
+        });
       }
     });
   }
@@ -128,7 +136,9 @@ class _MarketplacePageState extends State<MarketplacePage> {
     
     // Use current items if we have them, otherwise use items from notifier
     final List<MarketplaceListModel> items = _currentItems ?? marketplaceNotifier.marketplaceItems;
-    final bool isLoading = (_currentItems == null && marketplaceNotifier.isLoading);
+  final bool isLoading = (
+    _currentItems == null && (marketplaceNotifier.isLoading || _isFirstFrame)
+  );
     
     // Debug logging
     debugPrint('MarketplaceScreen - _currentItems: ${_currentItems?.length ?? 'null'}');

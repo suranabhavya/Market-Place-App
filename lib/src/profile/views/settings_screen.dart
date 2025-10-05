@@ -63,10 +63,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Account deleted successfully"),
+          const SnackBar(
+            content: Text("Account deleted successfully"),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
 
@@ -183,7 +183,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
           if (_isDeleting) ...[
             SizedBox(height: 30.h),
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Kolors.kRed),
             ),
             SizedBox(height: 10.h),
@@ -274,7 +274,7 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                 item,
                 style: appStyle(13, Kolors.kGray, FontWeight.normal),
               ),
-            )).toList(),
+            )),
             SizedBox(height: 12.h),
             Container(
               padding: EdgeInsets.all(12.w),
@@ -316,7 +316,7 @@ class _DeleteConfirmationDialogState extends State<_DeleteConfirmationDialog> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
-                  borderSide: BorderSide(color: Kolors.kRed),
+                  borderSide: const BorderSide(color: Kolors.kRed),
                 ),
               ),
               onChanged: (value) {

@@ -73,9 +73,7 @@ class _SelectDurationPageState extends State<SelectDurationPage> {
     // - user_search_from = move-in + flexibility (willing to move in later)
     // - user_search_to = move-out - flexibility (willing to move out earlier)
     final actualFromDate = checkInDate!.add(Duration(days: flexibilityDays));
-    final actualToDate = checkOutDate != null 
-        ? checkOutDate!.subtract(Duration(days: flexibilityDays))
-        : null; // Don't set actualToDate if no checkout date is selected
+    final actualToDate = checkOutDate?.subtract(Duration(days: flexibilityDays)); // Don't set actualToDate if no checkout date is selected
 
     return {
       "actualFromDate": actualFromDate,

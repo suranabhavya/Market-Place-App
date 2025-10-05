@@ -178,7 +178,7 @@ class GoogleCloudStorageService {
       // Read file bytes
       final fileBytes = await imageFile.readAsBytes();
       final totalBytes = fileBytes.length;
-      debugPrint('File size: ${totalBytes} bytes');
+      debugPrint('File size: $totalBytes bytes');
       
       // Create authenticated request
       var request = http.Request('POST', Uri.parse(uploadUrl));
