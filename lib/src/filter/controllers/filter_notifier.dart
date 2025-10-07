@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 
@@ -129,7 +129,7 @@ class FilterNotifier extends ChangeNotifier {
 
   // Update _buildFilterUrl to include new filters
   String _buildFilterUrl() {
-    String url = "${Environment.iosAppBaseUrl}/api/properties/?";
+    String url = "${Environment.baseUrl}/api/properties/?page_size=10&";
 
     // Add search parameter if available
     if (_searchKey.isNotEmpty && _searchKey != "Properties Near Me") {
@@ -215,7 +215,13 @@ class FilterNotifier extends ChangeNotifier {
       String url = _buildFilterUrl();      
       debugPrint("Applying filters with URL: $url");
 
-      final response = await http.get(Uri.parse(url));
+      final response = await AppHttpClient.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: AppHttpClient.splashTimeout,
+      );
 
       if (response.statusCode == 200) {
         // Parse the paginated response
@@ -255,7 +261,13 @@ class FilterNotifier extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await http.get(Uri.parse(nextPageUrl!));
+      final response = await AppHttpClient.get(
+        Uri.parse(nextPageUrl!),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: AppHttpClient.splashTimeout,
+      );
 
       if (response.statusCode == 200) {
         // Parse the paginated response

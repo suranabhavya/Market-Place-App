@@ -162,7 +162,7 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                if (index == properties.length) {
+              if (isLoadingMore && index == properties.length) {
                   // Show loading indicator at the bottom
                   return Center(
                     child: Padding(
@@ -174,7 +174,7 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
                   );
                 }
                 
-                final property = properties[index];
+              final property = properties[index];
                 return StaggeredTileWidget(
                   onTap: () {
                     if (accessToken == null) {
@@ -190,7 +190,8 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
                   property: property,
                 );
               },
-              childCount: properties.length + (isLoadingMore ? 1 : 0),
+            childCount: properties.length + (isLoadingMore ? 1 : 0),
+            addAutomaticKeepAlives: false,
             ),
           ),
           

@@ -85,9 +85,9 @@ class PropertyNotifier extends ChangeNotifier {
     });
     
     try {
-      String url = '${Environment.baseUrl}/api/properties/';
+      String url = '${Environment.baseUrl}/api/properties/?page_size=10';
       if (lat != null && lng != null) {
-        url += "?lat=$lat&lng=$lng";
+        url += "&lat=$lat&lng=$lng";
       }
       
       debugPrint("Fetching properties from URL: $url");

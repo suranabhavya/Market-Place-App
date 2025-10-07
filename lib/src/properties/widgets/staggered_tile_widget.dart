@@ -13,6 +13,7 @@ import 'package:marketplace_app/src/properties/controllers/property_notifier.dar
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 
 class StaggeredTileWidget extends StatefulWidget {
@@ -173,9 +174,8 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
             // Property Image
             Stack(
               children: [
-                SizedBox(
-                  height: 200.h,
-                  width: double.infinity,
+                AspectRatio(
+                  aspectRatio: 16 / 9,
                   child: (widget.property.images != null && widget.property.images!.isNotEmpty)
                     ? PageView.builder(
                         controller: _pageController,
@@ -186,33 +186,29 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           });
                         },
                         itemBuilder: (context, index) {
-                          return Image.network(
-                            widget.property.images![index],
+                          final imageUrl = widget.property.images![index];
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    color: Kolors.kGray,
-                                    size: 40,
-                                  ),
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Kolors.kPrimary,
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Kolors.kPrimary,
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: Kolors.kGray,
+                                  size: 40,
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           );
                         },
                       )

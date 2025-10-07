@@ -31,22 +31,30 @@ class _HomePageState extends State<HomePage> {
     // Initialize filters and wishlist when the page loads; fetch on entry
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final filterNotifier = context.read<FilterNotifier>();
-      final wishlistNotifier = context.read<WishlistNotifier>();
 
       // Always fetch properties via filters on screen entry
       await filterNotifier.applyFilters();
-      
-      // Initialize wishlist state
-      final accessToken = Storage().getString('accessToken');
-      
-      if (accessToken != null) {
-        // User is logged in - load their wishlist to ensure proper state
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-      } else {
-        // No user logged in - clear wishlist
-        wishlistNotifier.clearWishlist();
-      }
+
+      // After filters render, kick off wishlist init without blocking UI
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final accessToken = Storage().getString('accessToken');
+        final wishlistNotifier = context.read<WishlistNotifier>();
+        
+        if (accessToken == null) {
+          wishlistNotifier.clearWishlist();
+          return;
+        }
+
+        // Small delay to ensure first paint is complete, then fire-and-forget
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted) return;
+          wishlistNotifier.loadWishlistFromStorage();
+          // Fire-and-forget; do not await
+          // ignore: discarded_futures
+          wishlistNotifier.fetchWishlist();
+        });
+      });
     });
   }
 
