@@ -24,10 +24,12 @@ class PropertyListItem {
 
 class MarketplaceNotifier extends ChangeNotifier {
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String _searchKey = '';
   List<MarketplaceListModel> _marketplaceItems = [];
   List<PropertyListItem> _userProperties = [];
   String? _error;
+  String? _nextPageUrl;
 
   // Autocomplete related properties
   bool _isAutocompleteLoading = false;
@@ -55,10 +57,12 @@ class MarketplaceNotifier extends ChangeNotifier {
   double? _longitude;
 
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
   String get searchKey => _searchKey;
   List<MarketplaceListModel> get marketplaceItems => _marketplaceItems;
   List<PropertyListItem> get userProperties => _userProperties;
   String? get error => _error;
+  String? get nextPageUrl => _nextPageUrl;
 
   // Autocomplete getters
   bool get isAutocompleteLoading => _isAutocompleteLoading;
@@ -279,7 +283,9 @@ class MarketplaceNotifier extends ChangeNotifier {
       String url = '${Environment.baseUrl}/api/marketplace/';
       
       // Build query parameters
-      final queryParams = <String, String>{};
+      final queryParams = <String, String>{
+        'page_size': '10',
+      };
       
       // Add search query if present
       if (_searchKey.isNotEmpty) {
@@ -344,17 +350,19 @@ class MarketplaceNotifier extends ChangeNotifier {
       final uri = Uri.parse(url).replace(queryParameters: queryParams);
       debugPrint("Fetching items from URL: $uri");
       
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         uri,
         headers: {
           'Content-Type': 'application/json',
         },
+        timeout: AppHttpClient.splashTimeout,
       );
 
       if (response.statusCode == 200) {
         debugPrint("response body: ${response.body}");
         final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
         _marketplaceItems = paginatedResponse.results;
+        _nextPageUrl = paginatedResponse.next;
       } else {
         _error = 'Failed to fetch marketplace items';
       }
@@ -377,7 +385,9 @@ class MarketplaceNotifier extends ChangeNotifier {
       String url = '${Environment.baseUrl}/api/marketplace/';
       
       // Build query parameters
-      final queryParams = <String, String>{};
+      final queryParams = <String, String>{
+        'page_size': '10',
+      };
       
       // Add search query if present
       if (_searchKey.isNotEmpty) {
@@ -456,6 +466,7 @@ class MarketplaceNotifier extends ChangeNotifier {
         debugPrint("Parsed paginated response - count: ${paginatedResponse.count}");
         debugPrint("Parsed paginated response - results length: ${paginatedResponse.results.length}");
         _marketplaceItems = paginatedResponse.results;
+        _nextPageUrl = paginatedResponse.next;
         debugPrint("Set _marketplaceItems length: ${_marketplaceItems.length}");
       } else {
         _error = 'Failed to fetch marketplace items';
@@ -465,6 +476,39 @@ class MarketplaceNotifier extends ChangeNotifier {
     } finally {
       _isLoading = false;
       debugPrint("MarketplaceNotifier - Calling notifyListeners() with ${_marketplaceItems.length} items");
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMoreMarketplaceItems() async {
+    if (_isLoadingMore || _nextPageUrl == null) {
+      debugPrint('Skipping marketplace load more: isLoadingMore=$_isLoadingMore, nextPageUrl=$_nextPageUrl');
+      return;
+    }
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final response = await AppHttpClient.get(
+        Uri.parse(_nextPageUrl!),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: AppHttpClient.splashTimeout,
+      );
+
+      if (response.statusCode == 200) {
+        final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
+        _marketplaceItems.addAll(paginatedResponse.results);
+        _nextPageUrl = paginatedResponse.next;
+      } else {
+        debugPrint('Failed to load more marketplace items: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error loading more marketplace items: $e');
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

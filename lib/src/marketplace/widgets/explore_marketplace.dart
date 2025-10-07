@@ -26,6 +26,7 @@ class ExploreMarketplace extends StatefulWidget {
 
 class _ExploreMarketplaceState extends State<ExploreMarketplace> {
   final ScrollController _scrollController = ScrollController();
+  bool _requestedLoadMore = false;
   
   @override
   void initState() {
@@ -41,10 +42,22 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
     super.dispose();
   }
   
-  // Handle scroll events for potential infinite loading in the future
+  // Handle scroll events for infinite loading
   void _scrollListener() {
-    // This can be implemented later if pagination is added to marketplace
-    // Currently marketplace doesn't have pagination like properties
+    if (!_scrollController.hasClients) return;
+    final notifier = context.read<MarketplaceNotifier>();
+    if (notifier.isLoadingMore || notifier.nextPageUrl == null) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 500) {
+      if (_requestedLoadMore) return; // simple debounce per frame
+      _requestedLoadMore = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          notifier.loadMoreMarketplaceItems();
+          _requestedLoadMore = false;
+        }
+      });
+    }
   }
 
   Future<void> _handleRefresh() async {
@@ -113,13 +126,25 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
+                final notifier = context.watch<MarketplaceNotifier>();
+                final isLoadingMore = notifier.isLoadingMore;
+                if (isLoadingMore && index == widget.marketplaceItems.length) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
+                      ),
+                    ),
+                  );
+                }
                 final item = widget.marketplaceItems[index];
                 return MarketplaceStaggeredTile(
                   item: item,
                   onWishlistUpdated: widget.onWishlistUpdated,
                 );
               },
-              childCount: widget.marketplaceItems.length,
+              childCount: widget.marketplaceItems.length + (context.watch<MarketplaceNotifier>().isLoadingMore ? 1 : 0),
             ),
           ),
           

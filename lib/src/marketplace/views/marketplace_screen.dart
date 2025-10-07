@@ -41,13 +41,16 @@ class _MarketplacePageState extends State<MarketplacePage> {
       final accessToken = Storage().getString('accessToken');
       final wishlistNotifier = context.read<WishlistNotifier>();
       
-      if (accessToken != null) {
-        // User is logged in - load their wishlist
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-      } else {
-        // No user logged in - clear wishlist
+      // De-prioritize wishlist fetch to avoid blocking initial render
+      if (accessToken == null) {
         wishlistNotifier.clearWishlist();
+      } else {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (!mounted) return;
+          wishlistNotifier.loadWishlistFromStorage();
+          // ignore: discarded_futures
+          wishlistNotifier.fetchWishlist();
+        });
       }
       
       // Always fetch items when entering screen if no filtered override provided
