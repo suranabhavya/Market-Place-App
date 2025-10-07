@@ -36,7 +36,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
     // Initialize with any filtered items passed in
     _currentItems = widget.filteredItems;
     
-    // Load wishlist data and marketplace items on initial load
+    // Load wishlist data and fetch marketplace items on initial load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final accessToken = Storage().getString('accessToken');
       final wishlistNotifier = context.read<WishlistNotifier>();
@@ -50,22 +50,10 @@ class _MarketplacePageState extends State<MarketplacePage> {
         wishlistNotifier.clearWishlist();
       }
       
-      // Only fetch items if we don't have filtered items
+      // Always fetch items when entering screen if no filtered override provided
       if (_currentItems == null) {
         final marketplaceNotifier = context.read<MarketplaceNotifier>();
-        
-        // Improved loading logic for background data
-        if (marketplaceNotifier.hasActiveFilters) {
-          debugPrint("MarketplaceScreen: Fetching items due to active filters");
-          marketplaceNotifier.refreshMarketplaceItems();
-        } else if (marketplaceNotifier.marketplaceItems.isNotEmpty) {
-          debugPrint("MarketplaceScreen: Using cached items from background loading (${marketplaceNotifier.marketplaceItems.length} items)");
-        } else if (marketplaceNotifier.isLoading) {
-          debugPrint("MarketplaceScreen: Items are currently loading from splash screen background - will show loading state");
-        } else {
-          debugPrint("MarketplaceScreen: No items and not loading - fetching fresh data");
-          marketplaceNotifier.refreshMarketplaceItems();
-        }
+        marketplaceNotifier.refreshMarketplaceItems();
       }
       
       // Clear first-frame guard after initial post-frame work completes
@@ -140,24 +128,10 @@ class _MarketplacePageState extends State<MarketplacePage> {
     _currentItems == null && (marketplaceNotifier.isLoading || _isFirstFrame)
   );
     
-    // Debug logging
-    debugPrint('MarketplaceScreen - _currentItems: ${_currentItems?.length ?? 'null'}');
-    debugPrint('MarketplaceScreen - marketplaceNotifier.marketplaceItems: ${marketplaceNotifier.marketplaceItems.length}');
-    debugPrint('MarketplaceScreen - final items: ${items.length}');
-    debugPrint('MarketplaceScreen - isLoading: $isLoading');
-    debugPrint('MarketplaceScreen - marketplaceNotifier.isLoading: ${marketplaceNotifier.isLoading}');
-    // Removed wishlist loading from overall loading to avoid UI flashing on heart tap
-    debugPrint('MarketplaceScreen - items.isEmpty: ${items.isEmpty}');
+    // Minimal debug logging
+    debugPrint('MarketplaceScreen - items: ${items.length}, isLoading: $isLoading');
     
-    // Force refresh if items are empty but notifier has items
-    if (items.isEmpty && marketplaceNotifier.marketplaceItems.isNotEmpty && _currentItems == null) {
-      debugPrint('MarketplaceScreen - Items are empty but notifier has items, forcing refresh');
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {});
-        }
-      });
-    }
+    // Ensure UI updates as notifier changes
     
     return Scaffold(
       appBar: PreferredSize(

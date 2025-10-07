@@ -9,7 +9,7 @@ import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
-import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+// Removed direct dependency on PropertyNotifier; fetching handled via FilterNotifier
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
@@ -27,48 +27,14 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     PushNotificationService().requestPermissionIfNeeded();
-    
-    // Initialize both filters and wishlist when the page loads
+
+    // Initialize filters and wishlist when the page loads; fetch on entry
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final filterNotifier = context.read<FilterNotifier>();
       final wishlistNotifier = context.read<WishlistNotifier>();
-      final propertyNotifier = context.read<PropertyNotifier>();
-      
-      // Check if we have active filters
-      bool hasActiveFilters = filterNotifier.searchKey.isNotEmpty ||
-          filterNotifier.selectedBedrooms.isNotEmpty ||
-          filterNotifier.selectedBathrooms.isNotEmpty ||
-          filterNotifier.selectedPropertyTypes.isNotEmpty ||
-          filterNotifier.selectedSchools.isNotEmpty ||
-          filterNotifier.latitude != null ||
-          filterNotifier.longitude != null ||
-          filterNotifier.availableFrom != null ||
-          filterNotifier.availableTo != null ||
-          filterNotifier.smokingPreference.isNotEmpty ||
-          filterNotifier.partyingPreference.isNotEmpty ||
-          filterNotifier.dietaryPreference.isNotEmpty ||
-          filterNotifier.nationalityPreference.isNotEmpty ||
-          filterNotifier.amenities.values.any((selected) => selected);
-      
-      if (hasActiveFilters) {
-        debugPrint("HomeScreen: Applying filters due to active filter criteria");
-        await filterNotifier.applyFilters();
-      } else if (propertyNotifier.properties.isNotEmpty) {
-        debugPrint("HomeScreen: Using properties from background loading (${propertyNotifier.properties.length} items)");
-        // Initialize filtered properties with data from splash screen background loading
-        filterNotifier.initializeFromProperties(
-          propertyNotifier.properties,
-          propertyNotifier.totalPropertiesCount,
-          propertyNotifier.nextPageUrl,
-        );
-      } else if (propertyNotifier.isLoading) {
-        debugPrint("HomeScreen: Properties are still loading from splash screen - showing loading state");
-        // Properties are still loading from splash screen - let the loading indicator show
-      } else {
-        debugPrint("HomeScreen: No properties loaded and not loading - fetching new data");
-        // No data and not loading - something went wrong, fetch fresh data
-        await filterNotifier.applyFilters();
-      }
+
+      // Always fetch properties via filters on screen entry
+      await filterNotifier.applyFilters();
       
       // Initialize wishlist state
       final accessToken = Storage().getString('accessToken');
@@ -86,11 +52,8 @@ class _HomePageState extends State<HomePage> {
 
   /// Build the main content area with improved loading state handling
   Widget _buildHomeContent(BuildContext context, FilterNotifier filterNotifier) {
-    final propertyNotifier = context.watch<PropertyNotifier>();
-    
     // Check if we're loading or have data
-    bool isLoading = filterNotifier.isLoading || 
-                    (filterNotifier.filteredProperties.isEmpty && propertyNotifier.isLoading);
+    bool isLoading = filterNotifier.isLoading;
     
     if (isLoading) {
       return const ListShimmer();
