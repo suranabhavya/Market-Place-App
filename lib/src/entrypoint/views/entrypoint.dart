@@ -14,7 +14,6 @@ import 'package:marketplace_app/src/profile/views/profile_screen.dart';
 import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
-import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatefulWidget {
@@ -40,23 +39,13 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     super.initState();
     _lastToken = Storage().getString('accessToken');
     
-    // Initialize user state on startup
+    // Only start token validation - no blocking API calls
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentToken = Storage().getString('accessToken');
-      final wishlistNotifier = context.read<WishlistNotifier>();
-      final profileNotifier = context.read<ProfileNotifier>();
       
       if (currentToken != null) {
-        // User is logged in - load their data
-        profileNotifier.loadUserFromStorage();
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-        
         // Start periodic token validation for existing logged-in users
         AuthService().startPeriodicValidation();
-      } else {
-        // No user logged in - clear data
-        wishlistNotifier.clearWishlist();
       }
     });
   }
@@ -75,20 +64,22 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       
       // Handle user state based on token change
       try {
-        final profileNotifier = context.read<ProfileNotifier>();
         final wishlistNotifier = context.read<WishlistNotifier>();
         
         if (currentToken == null) {
           // User logged out - clear data
           wishlistNotifier.clearWishlist();
         } else {
-          // User logged in or switched - load their data
-          profileNotifier.loadUserFromStorage();
-          wishlistNotifier.loadWishlistFromStorage();
-          wishlistNotifier.fetchWishlist();
+          // User logged in - load their data after navigation
+          wishlistNotifier.loadWishlistFromStorage(); // Fast local load
           
           // Start periodic token validation for newly logged-in users
           AuthService().startPeriodicValidation();
+          
+          // Fetch fresh wishlist data in background (non-blocking)
+          Future.delayed(const Duration(milliseconds: 500), () {
+            wishlistNotifier.fetchWishlist();
+          });
         }
       } catch (e) {
         debugPrint('Notifiers not available: $e');

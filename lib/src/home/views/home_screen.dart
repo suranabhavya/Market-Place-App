@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
       // Use optimized quick load that shows cached data immediately
       await filterNotifier.quickLoad();
 
-      // After filters render, kick off wishlist init without blocking UI
+      // After properties are loaded, load wishlist in background
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final accessToken = Storage().getString('accessToken');
@@ -50,8 +50,8 @@ class _HomePageState extends State<HomePage> {
           return;
         }
 
-        // Small delay to ensure first paint is complete, then fire-and-forget
-        Future.delayed(const Duration(milliseconds: 300), () {
+        // Load wishlist after properties are visible (non-blocking)
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
           wishlistNotifier.loadWishlistFromStorage();
           // Fire-and-forget; do not await

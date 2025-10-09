@@ -117,8 +117,6 @@ class AuthService {
     // Stop any existing timer first
     stopPeriodicValidation();
     
-    debugPrint('Starting periodic token validation every ${_validationInterval.inMinutes} minutes');
-    
     _validationTimer = Timer.periodic(_validationInterval, (_) async {
       try {
         final String? token = Storage().getString('accessToken');
@@ -129,7 +127,6 @@ class AuthService {
           return;
         }
         
-        debugPrint('Performing periodic token validation...');
         
         // Use existing validation method which already handles logout on failure
         final isValid = await validateTokenWithServer(token);
@@ -139,18 +136,14 @@ class AuthService {
           // Navigate to login screen if we have a valid context
           final context = navigatorKey.currentContext;
           if (context != null && context.mounted) {
-            debugPrint('Token validation failed - redirecting to login');
             context.go('/login');
           }
           
           // Stop further validation since user is now logged out
           stopPeriodicValidation();
-        } else {
-          debugPrint('Token validation successful');
         }
       } catch (e) {
         debugPrint('Error during periodic token validation: $e');
-        // Don't logout on network errors, just log the error
       }
     });
   }
@@ -158,7 +151,6 @@ class AuthService {
   // Stop periodic token validation
   void stopPeriodicValidation() {
     if (_validationTimer != null) {
-      debugPrint('Stopping periodic token validation');
       _validationTimer?.cancel();
       _validationTimer = null;
     }

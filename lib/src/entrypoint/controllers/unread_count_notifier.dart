@@ -22,16 +22,13 @@ class UnreadCountNotifier with ChangeNotifier {
     if (_token != null && _token!.isNotEmpty && _token != 'null') {
       try {
         final wsUrl = "${Environment.wsBaseUrl}/ws/unread/?token=$_token";
-        debugPrint('Connecting to unread count WebSocket: $wsUrl');
         _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
         _channel!.stream.listen(
           (data) {
             try {
               final decoded = jsonDecode(data);
-              debugPrint('Unread count WebSocket data: $decoded');
               if (decoded.containsKey("global_unread_count")) {
                 _globalUnreadCount = decoded["global_unread_count"];
-                debugPrint('Updated global unread count: $_globalUnreadCount');
                 notifyListeners();
               }
             } catch (e) {
@@ -44,32 +41,26 @@ class UnreadCountNotifier with ChangeNotifier {
             // Auto-reconnect after a delay
             Future.delayed(const Duration(seconds: 5), () {
               if (_token != null && _token!.isNotEmpty && _token != 'null') {
-                debugPrint('Attempting to reconnect unread count WebSocket...');
                 _initializeConnection();
               }
             });
           },
           onDone: () {
-            debugPrint('Unread count WebSocket connection closed');
             _isConnected = false;
             // Auto-reconnect after a delay if we still have a token
             Future.delayed(const Duration(seconds: 3), () {
               if (_token != null && _token!.isNotEmpty && _token != 'null') {
-                debugPrint('Attempting to reconnect unread count WebSocket...');
                 _initializeConnection();
               }
             });
           },
         );
         _isConnected = true;
-        debugPrint('Unread count WebSocket connected successfully');
       } catch (e) {
-        debugPrint('Failed to connect to unread count WebSocket: $e');
         _isConnected = false;
         // Retry after a delay
         Future.delayed(const Duration(seconds: 5), () {
           if (_token != null && _token!.isNotEmpty && _token != 'null') {
-            debugPrint('Retrying unread count WebSocket connection...');
             _initializeConnection();
           }
         });
@@ -105,9 +96,7 @@ class UnreadCountNotifier with ChangeNotifier {
     if (_channel != null && _isConnected) {
       try {
         _channel!.sink.add(jsonEncode({"refresh": true}));
-        debugPrint('Requested unread count refresh');
       } catch (e) {
-        debugPrint('Error requesting unread count refresh: $e');
         // Try to reconnect if there's an error
         _isConnected = false;
         reconnectIfNeeded();

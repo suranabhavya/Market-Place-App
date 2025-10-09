@@ -11,11 +11,8 @@ import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/common/widgets/error_modal.dart';
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
 import 'package:marketplace_app/src/auth/models/check_email_model.dart';
-import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:provider/provider.dart';
 
 class AuthNotifier with ChangeNotifier {
   bool _isLoading = false;
@@ -58,29 +55,7 @@ class AuthNotifier with ChangeNotifier {
     showErrorPopup(context, errorMessage, null, null);
   }
   
-  void _reconnectUnreadNotifier(BuildContext context) {
-    try {
-      final unreadNotifier = context.read<UnreadCountNotifier>();
-      unreadNotifier.reconnectIfNeeded();
-    } catch (e) {
-      // UnreadCountNotifier might not be available in all contexts
-      debugPrint('UnreadCountNotifier not available: $e');
-    }
-  }
   
-  void _initializeUserState(BuildContext context) {
-    // Reconnect unread notifier
-    _reconnectUnreadNotifier(context);
-    
-    // Initialize wishlist for the newly logged in user
-    try {
-      final wishlistNotifier = context.read<WishlistNotifier>();
-      wishlistNotifier.loadWishlistFromStorage();
-      wishlistNotifier.fetchWishlist();
-    } catch (e) {
-      debugPrint('WishlistNotifier not available: $e');
-    }
-  }
   
   Future<void> loginFunc(String data, BuildContext ctx) async {
     setLoading(true);
@@ -107,16 +82,17 @@ class AuthNotifier with ChangeNotifier {
         // Start periodic token validation
         AuthService().startPeriodicValidation();
 
-        // Register FCM device after authentication
-        try {
-          await PushNotificationService().registerDeviceAfterAuth();
-        } catch (e) {
-          // Silently handle iOS APNS errors during development
-          debugPrint('Push notification setup skipped: $e');
-        }
+        // Register FCM device after authentication (non-blocking)
+        Future.delayed(const Duration(milliseconds: 100), () {
+          try {
+            PushNotificationService().registerDeviceAfterAuth();
+          } catch (e) {
+            // Silently handle iOS APNS errors during development
+            debugPrint('Push notification setup skipped: $e');
+          }
+        });
 
         if (ctx.mounted) {
-          _initializeUserState(ctx);
           ctx.go('/home');
         }
       }
@@ -157,16 +133,17 @@ class AuthNotifier with ChangeNotifier {
         // Start periodic token validation
         AuthService().startPeriodicValidation();
 
-        // Register FCM device after authentication
-        try {
-          await PushNotificationService().registerDeviceAfterAuth();
-        } catch (e) {
-          // Silently handle iOS APNS errors during development
-          debugPrint('Push notification setup skipped: $e');
-        }
+        // Register FCM device after authentication (non-blocking)
+        Future.delayed(const Duration(milliseconds: 100), () {
+          try {
+            PushNotificationService().registerDeviceAfterAuth();
+          } catch (e) {
+            // Silently handle iOS APNS errors during development
+            debugPrint('Push notification setup skipped: $e');
+          }
+        });
 
         if (ctx.mounted) {
-          _initializeUserState(ctx);
           ctx.go('/home');
         }
       } else if (ctx.mounted) {
@@ -309,13 +286,15 @@ class AuthNotifier with ChangeNotifier {
         String accessToken = jsonDecode(response.body)['auth_token'];
         Storage().setString('accessToken', accessToken);
         
-        // Register FCM device after authentication
-        try {
-          await PushNotificationService().registerDeviceAfterAuth();
-        } catch (e) {
-          // Silently handle iOS APNS errors during development
-          debugPrint('Push notification setup skipped: $e');
-        }
+        // Register FCM device after authentication (non-blocking)
+        Future.delayed(const Duration(milliseconds: 100), () {
+          try {
+            PushNotificationService().registerDeviceAfterAuth();
+          } catch (e) {
+            // Silently handle iOS APNS errors during development
+            debugPrint('Push notification setup skipped: $e');
+          }
+        });
         
         return true;
       } else {
@@ -443,17 +422,19 @@ class AuthNotifier with ChangeNotifier {
         // Start periodic token validation
         AuthService().startPeriodicValidation();
         
-        // Register FCM device after authentication
-        try {
-          await PushNotificationService().registerDeviceAfterAuth();
-        } catch (e) {
-          // Silently handle iOS APNS errors during development
-          debugPrint('Push notification setup skipped: $e');
-        }
+        // Register FCM device after authentication (non-blocking)
+        Future.delayed(const Duration(milliseconds: 100), () {
+          try {
+            PushNotificationService().registerDeviceAfterAuth();
+          } catch (e) {
+            // Silently handle iOS APNS errors during development
+            debugPrint('Push notification setup skipped: $e');
+          }
+        });
         
-        // Reconnect WebSocket for unread messages
+        // Reconnect WebSocket for unread messages (non-blocking)
         if (context.mounted) {
-          _initializeUserState(context);
+          context.go('/home');
         }
         
         return true;
@@ -563,17 +544,19 @@ class AuthNotifier with ChangeNotifier {
         // Start periodic token validation
         AuthService().startPeriodicValidation();
         
-        // Register FCM device after authentication
-        try {
-          await PushNotificationService().registerDeviceAfterAuth();
-        } catch (e) {
-          // Silently handle iOS APNS errors during development
-          debugPrint('Push notification setup skipped: $e');
-        }
+        // Register FCM device after authentication (non-blocking)
+        Future.delayed(const Duration(milliseconds: 100), () {
+          try {
+            PushNotificationService().registerDeviceAfterAuth();
+          } catch (e) {
+            // Silently handle iOS APNS errors during development
+            debugPrint('Push notification setup skipped: $e');
+          }
+        });
         
-        // Reconnect WebSocket for unread messages
+        // Reconnect WebSocket for unread messages (non-blocking)
         if (context.mounted) {
-          _initializeUserState(context);
+          context.go('/home');
         }
         
         return true;
