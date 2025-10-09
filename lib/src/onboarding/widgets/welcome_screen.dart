@@ -88,7 +88,10 @@ class WelcomeScreen extends StatelessWidget {
                           await Storage().forcePersist();
                           
                           DebugUtils.logStorageState();
-                          context.go('/home');
+                          
+                          if (context.mounted) {
+                            context.go('/home');
+                          }
                         },
                       ),
                       SizedBox(height: 15.h),

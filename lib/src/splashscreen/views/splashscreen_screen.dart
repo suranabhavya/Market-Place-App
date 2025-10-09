@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/common/utils/debug_utils.dart';
 import 'package:marketplace_app/const/resource.dart';
 // Removed Marketplace and Property notifiers as background preload is disabled
 
@@ -58,30 +57,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 	}
 
 	_navigator() async {
-		// Add debugging for Android storage issues
-		DebugUtils.logStorageState();
-		DebugUtils.logAuthenticationState();
-		
-		// Removed background data loading; respective screens will fetch on entry
-		
 		// Wait only for minimum splash screen duration
-		await Future.delayed(const Duration(milliseconds: 2000)); // Reduced from 3000ms
+		await Future.delayed(const Duration(milliseconds: 2000));
 		
 		// Check if widget is still mounted before using context
 		if (!mounted) return;
 
-		// Check if this is the first time opening the app
 		final firstOpen = Storage().getBool('firstOpen');
-		debugPrint("SplashScreen: firstOpen value: $firstOpen");
 		
 		if (firstOpen == null) {
-			debugPrint("SplashScreen: First time opening app - going to onboarding");
-			// First time opening app - go to onboarding
 			GoRouter.of(context).go('/onboarding');
 		} else {
-			debugPrint("SplashScreen: Not first time - going to home");
-			// Not first time - always go to home screen
-			// Home screen will handle authentication state internally
 			GoRouter.of(context).go('/home');
 		}
 	}

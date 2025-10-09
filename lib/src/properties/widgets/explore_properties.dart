@@ -31,15 +31,14 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
     if (widget.filteredProperties == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final propertyNotifier = context.read<PropertyNotifier>();
-        // Only fetch properties if they haven't been loaded yet and are not currently loading
-        // This prevents redundant API calls since splash screen should have already loaded properties
+        // Always fetch properties if not provided via filters
         if (propertyNotifier.properties.isEmpty && !propertyNotifier.isLoading) {
-          debugPrint("ExploreProperties: Properties not preloaded and not loading, fetching now...");
+          debugPrint("ExploreProperties: Fetching properties...");
           propertyNotifier.fetchProperties();
         } else if (propertyNotifier.properties.isNotEmpty) {
-          debugPrint("ExploreProperties: Properties already loaded (${propertyNotifier.properties.length} items) - skipping fetch");
+          debugPrint("ExploreProperties: Properties already loaded (${propertyNotifier.properties.length} items)");
         } else if (propertyNotifier.isLoading) {
-          debugPrint("ExploreProperties: Properties are currently loading - waiting for completion");
+          debugPrint("ExploreProperties: Properties are currently loading");
         }
       });
     }

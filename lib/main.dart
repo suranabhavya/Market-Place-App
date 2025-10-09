@@ -18,7 +18,6 @@ import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
-import 'package:marketplace_app/src/onboarding/controllers/onboarding_notifier.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/search/controllers/search_notifier.dart';
@@ -53,13 +52,8 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  // print('Looking for env file: ${Environment.fileName}');
-  // print('Current directory: ${Directory.current.path}');
-  // print('Files in current directory: ${Directory.current.listSync().map((e) => e.path).toList()}');
-
-  // Load the correct environment BEFORE initializing push notifications
   await dotenv.load(fileName: 'assets/.env.development');
-
+  
   // Initialize notification handlers only (but NOT permission or token)
   await PushNotificationService().initializeHandlersOnly();
 
@@ -67,7 +61,6 @@ void main() async {
 
   runApp(MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => OnboardingNotifier()),
       ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
       ChangeNotifierProvider(create: (_) => PasswordNotifier()),
       ChangeNotifierProvider(create: (_) => HomeTabNotifier()),

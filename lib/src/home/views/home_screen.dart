@@ -28,12 +28,16 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     PushNotificationService().requestPermissionIfNeeded();
 
-    // Initialize filters and wishlist when the page loads; fetch on entry
+    // Initialize filters and wishlist when the page loads with optimized loading
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final filterNotifier = context.read<FilterNotifier>();
 
-      // Always fetch properties via filters on screen entry
-      await filterNotifier.applyFilters();
+      // Initialize cache and location first for faster loading
+      await filterNotifier.initializeCache();
+      filterNotifier.initializeLocation();
+
+      // Use optimized quick load that shows cached data immediately
+      await filterNotifier.quickLoad();
 
       // After filters render, kick off wishlist init without blocking UI
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -105,7 +109,7 @@ class _HomePageState extends State<HomePage> {
               ElevatedButton.icon(
                 onPressed: () async {
                   final filterNotifier = context.read<FilterNotifier>();
-                  await filterNotifier.applyFilters();
+                  await filterNotifier.applyFilters(forceRefresh: true);
                 },
                 icon: const Icon(Icons.refresh),
                 label: const Text('Refresh'),
@@ -191,7 +195,7 @@ class _HomePageState extends State<HomePage> {
                       final filterNotifier = context.read<FilterNotifier>();
                       context.push("/property/create").then((_) async {
                         if (mounted) {
-                          await filterNotifier.applyFilters();
+                          await filterNotifier.applyFilters(forceRefresh: true);
                         }
                       });
                     }

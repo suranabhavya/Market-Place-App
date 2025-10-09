@@ -12,10 +12,17 @@ class AppHttpClient {
   static const Duration defaultTimeout = Duration(seconds: 15);
   static const Duration shortTimeout = Duration(seconds: 10);
   static const Duration longTimeout = Duration(seconds: 30);
+  // Removed ultra-fast 800ms timeout to avoid premature failures on cold start
   
   // Retry configurations
   static const int maxRetries = 2;
   static const Duration retryDelay = Duration(seconds: 1);
+  
+  // Shared HTTP client for connection reuse (keep-alive)
+  static final http.Client _client = http.Client();
+
+  // Request deduplication
+  static final Map<String, Future<http.Response>> _pendingRequests = {};
 
   /// GET request with timeout and retry logic
   static Future<http.Response> get(
@@ -25,11 +32,49 @@ class AppHttpClient {
     int? maxRetries,
   }) async {
     return _makeRequest(
-      () => http.get(url, headers: headers),
+      () => _client.get(url, headers: headers),
       timeout: timeout ?? defaultTimeout,
       maxRetries: maxRetries ?? AppHttpClient.maxRetries,
       url: url.toString(),
     );
+  }
+
+  /// Ultra-fast GET request for property loading with deduplication
+  static Future<http.Response> getFast(
+    Uri url, {
+    Map<String, String>? headers,
+    bool enableDeduplication = true,
+  }) async {
+    final urlString = url.toString();
+    
+    // Check for pending request deduplication
+    if (enableDeduplication && _pendingRequests.containsKey(urlString)) {
+      debugPrint('Deduplicating request: $urlString');
+      return _pendingRequests[urlString]!;
+    }
+    
+    // Create new request without an ultra-fast timeout. We still log duration.
+    final requestFuture = _makeRequest(
+      () => _client.get(url, headers: headers),
+      timeout: defaultTimeout, // rely on sane default; no aggressive cutoffs
+      maxRetries: AppHttpClient.maxRetries,
+      url: urlString,
+    );
+    
+    // Store pending request for deduplication
+    if (enableDeduplication) {
+      _pendingRequests[urlString] = requestFuture;
+    }
+    
+    try {
+      final response = await requestFuture;
+      return response;
+    } finally {
+      // Remove from pending requests
+      if (enableDeduplication) {
+        _pendingRequests.remove(urlString);
+      }
+    }
   }
 
   /// POST request with timeout and retry logic
@@ -41,12 +86,14 @@ class AppHttpClient {
     int? maxRetries,
   }) async {
     return _makeRequest(
-      () => http.post(url, headers: headers, body: body),
+      () => _client.post(url, headers: headers, body: body),
       timeout: timeout ?? defaultTimeout,
       maxRetries: maxRetries ?? AppHttpClient.maxRetries,
       url: url.toString(),
     );
   }
+
+  // Removed _makeFastRequest; getFast now uses the normal request path with connection reuse
 
   /// Generic request method with retry logic
   static Future<http.Response> _makeRequest(
@@ -59,9 +106,12 @@ class AppHttpClient {
     
     while (retryCount <= maxRetries) {
       try {
+        final startTime = DateTime.now();
         debugPrint('HTTP Request attempt ${retryCount + 1}/${maxRetries + 1}: $url');
         
         final response = await requestFunction().timeout(timeout);
+        final duration = DateTime.now().difference(startTime);
+        debugPrint('HTTP Request completed in ${duration.inMilliseconds}ms: $url (${response.statusCode})');
         
         // Success case
         if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -117,6 +167,9 @@ class AppHttpClient {
 
   /// Quick timeout configuration for splash screen background loading
   static Duration get splashTimeout => shortTimeout;
+  
+  /// Property timeout uses the default request timeout
+  static Duration get propertyTimeout => defaultTimeout;
   
   /// Timeout for wishlist operations (longer due to Cloud Run cold starts)
   static Duration get wishlistTimeout => longTimeout;

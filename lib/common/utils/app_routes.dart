@@ -32,7 +32,7 @@ import 'package:marketplace_app/src/message/views/message_screen.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter _router = GoRouter(
-   navigatorKey: navigatorKey,
+  navigatorKey: navigatorKey,
   initialLocation: '/',
   routes: [
     GoRoute(

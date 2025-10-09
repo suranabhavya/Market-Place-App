@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
-import 'package:marketplace_app/src/onboarding/controllers/onboarding_notifier.dart';
 import 'package:marketplace_app/src/onboarding/widgets/onboarding_page_one.dart';
 import 'package:marketplace_app/src/onboarding/widgets/onboarding_page_two.dart';
 import 'package:marketplace_app/src/onboarding/widgets/welcome_screen.dart';
-import 'package:provider/provider.dart';
 import 'package:page_view_dot_indicator/page_view_dot_indicator.dart';
 
 class OnBoardingScreen extends StatefulWidget {
@@ -18,13 +16,12 @@ class OnBoardingScreen extends StatefulWidget {
 
 class _OnBoardingScreenState extends State<OnBoardingScreen> {
   late final PageController _pageController;
+  int _currentPage = 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: context.read<OnboardingNotifier>().selectedPage
-    );
+    _pageController = PageController(initialPage: 0);
   }
 
    // Dispose controller to prevent memory leaks
@@ -44,8 +41,6 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final onboardingNotifier = context.watch<OnboardingNotifier>();
-    final currentPage = onboardingNotifier.selectedPage;
     
     return Scaffold(
       body: SafeArea(
@@ -55,7 +50,9 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
             PageView(
               controller: _pageController,
               onPageChanged: (page) {
-                context.read<OnboardingNotifier>().setSelectedPage = page;
+                setState(() {
+                  _currentPage = page;
+                });
               },
               children: const [
                 OnboardingScreenOne(),
@@ -65,7 +62,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
             ),
             
             // Only show navigation controls on pages 0 and 1
-            if (currentPage != 2)
+            if (_currentPage != 2)
               Positioned(
                 bottom: 10.h,
                 child: Container(
@@ -76,10 +73,10 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Back button (hidden on first page)
-                      currentPage == 0 
+                      _currentPage == 0 
                         ? const SizedBox(width: 25)
                         : GestureDetector(
-                            onTap: () => _navigateToPage(currentPage - 1),
+                            onTap: () => _navigateToPage(_currentPage - 1),
                             child: const Icon(
                               AntDesign.leftcircleo,
                               color: Kolors.kPrimary,
@@ -91,7 +88,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                         width: ScreenUtil().screenWidth * 0.7,
                         height: 30.h,
                         child: PageViewDotIndicator(
-                          currentItem: currentPage,
+                          currentItem: _currentPage,
                           count: 3,
                           unselectedColor: Colors.black26,
                           selectedColor: Kolors.kPrimary,
@@ -101,7 +98,7 @@ class _OnBoardingScreenState extends State<OnBoardingScreen> {
                       ),
                       // Forward button
                       GestureDetector(
-                        onTap: () => _navigateToPage(currentPage + 1),
+                        onTap: () => _navigateToPage(_currentPage + 1),
                         child: const Icon(
                           AntDesign.rightcircleo,
                           color: Kolors.kPrimary,
