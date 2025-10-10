@@ -9,10 +9,10 @@ import 'package:marketplace_app/src/chat/views/chat_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/home/views/home_screen.dart';
-import 'package:marketplace_app/src/profile/views/profile_screen.dart';
-import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
+import 'package:marketplace_app/src/profile/views/profile_screen.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
+import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatefulWidget {

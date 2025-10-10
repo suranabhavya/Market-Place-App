@@ -28,35 +28,11 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
   void initState() {
     super.initState();
     
-    if (widget.filteredProperties == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final propertyNotifier = context.read<PropertyNotifier>();
-        // Always fetch properties if not provided via filters
-        if (propertyNotifier.properties.isEmpty && !propertyNotifier.isLoading) {
-          debugPrint("ExploreProperties: Fetching properties...");
-          propertyNotifier.fetchProperties();
-        } else if (propertyNotifier.properties.isNotEmpty) {
-          debugPrint("ExploreProperties: Properties already loaded (${propertyNotifier.properties.length} items)");
-        } else if (propertyNotifier.isLoading) {
-          debugPrint("ExploreProperties: Properties are currently loading");
-        }
-      });
-    }
+    // Properties are already loaded via FilterNotifier in HomeScreen
+    // No need to fetch them again here
     
-    // Initialize wishlist state when component loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final accessToken = Storage().getString('accessToken');
-      final wishlistNotifier = context.read<WishlistNotifier>();
-      
-      if (accessToken != null) {
-        // User is logged in - load their wishlist to ensure proper state
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-      } else {
-        // No user logged in - clear wishlist
-        wishlistNotifier.clearWishlist();
-      }
-    });
+    // Wishlist is already loaded in HomeScreen and EntryPoint
+    // No need to load it again here
     
     // Add scroll listener for infinite scrolling
     _scrollController.addListener(_scrollListener);

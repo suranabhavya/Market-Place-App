@@ -10,7 +10,6 @@ import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:marketplace_app/common/services/push_notification_service.dart';
 
@@ -38,24 +37,8 @@ class _HomePageState extends State<HomePage> {
       // Use optimized quick load that shows cached data immediately
       await filterNotifier.quickLoad();
 
-      // After properties are loaded, load wishlist in background
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final accessToken = Storage().getString('accessToken');
-        final wishlistNotifier = context.read<WishlistNotifier>();
-        
-        if (accessToken == null) {
-          wishlistNotifier.clearWishlist();
-          return;
-        }
-
-        // Load wishlist after properties are visible (non-blocking)
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          wishlistNotifier.loadWishlistFromStorage();
-          wishlistNotifier.fetchWishlist();
-        });
-      });
+      // Wishlist loading is handled in EntryPoint._checkTokenChange()
+      // No need to load it again here
     });
   }
 

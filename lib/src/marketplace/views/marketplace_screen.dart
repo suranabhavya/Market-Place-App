@@ -36,23 +36,7 @@ class _MarketplacePageState extends State<MarketplacePage> {
     // Initialize with any filtered items passed in
     _currentItems = widget.filteredItems;
     
-    // Load wishlist data and fetch marketplace items on initial load
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final accessToken = Storage().getString('accessToken');
-      final wishlistNotifier = context.read<WishlistNotifier>();
-      
-      // De-prioritize wishlist fetch to avoid blocking initial render
-      if (accessToken == null) {
-        wishlistNotifier.clearWishlist();
-      } else {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (!mounted) return;
-          wishlistNotifier.loadWishlistFromStorage();
-          // ignore: discarded_futures
-          wishlistNotifier.fetchWishlist();
-        });
-      }
-      
       // Always fetch items when entering screen if no filtered override provided
       if (_currentItems == null) {
         final marketplaceNotifier = context.read<MarketplaceNotifier>();
@@ -110,10 +94,8 @@ class _MarketplacePageState extends State<MarketplacePage> {
     
     // Check if search key has changed and clear local state if needed
     if (_lastSearchKey != marketplaceNotifier.searchKey) {
-      debugPrint('MarketplaceScreen - Search key changed from "$_lastSearchKey" to "${marketplaceNotifier.searchKey}"');
       if (marketplaceNotifier.searchKey.isEmpty && _lastSearchKey.isNotEmpty) {
         // Search was cleared, reset local state
-        debugPrint('MarketplaceScreen - Search was cleared, resetting local state');
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             setState(() {
@@ -125,16 +107,11 @@ class _MarketplacePageState extends State<MarketplacePage> {
       _lastSearchKey = marketplaceNotifier.searchKey;
     }
     
-    // Use current items if we have them, otherwise use items from notifier
-    final List<MarketplaceListModel> items = _currentItems ?? marketplaceNotifier.marketplaceItems;
+  // Use current items if we have them, otherwise use items from notifier
+  final List<MarketplaceListModel> items = _currentItems ?? marketplaceNotifier.marketplaceItems;
   final bool isLoading = (
     _currentItems == null && (marketplaceNotifier.isLoading || _isFirstFrame)
   );
-    
-    // Minimal debug logging
-    debugPrint('MarketplaceScreen - items: ${items.length}, isLoading: $isLoading');
-    
-    // Ensure UI updates as notifier changes
     
     return Scaffold(
       appBar: PreferredSize(
