@@ -9,7 +9,6 @@ import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
-// Removed direct dependency on PropertyNotifier; fetching handled via FilterNotifier
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
@@ -54,8 +53,6 @@ class _HomePageState extends State<HomePage> {
         Future.delayed(const Duration(milliseconds: 500), () {
           if (!mounted) return;
           wishlistNotifier.loadWishlistFromStorage();
-          // Fire-and-forget; do not await
-          // ignore: discarded_futures
           wishlistNotifier.fetchWishlist();
         });
       });

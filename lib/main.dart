@@ -13,7 +13,6 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:marketplace_app/src/auth/controllers/password_notifier.dart';
-import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
@@ -61,7 +60,6 @@ void main() async {
 
   runApp(MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
       ChangeNotifierProvider(create: (_) => PasswordNotifier()),
       ChangeNotifierProvider(create: (_) => HomeTabNotifier()),
       ChangeNotifierProvider(create: (_) => PropertyNotifier()),

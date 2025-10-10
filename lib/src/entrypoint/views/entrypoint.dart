@@ -9,7 +9,6 @@ import 'package:marketplace_app/src/chat/views/chat_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/home/views/home_screen.dart';
-import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:marketplace_app/src/profile/views/profile_screen.dart';
 import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
@@ -97,17 +96,8 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   
   @override
   Widget build(BuildContext context) {
-    // Check for token changes on each build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkTokenChange();
-    });
-
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
-        ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
-        ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
-      ],
+    return ChangeNotifierProvider(
+      create: (_) => TabIndexNotifier(),
       child: Consumer<TabIndexNotifier>(
         builder: (context, tabIndexNotifier, child) {
           return Scaffold(
