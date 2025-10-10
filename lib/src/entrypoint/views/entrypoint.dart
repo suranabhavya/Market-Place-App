@@ -31,12 +31,9 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     const ProfilePage(),
   ];
   
-  String? _lastToken;
-  
   @override
   void initState() {
     super.initState();
-    _lastToken = Storage().getString('accessToken');
     
     // Only start token validation - no blocking API calls
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -45,6 +42,17 @@ class _AppEntryPointState extends State<AppEntryPoint> {
       if (currentToken != null) {
         // Start periodic token validation for existing logged-in users
         AuthService().startPeriodicValidation();
+        
+        // Load wishlist for logged-in users
+        try {
+          final wishlistNotifier = context.read<WishlistNotifier>();
+          wishlistNotifier.loadWishlistFromStorage(); // Fast local load
+          Future.delayed(const Duration(milliseconds: 500), () {
+            wishlistNotifier.fetchWishlist(); // Fresh API call
+          });
+        } catch (e) {
+          debugPrint('WishlistNotifier not available: $e');
+        }
       }
     });
   }
@@ -52,45 +60,12 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Check for token changes when dependencies change (like after login)
-    _checkTokenChange();
-  }
-  
-  void _checkTokenChange() {
-    final currentToken = Storage().getString('accessToken');
-    if (currentToken != _lastToken) {
-      _lastToken = currentToken;
-      
-      // Handle user state based on token change
-      try {
-        final wishlistNotifier = context.read<WishlistNotifier>();
-        
-        if (currentToken == null) {
-          // User logged out - clear data
-          wishlistNotifier.clearWishlist();
-        } else {
-          // User logged in - load their data after navigation
-          wishlistNotifier.loadWishlistFromStorage(); // Fast local load
-          
-          // Start periodic token validation for newly logged-in users
-          AuthService().startPeriodicValidation();
-          
-          // Fetch fresh wishlist data in background (non-blocking)
-          Future.delayed(const Duration(milliseconds: 500), () {
-            wishlistNotifier.fetchWishlist();
-          });
-        }
-      } catch (e) {
-        debugPrint('Notifiers not available: $e');
-      }
-      
-      // Token changed, reconnect WebSocket if needed
-      try {
-        final unreadNotifier = context.read<UnreadCountNotifier>();
-        unreadNotifier.reconnectIfNeeded();
-      } catch (e) {
-        debugPrint('UnreadCountNotifier not available: $e');
-      }
+    // Reconnect WebSocket when dependencies change (like theme changes)
+    try {
+      final unreadNotifier = context.read<UnreadCountNotifier>();
+      unreadNotifier.reconnectIfNeeded();
+    } catch (e) {
+      debugPrint('UnreadCountNotifier not available: $e');
     }
   }
   
