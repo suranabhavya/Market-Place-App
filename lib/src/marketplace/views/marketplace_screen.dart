@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
-import 'package:marketplace_app/common/services/data_preload_service.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
@@ -38,46 +37,15 @@ class _MarketplacePageState extends State<MarketplacePage> {
     _currentItems = widget.filteredItems;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Load marketplace items - either from preload or fallback to normal loading
+      // Load marketplace items when user first visits this tab
       if (_currentItems == null) {
         final marketplaceNotifier = context.read<MarketplaceNotifier>();
-        final preloadService = DataPreloadService();
 
-        try {
-          if (preloadService.isMarketplaceLoaded) {
-            // Case 1: Already preloaded during splash screen
-            debugPrint('MarketplacePage: Marketplace already preloaded from splash');
+        // refreshMarketplaceItems handles everything: cache load + background refresh
+        // Marketplace should be preloaded from splash, but this ensures it's loaded
+        await marketplaceNotifier.refreshMarketplaceItems();
 
-            // Data is already in notifier, just verify
-            if (marketplaceNotifier.marketplaceItems.isEmpty) {
-              debugPrint('MarketplacePage: Marketplace loaded but notifier empty, reloading...');
-              await marketplaceNotifier.refreshMarketplaceItems();
-            }
-          } else {
-            // Case 2: Not loaded yet - check if it's currently loading from preload
-            if (preloadService.isMarketplaceLoading) {
-              debugPrint('MarketplacePage: Waiting for preload to complete...');
-              // Join the existing preload operation (won't start new one)
-              await preloadService.preloadMarketplace(
-                context.read(),
-                marketplaceNotifier,
-              );
-              debugPrint('MarketplacePage: Marketplace loaded from preload');
-            } else {
-              // Case 3: Preload didn't start or failed - load normally
-              debugPrint('MarketplacePage: No preload, loading marketplace now...');
-              await marketplaceNotifier.refreshMarketplaceItems();
-            }
-          }
-        } catch (e) {
-          // Case 4: Preload failed - fallback to direct loading
-          debugPrint('MarketplacePage: Preload failed ($e), loading directly...');
-          try {
-            await marketplaceNotifier.refreshMarketplaceItems();
-          } catch (fallbackError) {
-            debugPrint('MarketplacePage: Fallback loading also failed: $fallbackError');
-          }
-        }
+        debugPrint('MarketplacePage: Marketplace ready (from preload or cache)');
       }
 
       // Clear first-frame guard after initial post-frame work completes

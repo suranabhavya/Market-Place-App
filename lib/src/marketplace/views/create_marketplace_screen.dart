@@ -121,12 +121,9 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
     try {
       final response = await http.get(Uri.parse(url));
-      debugPrint("📡 Nearby schools response status: ${response.statusCode}");
-      debugPrint("📄 Nearby schools response body: ${response.body}");
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        debugPrint("✅ Found ${data.length} nearby schools");
         
         setState(() {
           // Clear previous selections
@@ -510,8 +507,6 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
               ));
             }
           }
-          
-          debugPrint("✅ Successfully parsed ${predictions.length} predictions");
           for (int i = 0; i < predictions.length; i++) {
             debugPrint("   $i: ${predictions[i].description}");
           }
@@ -607,17 +602,15 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
           });
 
           // **Fetch Nearby Schools After Address Selection**
-          debugPrint("🎯 About to fetch nearby schools for coordinates: lat=$lat, lng=$lng");
           await _fetchNearbySchools(lat, lng);
-          debugPrint("✅ Completed fetching nearby schools");
         } else {
-          debugPrint("❌ No location data found in response");
+          debugPrint("No location data found in response");
         }
       } else {
-        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
+        debugPrint("HTTP error ${response.statusCode}: ${response.body}");
       }
     } catch (e) {
-      debugPrint("💥 Exception fetching place details: $e");
+      debugPrint("Exception fetching place details: $e");
     }
   }
 

@@ -250,8 +250,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
               ));
             }
           }
-          
-          debugPrint("✅ Successfully parsed ${predictions.length} predictions");
           for (int i = 0; i < predictions.length; i++) {
             debugPrint("   $i: ${predictions[i].description}");
           }
@@ -291,7 +289,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        debugPrint("✅ Found ${data.length} nearby schools");
         
         setState(() {
           // Clear previous selections
@@ -415,23 +412,18 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           });
 
           // **Fetch Nearby Schools After Address Selection**
-          debugPrint("🎯 About to fetch nearby schools for coordinates: lat=$lat, lng=$lng");
           await _fetchNearbySchools(lat, lng);
-          debugPrint("✅ Completed fetching nearby schools");
         } else {
-          debugPrint("❌ No location data found in response");
           messenger.showSnackBar(
             const SnackBar(content: Text("Failed to get location details from the selected address")),
           );
         }
       } else {
-        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
         messenger.showSnackBar(
           SnackBar(content: Text("Failed to get location details: HTTP ${response.statusCode}")),
         );
       }
     } catch (e) {
-      debugPrint("💥 Exception fetching place details: $e");
       messenger.showSnackBar(
         SnackBar(content: Text("Error fetching location details: $e")),
       );
@@ -718,17 +710,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         },
       );
 
-      debugPrint("📡 Amenities API response status: ${response.statusCode}");
-      debugPrint("📄 Amenities API response headers: ${response.headers}");
-      debugPrint("📄 Amenities API response body: ${response.body}");
-
       if (response.statusCode == 200) {
         try {
           String responseBody = utf8.decode(response.bodyBytes);
           dynamic decodedData = json.decode(responseBody);
-          
-          debugPrint("📋 Decoded amenities data type: ${decodedData.runtimeType}");
-          debugPrint("📋 Decoded amenities data: $decodedData");
 
           List<dynamic> data;
           
@@ -740,14 +725,10 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           } else if (decodedData is Map && decodedData.containsKey('data')) {
             data = decodedData['data'] as List<dynamic>;
           } else {
-            debugPrint("⚠️ Unexpected amenities response format: $decodedData");
             throw Exception("Unexpected response format from amenities API");
           }
-
-          debugPrint("✅ Found ${data.length} amenities in response");
           
           if (data.isEmpty) {
-            debugPrint("⚠️ No amenities found in the database. You may need to add some amenities through the admin panel.");
             if (mounted) {
               setState(() {
                 amenities = {};
@@ -766,26 +747,22 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
                 if (item is Map && item.containsKey("name")) {
                   String amenityName = item["name"].toString();
                   amenities[amenityName] = false;
-                  debugPrint("   Added amenity: $amenityName");
+                  debugPrint("Added amenity: $amenityName");
                 } else {
-                  debugPrint("⚠️ Skipping invalid amenity item: $item");
+                  debugPrint("Skipping invalid amenity item: $item");
                 }
               }
-              
-              debugPrint("🎯 Total amenities loaded: ${amenities.length}");
               
               // If editing mode and we have initial data with amenities
               if (widget.isEditing && widget.initialData != null && widget.initialData!['amenities'] != null) {
                 List<dynamic> selectedAmenities = widget.initialData!['amenities'];
-                debugPrint("🔄 Applying selected amenities from initial data: $selectedAmenities");
                 
                 // Mark selected amenities as true
                 for (String amenity in selectedAmenities) {
                   if (amenities.containsKey(amenity)) {
                     amenities[amenity] = true;
-                    debugPrint("   ✅ Marked amenity as selected: $amenity");
                   } else {
-                    debugPrint("   ⚠️ Amenity not found in available list: $amenity");
+                    debugPrint("Amenity not found in available list: $amenity");
                   }
                 }
               }
@@ -795,7 +772,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
             });
           }
         } catch (jsonError) {
-          debugPrint("❌ JSON parsing error: $jsonError");
           if (mounted) {
             setState(() {
               _isLoadingAmenities = false;
@@ -804,7 +780,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           }
         }
       } else if (response.statusCode == 404) {
-        debugPrint("❌ Amenities endpoint not found (404). Check if the API endpoint exists.");
         if (mounted) {
           setState(() {
             _isLoadingAmenities = false;
@@ -812,7 +787,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           });
         }
       } else if (response.statusCode >= 500) {
-        debugPrint("❌ Server error (${response.statusCode}): ${response.body}");
         if (mounted) {
           setState(() {
             _isLoadingAmenities = false;
@@ -820,7 +794,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
           });
         }
       } else {
-        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
         if (mounted) {
           setState(() {
             _isLoadingAmenities = false;
@@ -829,8 +802,6 @@ class _CreatePropertyPageState extends State<CreatePropertyPage> {
         }
       }
     } catch (e) {
-      debugPrint("💥 Exception occurred while fetching amenities: $e");
-      debugPrint("💥 Exception type: ${e.runtimeType}");
       
       if (mounted) {
         setState(() {

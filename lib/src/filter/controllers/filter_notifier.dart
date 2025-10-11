@@ -21,7 +21,7 @@ class CachedPropertyData {
     required this.cacheKey,
   });
 
-  bool get isExpired => DateTime.now().difference(timestamp) > FilterNotifier._cacheExpiry;
+  // Cache never expires - we always keep it and refresh in background
 
   Map<String, dynamic> toJson() => {
     'properties': properties.map((p) => p.toJson()).toList(),
@@ -78,10 +78,10 @@ class FilterNotifier extends ChangeNotifier {
   final Map<String, CachedPropertyData> _cache = {};
   String? _lastCacheKey;
   bool _isRefreshing = false;
-  
+
   // Cache data structure
   static const String _cacheKey = 'filtered_properties_cache';
-  static const Duration _cacheExpiry = Duration(minutes: 5);
+  // Cache never expires - we keep it indefinitely and always refresh in background
 
   // Location for proximity search with caching
   double? _latitude;
@@ -354,22 +354,19 @@ class FilterNotifier extends ChangeNotifier {
 
   Future<CachedPropertyData?> _loadFromCache(String cacheKey) async {
     try {
-      // Check memory cache first
-      if (_cache.containsKey(cacheKey) && !_cache[cacheKey]!.isExpired) {
+      // Check memory cache first (no expiry check - cache is indefinite)
+      if (_cache.containsKey(cacheKey)) {
+        debugPrint("Loaded from memory cache: $cacheKey");
         return _cache[cacheKey];
       }
 
-      // Check disk cache
+      // Check disk cache (no expiry check - cache is indefinite)
       final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
       if (cacheJson != null) {
         final data = CachedPropertyData.fromJson(jsonDecode(cacheJson));
-        if (!data.isExpired) {
-          _cache[cacheKey] = data;
-          return data;
-        } else {
-          // Remove expired cache
-          await Storage().removeKey('${_cacheKey}_$cacheKey');
-        }
+        _cache[cacheKey] = data;
+        debugPrint("Loaded from disk cache: $cacheKey");
+        return data;
       }
     } catch (e) {
       debugPrint("Failed to load cache: $e");
@@ -378,29 +375,31 @@ class FilterNotifier extends ChangeNotifier {
   }
 
   Future<void> _clearExpiredCache() async {
-    try {
-      final keys = _cache.keys.toList();
-      for (final key in keys) {
-        if (_cache[key]!.isExpired) {
-          _cache.remove(key);
-          await Storage().removeKey('${_cacheKey}_$key');
-        }
-      }
-    } catch (e) {
-      debugPrint("Failed to clear expired cache: $e");
-    }
+    // Cache never expires - this method is kept for compatibility but does nothing
+    debugPrint("Cache clear skipped - cache is indefinite");
   }
+
+  // Track if we're currently in applyFilters to prevent concurrent calls
+  bool _isApplyingFilters = false;
 
   // Optimized applyFilters with caching and background refresh
   Future<void> applyFilters({bool forceRefresh = false}) async {
+    // Prevent concurrent calls to avoid GetStorage file conflicts
+    if (_isApplyingFilters && !forceRefresh) {
+      debugPrint("applyFilters already in progress, skipping duplicate call");
+      return;
+    }
     if (isLoading && !forceRefresh) return;
 
-    final cacheKey = _generateCacheKey();
+    _isApplyingFilters = true;
 
-    // Try to load from cache first (unless force refresh)
-    if (!forceRefresh) {
-      final cachedData = await _loadFromCache(cacheKey);
-      if (cachedData != null) {
+    try {
+      final cacheKey = _generateCacheKey();
+
+      // Try to load from cache first (unless force refresh)
+      if (!forceRefresh) {
+        final cachedData = await _loadFromCache(cacheKey);
+        if (cachedData != null) {
         // Show cached data IMMEDIATELY without setting loading state
         filteredProperties = List.from(cachedData.properties);
         totalPropertiesCount = cachedData.totalCount;
@@ -411,66 +410,70 @@ class FilterNotifier extends ChangeNotifier {
         // Notify listeners first so UI updates instantly with cached data
         notifyListeners();
 
-        // Refresh in background if cache is getting stale (don't block UI)
-        if (DateTime.now().difference(cachedData.timestamp).inMinutes > 2) {
+        debugPrint("Showing cached properties, starting background refresh...");
+
+          // ALWAYS refresh in background (no age check - indefinite cache strategy)
           _refreshInBackground(cacheKey);
+
+          return;
         }
-        return;
       }
-    }
 
-    // No cache available or force refresh - fetch from API
-    isLoading = true;
-    errorMessage = null;
+      // No cache available or force refresh - fetch from API
+      isLoading = true;
+      errorMessage = null;
 
-    // Only clear properties if we don't have cached data to show
-    if (filteredProperties.isEmpty || forceRefresh) {
-      filteredProperties = [];
-      nextPageUrl = null;
-    }
+      // Only clear properties if we don't have cached data to show
+      if (filteredProperties.isEmpty || forceRefresh) {
+        filteredProperties = [];
+        nextPageUrl = null;
+      }
 
-    notifyListeners();
+      notifyListeners();
 
-    try {
-      final url = _buildFilterUrl();
+      try {
+        final url = _buildFilterUrl();
 
-      final response = await AppHttpClient.getFast(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // Parse the paginated response
-        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
-        
-        // Update properties and pagination info
-        filteredProperties = paginatedResponse.results;
-        totalPropertiesCount = paginatedResponse.count;
-        nextPageUrl = paginatedResponse.next;
-        
-        // Save to cache
-        final cacheData = CachedPropertyData(
-          properties: List.from(paginatedResponse.results),
-          totalCount: paginatedResponse.count,
-          nextPageUrl: paginatedResponse.next,
-          timestamp: DateTime.now(),
-          cacheKey: cacheKey,
+        final response = await AppHttpClient.getFast(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+          },
         );
-        await _saveToCache(cacheData);
-        _lastCacheKey = cacheKey;
-        
-        notifyListeners();
-      } else {
-        errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
-      }
-    } catch (e) {
-      errorMessage = 'An error occurred: $e';
-    }
 
-    isLoading = false;
-    notifyListeners();
+        if (response.statusCode == 200) {
+          // Parse the paginated response
+          final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+
+          // Update properties and pagination info
+          filteredProperties = paginatedResponse.results;
+          totalPropertiesCount = paginatedResponse.count;
+          nextPageUrl = paginatedResponse.next;
+
+          // Save to cache
+          final cacheData = CachedPropertyData(
+            properties: List.from(paginatedResponse.results),
+            totalCount: paginatedResponse.count,
+            nextPageUrl: paginatedResponse.next,
+            timestamp: DateTime.now(),
+            cacheKey: cacheKey,
+          );
+          await _saveToCache(cacheData);
+          _lastCacheKey = cacheKey;
+
+          notifyListeners();
+        } else {
+          errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
+        }
+      } catch (e) {
+        errorMessage = 'An error occurred: $e';
+      }
+
+      isLoading = false;
+      notifyListeners();
+    } finally {
+      _isApplyingFilters = false;
+    }
   }
 
   // Background refresh without blocking UI

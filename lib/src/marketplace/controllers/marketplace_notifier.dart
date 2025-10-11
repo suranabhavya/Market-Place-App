@@ -22,6 +22,45 @@ class PropertyListItem {
   }
 }
 
+// Cache data structure for storing marketplace items
+class CachedMarketplaceData {
+  final List<MarketplaceListModel> items;
+  final int totalCount;
+  final String? nextPageUrl;
+  final DateTime timestamp;
+  final String cacheKey;
+
+  CachedMarketplaceData({
+    required this.items,
+    required this.totalCount,
+    required this.nextPageUrl,
+    required this.timestamp,
+    required this.cacheKey,
+  });
+
+  // Cache never expires - we always keep it and refresh in background
+
+  Map<String, dynamic> toJson() => {
+    'items': items.map((item) => item.toJson()).toList(),
+    'totalCount': totalCount,
+    'nextPageUrl': nextPageUrl,
+    'timestamp': timestamp.millisecondsSinceEpoch,
+    'cacheKey': cacheKey,
+  };
+
+  factory CachedMarketplaceData.fromJson(Map<String, dynamic> json) {
+    return CachedMarketplaceData(
+      items: (json['items'] as List)
+          .map((item) => MarketplaceListModel.fromJson(item))
+          .toList(),
+      totalCount: json['totalCount'],
+      nextPageUrl: json['nextPageUrl'],
+      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
+      cacheKey: json['cacheKey'],
+    );
+  }
+}
+
 class MarketplaceNotifier extends ChangeNotifier {
   bool _isLoading = false;
   bool _isLoadingMore = false;
@@ -40,6 +79,14 @@ class MarketplaceNotifier extends ChangeNotifier {
     'item_subtype': [],
     'school_name': [],
   };
+
+  // Caching mechanism
+  final Map<String, CachedMarketplaceData> _cache = {};
+  String? _lastCacheKey;
+  bool _isRefreshing = false;
+  bool _isRefreshingMarketplace = false; // Prevent concurrent refreshMarketplaceItems calls
+  static const String _cacheKey = 'marketplace_items_cache';
+  // Cache never expires - we keep it indefinitely and always refresh in background
 
   // Filter properties
   List<String> _selectedConditions = [];
@@ -245,6 +292,173 @@ class MarketplaceNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Generate cache key based on current filter state
+  String _generateCacheKey() {
+    final buffer = StringBuffer();
+    buffer.write('search:$_searchKey|');
+    buffer.write('lat:$_latitude|lng:$_longitude|');
+    buffer.write('conditions:${_selectedConditions.join(',')}|');
+    buffer.write('negotiable:$_negotiable|');
+    buffer.write('delivery:$_deliveryAvailable|');
+    buffer.write('receipt:$_originalReceiptAvailable|');
+    buffer.write('types:${_selectedItemTypes.join(',')}|');
+    buffer.write('subtypes:${_selectedItemSubtypes.join(',')}|');
+    buffer.write('schools:${_selectedSchoolIds.join(',')}|');
+    buffer.write('price:$_minPrice-$_maxPrice|');
+    return buffer.toString();
+  }
+
+  // Save cache to storage
+  Future<void> _saveToCache(CachedMarketplaceData data) async {
+    try {
+      final cacheJson = jsonEncode(data.toJson());
+      Storage().setString('${_cacheKey}_${data.cacheKey}', cacheJson);
+      _cache[data.cacheKey] = data;
+      debugPrint("Saved marketplace cache: ${data.cacheKey}");
+    } catch (e) {
+      debugPrint("Failed to save marketplace cache: $e");
+    }
+  }
+
+  // Load cache from storage
+  Future<CachedMarketplaceData?> _loadFromCache(String cacheKey) async {
+    try {
+      // Check memory cache first (no expiry check - cache is indefinite)
+      if (_cache.containsKey(cacheKey)) {
+        debugPrint("Loaded marketplace from memory cache: $cacheKey");
+        return _cache[cacheKey];
+      }
+
+      // Check disk cache (no expiry check - cache is indefinite)
+      final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
+      if (cacheJson != null) {
+        final data = CachedMarketplaceData.fromJson(jsonDecode(cacheJson));
+        _cache[cacheKey] = data;
+        debugPrint("Loaded marketplace from disk cache: $cacheKey");
+        return data;
+      }
+    } catch (e) {
+      debugPrint("Failed to load marketplace cache: $e");
+    }
+    return null;
+  }
+
+  // Background refresh without blocking UI
+  Future<void> _refreshInBackground(String cacheKey) async {
+    if (_isRefreshing) return;
+
+    _isRefreshing = true;
+    debugPrint("Starting background refresh for marketplace...");
+
+    try {
+      final url = _buildMarketplaceUrl();
+      final response = await AppHttpClient.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: AppHttpClient.splashTimeout,
+      );
+
+      if (response.statusCode == 200) {
+        final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
+
+        // Update cache with fresh data
+        final cacheData = CachedMarketplaceData(
+          items: List.from(paginatedResponse.results),
+          totalCount: paginatedResponse.count,
+          nextPageUrl: paginatedResponse.next,
+          timestamp: DateTime.now(),
+          cacheKey: cacheKey,
+        );
+        await _saveToCache(cacheData);
+
+        // Update current data if this is still the active filter
+        if (_lastCacheKey == cacheKey) {
+          _marketplaceItems = List.from(paginatedResponse.results);
+          _nextPageUrl = paginatedResponse.next;
+          notifyListeners();
+          debugPrint("Background refresh completed, UI updated with fresh marketplace data");
+        }
+      }
+    } catch (e) {
+      debugPrint("Background marketplace refresh failed: $e");
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  // Helper to build marketplace URL with filters
+  String _buildMarketplaceUrl() {
+    String url = '${Environment.baseUrl}/api/marketplace/';
+
+    // Build query parameters
+    final queryParams = <String, String>{
+      'page_size': '10',
+    };
+
+    // Add search query if present
+    if (_searchKey.isNotEmpty) {
+      queryParams['search'] = _searchKey;
+
+      // Check if the search key matches a school name from autocomplete
+      if (_autocompleteResults['school_name']?.contains(_searchKey) ?? false) {
+        queryParams['school_name'] = _searchKey;
+      }
+    }
+
+    // Add conditions if selected
+    if (_selectedConditions.isNotEmpty) {
+      queryParams['condition'] = _selectedConditions.join(',');
+    }
+
+    // Add boolean filters
+    if (_negotiable != null) {
+      queryParams['negotiable'] = _negotiable.toString();
+    }
+
+    if (_deliveryAvailable != null) {
+      queryParams['delivery_available'] = _deliveryAvailable.toString();
+    }
+
+    if (_originalReceiptAvailable != null) {
+      queryParams['original_receipt_available'] = _originalReceiptAvailable.toString();
+    }
+
+    // Add price range
+    if (_minPrice > 0) {
+      queryParams['min_price'] = _minPrice.toString();
+    }
+
+    if (_maxPrice < 10000) {
+      queryParams['max_price'] = _maxPrice.toString();
+    }
+
+    // Add item types and subtypes
+    if (_selectedItemTypes.isNotEmpty) {
+      queryParams['item_type'] = _selectedItemTypes.join(',');
+    }
+
+    if (_selectedItemSubtypes.isNotEmpty) {
+      queryParams['item_subtype'] = _selectedItemSubtypes.join(',');
+    }
+
+    // Add school IDs
+    if (_selectedSchoolIds.isNotEmpty) {
+      queryParams['schools_nearby'] = _selectedSchoolIds.join(',');
+    }
+
+    // Add location parameters for proximity search
+    if (_latitude != null && _longitude != null) {
+      queryParams['latitude'] = _latitude.toString();
+      queryParams['longitude'] = _longitude.toString();
+      queryParams['max_distance'] = '5';
+    }
+
+    final uri = Uri.parse(url).replace(queryParameters: queryParams);
+    return uri.toString();
+  }
+
   Future<void> fetchUserProperties() async {
     String? token = Storage().getString('accessToken');
     if (token == null) return;
@@ -368,102 +582,94 @@ class MarketplaceNotifier extends ChangeNotifier {
     }
   }
 
-  // Add a context-free version of applyFilters
+  // Refresh marketplace items with cache-first strategy
   Future<void> refreshMarketplaceItems() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+    // Prevent concurrent calls to avoid GetStorage file conflicts
+    if (_isRefreshingMarketplace) {
+      debugPrint("refreshMarketplaceItems already in progress, skipping duplicate call");
+      return;
+    }
+    if (_isLoading) return;
+
+    _isRefreshingMarketplace = true;
 
     try {
-      String url = '${Environment.baseUrl}/api/marketplace/';
-      
-      // Build query parameters
-      final queryParams = <String, String>{
-        'page_size': '10',
-      };
-      
-      // Add search query if present
-      if (_searchKey.isNotEmpty) {
-        queryParams['search'] = _searchKey;
-        
-        // Check if the search key matches a school name from autocomplete
-        // If so, also add the school search parameter
-        if (_autocompleteResults['school_name']?.contains(_searchKey) ?? false) {
-          queryParams['school_name'] = _searchKey;
+      final cacheKey = _generateCacheKey();
+
+      // Try to load from cache first
+        final cachedData = await _loadFromCache(cacheKey);
+        if (cachedData != null) {
+          // Show cached data IMMEDIATELY without setting loading state
+          _marketplaceItems = List.from(cachedData.items);
+          _nextPageUrl = cachedData.nextPageUrl;
+          _error = null;
+          _lastCacheKey = cacheKey;
+
+          // Notify listeners first so UI updates instantly with cached data
+          notifyListeners();
+
+          debugPrint("Showing cached marketplace items, starting background refresh...");
+
+          // ALWAYS refresh in background (no age check - indefinite cache strategy)
+          _refreshInBackground(cacheKey);
+
+          return;
         }
-      }
-      
-      // Add conditions if selected
-      if (_selectedConditions.isNotEmpty) {
-        queryParams['condition'] = _selectedConditions.join(',');
-      }
-      
-      // Add boolean filters
-      if (_negotiable != null) {
-        queryParams['negotiable'] = _negotiable.toString();
-      }
-      
-      if (_deliveryAvailable != null) {
-        queryParams['delivery_available'] = _deliveryAvailable.toString();
-      }
-      
-      if (_originalReceiptAvailable != null) {
-        queryParams['original_receipt_available'] = _originalReceiptAvailable.toString();
-      }
-      
-      // Add price range
-      if (_minPrice > 0) {
-        queryParams['min_price'] = _minPrice.toString();
-      }
-      
-      if (_maxPrice < 10000) {
-        queryParams['max_price'] = _maxPrice.toString();
-      }
-      
-      // Add item types and subtypes
-      if (_selectedItemTypes.isNotEmpty) {
-        queryParams['item_type'] = _selectedItemTypes.join(',');
-      }
-      
-      if (_selectedItemSubtypes.isNotEmpty) {
-        queryParams['item_subtype'] = _selectedItemSubtypes.join(',');
-      }
-      
-      // Add school IDs
-      if (_selectedSchoolIds.isNotEmpty) {
-        queryParams['schools_nearby'] = _selectedSchoolIds.join(',');
-      }
 
-      // Add location parameters for proximity search
-      if (_latitude != null && _longitude != null) {
-        queryParams['latitude'] = _latitude.toString();
-        queryParams['longitude'] = _longitude.toString();
-        // Default max distance of 5 miles (same as properties)
-        queryParams['max_distance'] = '5';
-      }
-
-      final uri = Uri.parse(url).replace(queryParameters: queryParams);
-      
-      final response = await AppHttpClient.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: AppHttpClient.splashTimeout,
-      );
-
-      if (response.statusCode == 200) {
-        final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
-        _marketplaceItems = paginatedResponse.results;
-        _nextPageUrl = paginatedResponse.next;
-      } else {
-        _error = 'Failed to fetch marketplace items';
-      }
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
+      // No cache available - fetch from API
+      _isLoading = true;
+      _error = null;
+      _marketplaceItems = [];
+      _nextPageUrl = null;
       notifyListeners();
+
+      try {
+        final url = _buildMarketplaceUrl();
+        debugPrint("Fetching marketplace items from URL: $url");
+
+        final response = await AppHttpClient.get(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: AppHttpClient.splashTimeout,
+        );
+
+        if (response.statusCode == 200) {
+          debugPrint("Marketplace response body: ${response.body}");
+          final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
+          debugPrint("Parsed paginated response - count: ${paginatedResponse.count}");
+          debugPrint("Parsed paginated response - results length: ${paginatedResponse.results.length}");
+          _marketplaceItems = paginatedResponse.results;
+          _nextPageUrl = paginatedResponse.next;
+          debugPrint("Set _marketplaceItems length: ${_marketplaceItems.length}");
+
+          // Save to cache
+          final cacheData = CachedMarketplaceData(
+            items: List.from(paginatedResponse.results),
+            totalCount: paginatedResponse.count,
+            nextPageUrl: paginatedResponse.next,
+            timestamp: DateTime.now(),
+            cacheKey: cacheKey,
+          );
+          await _saveToCache(cacheData);
+          _lastCacheKey = cacheKey;
+
+          notifyListeners();
+        } else {
+          _error = 'Failed to fetch marketplace items';
+          debugPrint("Failed to fetch marketplace items: ${response.statusCode}");
+        }
+      } catch (e) {
+        _error = e.toString();
+        debugPrint("Error fetching marketplace items: $e");
+      } finally {
+        _isLoading = false;
+        debugPrint("MarketplaceNotifier - Calling notifyListeners() with ${_marketplaceItems.length} items");
+        notifyListeners();
+      }
+    } finally {
+      _isRefreshingMarketplace = false;
     }
   }
 
