@@ -61,12 +61,15 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Reconnect WebSocket when dependencies change (like theme changes)
-    try {
-      final unreadNotifier = context.read<UnreadCountNotifier>();
-      unreadNotifier.reconnectIfNeeded();
-    } catch (e) {
-      debugPrint('UnreadCountNotifier not available: $e');
-    }
+    // Use addPostFrameCallback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final unreadNotifier = context.read<UnreadCountNotifier>();
+        unreadNotifier.reconnectIfNeeded();
+      } catch (e) {
+        debugPrint('UnreadCountNotifier not available: $e');
+      }
+    });
   }
   
   @override
