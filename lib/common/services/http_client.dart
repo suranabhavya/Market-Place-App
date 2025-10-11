@@ -49,7 +49,6 @@ class AppHttpClient {
     
     // Check for pending request deduplication
     if (enableDeduplication && _pendingRequests.containsKey(urlString)) {
-      debugPrint('Deduplicating request: $urlString');
       return _pendingRequests[urlString]!;
     }
     
@@ -106,46 +105,31 @@ class AppHttpClient {
     
     while (retryCount <= maxRetries) {
       try {
-        final startTime = DateTime.now();
-        debugPrint('HTTP Request attempt ${retryCount + 1}/${maxRetries + 1}: $url');
-        
         final response = await requestFunction().timeout(timeout);
-        final duration = DateTime.now().difference(startTime);
-        debugPrint('HTTP Request completed in ${duration.inMilliseconds}ms: $url (${response.statusCode})');
-        
         // Success case
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          debugPrint('HTTP Request successful: $url (${response.statusCode})');
           return response;
         }
         
         // Server error - retry on 5xx errors
         if (response.statusCode >= 500 && retryCount < maxRetries) {
-          debugPrint('Server error ${response.statusCode} for $url, retrying...');
           retryCount++;
           await Future.delayed(retryDelay * retryCount); // Exponential backoff
           continue;
         }
-        
-        // Client error or max retries reached - return response
-        debugPrint('HTTP Request completed with status ${response.statusCode}: $url');
         return response;
         
       } on SocketException catch (e) {
-        debugPrint('Network error for $url: $e');
         if (retryCount < maxRetries) {
           retryCount++;
-          debugPrint('Retrying network request $retryCount/$maxRetries after ${retryDelay.inSeconds}s...');
           await Future.delayed(retryDelay * retryCount);
           continue;
         }
         rethrow;
         
       } on Exception catch (e) {
-        debugPrint('Request error for $url: $e');
         if (retryCount < maxRetries && _isRetryableError(e)) {
           retryCount++;
-          debugPrint('Retrying request $retryCount/$maxRetries after ${retryDelay.inSeconds}s...');
           await Future.delayed(retryDelay * retryCount);
           continue;
         }

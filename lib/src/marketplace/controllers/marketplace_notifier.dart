@@ -138,7 +138,6 @@ class MarketplaceNotifier extends ChangeNotifier {
 
     try {
       final url = '${Environment.baseUrl}/api/marketplace/autocomplete/?q=$query';
-      debugPrint('Fetching marketplace autocomplete from: $url');
       
       final response = await http.get(
         Uri.parse(url),
@@ -149,7 +148,6 @@ class MarketplaceNotifier extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        debugPrint('Marketplace autocomplete response: ${response.body}');
         
         Map<String, List<String>> results = {};
         data.forEach((key, value) {
@@ -160,8 +158,6 @@ class MarketplaceNotifier extends ChangeNotifier {
                 .map<String>((item) => item?.toString() ?? '')
                 .where((item) => item.isNotEmpty)
                 .toList();
-            
-            debugPrint('Category $key has ${results[key]?.length ?? 0} items');
           }
         });
         
@@ -348,7 +344,6 @@ class MarketplaceNotifier extends ChangeNotifier {
       }
 
       final uri = Uri.parse(url).replace(queryParameters: queryParams);
-      debugPrint("Fetching items from URL: $uri");
       
       final response = await AppHttpClient.get(
         uri,
@@ -359,7 +354,6 @@ class MarketplaceNotifier extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        debugPrint("response body: ${response.body}");
         final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
         _marketplaceItems = paginatedResponse.results;
         _nextPageUrl = paginatedResponse.next;
@@ -370,7 +364,6 @@ class MarketplaceNotifier extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
-      debugPrint("MarketplaceNotifier - Calling notifyListeners() with ${_marketplaceItems.length} items");
       notifyListeners();
     }
   }
@@ -450,7 +443,6 @@ class MarketplaceNotifier extends ChangeNotifier {
       }
 
       final uri = Uri.parse(url).replace(queryParameters: queryParams);
-      debugPrint("Fetching items from URL: $uri");
       
       final response = await AppHttpClient.get(
         uri,
@@ -461,13 +453,9 @@ class MarketplaceNotifier extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        debugPrint("response body: ${response.body}");
         final PaginatedMarketplaceResponse paginatedResponse = paginatedMarketplaceFromJson(response.body);
-        debugPrint("Parsed paginated response - count: ${paginatedResponse.count}");
-        debugPrint("Parsed paginated response - results length: ${paginatedResponse.results.length}");
         _marketplaceItems = paginatedResponse.results;
         _nextPageUrl = paginatedResponse.next;
-        debugPrint("Set _marketplaceItems length: ${_marketplaceItems.length}");
       } else {
         _error = 'Failed to fetch marketplace items';
       }
@@ -475,14 +463,12 @@ class MarketplaceNotifier extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
-      debugPrint("MarketplaceNotifier - Calling notifyListeners() with ${_marketplaceItems.length} items");
       notifyListeners();
     }
   }
 
   Future<void> loadMoreMarketplaceItems() async {
     if (_isLoadingMore || _nextPageUrl == null) {
-      debugPrint('Skipping marketplace load more: isLoadingMore=$_isLoadingMore, nextPageUrl=$_nextPageUrl');
       return;
     }
 
@@ -517,19 +503,15 @@ class MarketplaceNotifier extends ChangeNotifier {
   Future<MarketplaceDetailModel?> fetchMarketplaceDetail(String itemId) async {
     try {
       final url = '${Environment.baseUrl}/api/marketplace/$itemId/';
-      debugPrint('Fetching marketplace detail from: $url');
       
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        debugPrint('Marketplace detail response: ${response.body}');
         return MarketplaceDetailModel.fromJson(json.decode(response.body));
       } else {
-        debugPrint('Failed to fetch marketplace detail: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
-      debugPrint('Error fetching marketplace detail: $e');
       return null;
     }
   }
@@ -538,7 +520,6 @@ class MarketplaceNotifier extends ChangeNotifier {
   Future<List<MarketplaceListModel>> fetchUserMarketplaceListings(String token) async {
     try {
       final url = '${Environment.baseUrl}/api/marketplace/my_listings/';
-      debugPrint('Fetching user marketplace listings from: $url');
       
       final response = await http.get(
         Uri.parse(url),
@@ -549,7 +530,6 @@ class MarketplaceNotifier extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        debugPrint('User marketplace listings response: ${response.body}');
         final responseData = json.decode(response.body);
         
         // Handle both paginated and non-paginated responses
@@ -561,17 +541,14 @@ class MarketplaceNotifier extends ChangeNotifier {
           // Direct list response
           results = responseData;
         } else {
-          debugPrint('Unexpected response format: $responseData');
           return [];
         }
         
         return results.map((item) => MarketplaceListModel.fromJson(item)).toList();
       } else {
-        debugPrint('Failed to fetch user marketplace listings: ${response.statusCode} - ${response.body}');
         return [];
       }
     } catch (e) {
-      debugPrint('Error fetching user marketplace listings: $e');
       return [];
     }
   }
@@ -601,7 +578,6 @@ class MarketplaceNotifier extends ChangeNotifier {
     String apiUrl = '${Environment.baseUrl}/api/marketplace/$itemId/';
 
     try {
-      debugPrint('Deleting marketplace item with ID: $itemId');
       
       final response = await http.delete(
         Uri.parse(apiUrl),
@@ -610,17 +586,12 @@ class MarketplaceNotifier extends ChangeNotifier {
         },
       );
 
-      debugPrint('Delete API Response Status: ${response.statusCode}');
-
       if (response.statusCode == 204) {
-        debugPrint('✅ Successfully deleted marketplace item');
         onSuccess();
       } else {
-        debugPrint('❌ Failed to delete marketplace item: ${response.body}');
         onError();
       }
     } catch (e) {
-      debugPrint('💥 Error deleting marketplace item: $e');
       onError();
     }
   }

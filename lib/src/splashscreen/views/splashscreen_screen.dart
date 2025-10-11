@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/data_preload_service.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/const/resource.dart';
-// Removed Marketplace and Property notifiers as background preload is disabled
+import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
+import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
+import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,13 +24,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 	@override
 	void initState() {
 		super.initState();
-		
+
 		// Initialize animations for smooth logo appearance
 		_animationController = AnimationController(
 			duration: const Duration(milliseconds: 1500),
 			vsync: this,
 		);
-		
+
 		_fadeAnimation = Tween<double>(
 			begin: 0.0,
 			end: 1.0,
@@ -35,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 			parent: _animationController,
 			curve: const Interval(0.0, 0.6, curve: Curves.easeInOut),
 		));
-		
+
 		_scaleAnimation = Tween<double>(
 			begin: 0.8,
 			end: 1.0,
@@ -43,11 +46,31 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 			parent: _animationController,
 			curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
 		));
-		
+
 		// Start animation
 		_animationController.forward();
-		
+
+		// Start navigation timer (2s splash)
 		_navigator();
+
+		// Start background preload in parallel (non-blocking)
+		_startBackgroundPreload();
+	}
+
+	/// Start background data preload during splash animation
+	/// This runs in parallel with the 2s splash timer and does not block navigation
+	void _startBackgroundPreload() {
+		try {
+			final filterNotifier = context.read<FilterNotifier>();
+			final marketplaceNotifier = context.read<MarketplaceNotifier>();
+
+			// Start preloading properties and marketplace (non-blocking for navigation)
+			// This will continue in background even if navigation happens at 2s
+			DataPreloadService().preloadAll(filterNotifier, marketplaceNotifier);
+		} catch (e) {
+			debugPrint('Failed to start background preload: $e');
+			// Don't crash app if preload fails - screens will load data normally
+		}
 	}
 
 	@override
@@ -71,8 +94,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 			GoRouter.of(context).go('/home');
 		}
 	}
-
-// Background preload removed
 
   @override
   Widget build(BuildContext context) {

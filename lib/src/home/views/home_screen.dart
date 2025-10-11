@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/data_preload_service.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
@@ -26,19 +27,35 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     PushNotificationService().requestPermissionIfNeeded();
 
-    // Initialize filters and wishlist when the page loads with optimized loading
+    // Load properties - either from preload or fallback to normal loading
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final filterNotifier = context.read<FilterNotifier>();
+      final preloadService = DataPreloadService();
 
-      // Initialize cache and location first for faster loading
-      await filterNotifier.initializeCache();
-      filterNotifier.initializeLocation();
+      try {
+        if (preloadService.isPropertiesLoaded) {
+          // Verify data is in notifier
+          if (filterNotifier.filteredProperties.isEmpty) {
+            // Edge case: Service says loaded but notifier is empty
+            await filterNotifier.quickLoad();
+          }
+        } else {
+          // Case 2: Not loaded yet - try to join existing preload operation or start new
+          // This either waits for existing operation OR starts new one (idempotent)
+          await preloadService.preloadProperties(filterNotifier);
+        }
+      } catch (e) {
+        // Case 3: Preload failed - ultimate fallback to direct loading
+        try {
+          await filterNotifier.initializeCache();
+          filterNotifier.initializeLocation();
+          await filterNotifier.quickLoad();
+        } catch (fallbackError) {
+          debugPrint('HomePage: Fallback loading also failed: $fallbackError');
+        }
+      }
 
-      // Use optimized quick load that shows cached data immediately
-      await filterNotifier.quickLoad();
-
-      // Wishlist loading is handled in EntryPoint._checkTokenChange()
-      // No need to load it again here
+      // Wishlist loading is handled in EntryPoint
     });
   }
 

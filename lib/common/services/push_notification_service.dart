@@ -60,8 +60,6 @@ class PushNotificationService {
     }
     
     await _configureNotificationHandlers();
-    // Don't get token here - wait for user authentication
-    debugPrint('Push notification handlers initialized - token will be generated after authentication');
   }
 
   /// Call this after user authentication to get and save FCM token
@@ -89,7 +87,6 @@ class PushNotificationService {
         });
       }
     });
-    debugPrint('iOS notification method channel set up');
   }
 
   // Initialize local notifications

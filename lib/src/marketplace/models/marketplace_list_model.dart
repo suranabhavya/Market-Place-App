@@ -17,13 +17,8 @@ class PaginatedMarketplaceResponse {
 
   factory PaginatedMarketplaceResponse.fromJson(Map<String, dynamic> json) {
     try {
-      debugPrint('PaginatedMarketplaceResponse.fromJson - count: ${json["count"]}');
-      debugPrint('PaginatedMarketplaceResponse.fromJson - results length: ${json["results"]?.length ?? 'null'}');
-      
       final results = List<MarketplaceListModel>.from(
           json["results"].map((x) => MarketplaceListModel.fromJson(x)));
-      
-      debugPrint('PaginatedMarketplaceResponse.fromJson - parsed results length: ${results.length}');
       
       return PaginatedMarketplaceResponse(
         count: json["count"],
@@ -32,8 +27,6 @@ class PaginatedMarketplaceResponse {
         results: results,
       );
     } catch (e) {
-      debugPrint('Error parsing PaginatedMarketplaceResponse: $e');
-      debugPrint('JSON data: $json');
       rethrow;
     }
   }
@@ -49,13 +42,9 @@ class PaginatedMarketplaceResponse {
 // Parse the paginated response from JSON
 PaginatedMarketplaceResponse paginatedMarketplaceFromJson(String str) {
   try {
-    debugPrint('paginatedMarketplaceFromJson - input string length: ${str.length}');
     final jsonData = json.decode(str);
-    debugPrint('paginatedMarketplaceFromJson - decoded JSON type: ${jsonData.runtimeType}');
     return PaginatedMarketplaceResponse.fromJson(jsonData);
   } catch (e) {
-    debugPrint('Error in paginatedMarketplaceFromJson: $e');
-    debugPrint('Input string: $str');
     rethrow;
   }
 }
@@ -149,8 +138,6 @@ class MarketplaceListModel {
             : null,
       );
     } catch (e) {
-      debugPrint('Error parsing MarketplaceListModel: $e');
-      debugPrint('JSON data: $json');
       rethrow;
     }
   }

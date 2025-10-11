@@ -114,7 +114,6 @@ class FilterNotifier extends ChangeNotifier {
       };
       final locationJson = jsonEncode(locationData);
       Storage().setString('cached_location', locationJson);
-      debugPrint("Location data cached: $lat, $lng");
     } catch (e) {
       debugPrint("Failed to cache location: $e");
     }
@@ -133,7 +132,6 @@ class FilterNotifier extends ChangeNotifier {
           _latitude = locationData['latitude']?.toDouble();
           _longitude = locationData['longitude']?.toDouble();
           _locationTimestamp = timestamp;
-          debugPrint("Loaded cached location: $_latitude, $_longitude");
         }
       }
     } catch (e) {
@@ -349,7 +347,6 @@ class FilterNotifier extends ChangeNotifier {
       final cacheJson = jsonEncode(data.toJson());
       Storage().setString('${_cacheKey}_${data.cacheKey}', cacheJson);
       _cache[data.cacheKey] = data;
-      debugPrint("Saved to cache: ${data.cacheKey}");
     } catch (e) {
       debugPrint("Failed to save cache: $e");
     }
@@ -359,7 +356,6 @@ class FilterNotifier extends ChangeNotifier {
     try {
       // Check memory cache first
       if (_cache.containsKey(cacheKey) && !_cache[cacheKey]!.isExpired) {
-        debugPrint("Loaded from memory cache: $cacheKey");
         return _cache[cacheKey];
       }
 
@@ -369,7 +365,6 @@ class FilterNotifier extends ChangeNotifier {
         final data = CachedPropertyData.fromJson(jsonDecode(cacheJson));
         if (!data.isExpired) {
           _cache[cacheKey] = data;
-          debugPrint("Loaded from disk cache: $cacheKey");
           return data;
         } else {
           // Remove expired cache
@@ -399,46 +394,45 @@ class FilterNotifier extends ChangeNotifier {
   // Optimized applyFilters with caching and background refresh
   Future<void> applyFilters({bool forceRefresh = false}) async {
     if (isLoading && !forceRefresh) return;
-    
+
     final cacheKey = _generateCacheKey();
-    
+
     // Try to load from cache first (unless force refresh)
     if (!forceRefresh) {
       final cachedData = await _loadFromCache(cacheKey);
       if (cachedData != null) {
+        // Show cached data IMMEDIATELY without setting loading state
         filteredProperties = List.from(cachedData.properties);
         totalPropertiesCount = cachedData.totalCount;
         nextPageUrl = cachedData.nextPageUrl;
-        isLoading = false;
         errorMessage = null;
         _lastCacheKey = cacheKey;
+
+        // Notify listeners first so UI updates instantly with cached data
         notifyListeners();
-        
-        debugPrint("Loaded ${cachedData.properties.length} properties from cache");
-        
-        // Refresh in background if cache is getting stale
+
+        // Refresh in background if cache is getting stale (don't block UI)
         if (DateTime.now().difference(cachedData.timestamp).inMinutes > 2) {
           _refreshInBackground(cacheKey);
         }
         return;
       }
     }
-    
+
     // No cache available or force refresh - fetch from API
     isLoading = true;
     errorMessage = null;
-    
+
     // Only clear properties if we don't have cached data to show
     if (filteredProperties.isEmpty || forceRefresh) {
       filteredProperties = [];
       nextPageUrl = null;
     }
-    
+
     notifyListeners();
 
     try {
-      final url = _buildFilterUrl();      
-      debugPrint("Applying filters with URL: $url");
+      final url = _buildFilterUrl();
 
       final response = await AppHttpClient.getFast(
         Uri.parse(url),
@@ -456,10 +450,6 @@ class FilterNotifier extends ChangeNotifier {
         totalPropertiesCount = paginatedResponse.count;
         nextPageUrl = paginatedResponse.next;
         
-        debugPrint("Fetched ${paginatedResponse.results.length} filtered properties");
-        debugPrint("Total filtered count: $totalPropertiesCount");
-        debugPrint("Next page URL for filtered results: $nextPageUrl");
-        
         // Save to cache
         final cacheData = CachedPropertyData(
           properties: List.from(paginatedResponse.results),
@@ -474,11 +464,9 @@ class FilterNotifier extends ChangeNotifier {
         notifyListeners();
       } else {
         errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
-        debugPrint(errorMessage);
       }
     } catch (e) {
       errorMessage = 'An error occurred: $e';
-      debugPrint(errorMessage);
     }
 
     isLoading = false;
@@ -490,7 +478,6 @@ class FilterNotifier extends ChangeNotifier {
     if (_isRefreshing) return;
     
     _isRefreshing = true;
-    debugPrint("Starting background refresh for cache key: $cacheKey");
     
     try {
       final url = _buildFilterUrl();
@@ -521,8 +508,6 @@ class FilterNotifier extends ChangeNotifier {
           nextPageUrl = paginatedResponse.next;
           notifyListeners();
         }
-        
-        debugPrint("Background refresh completed for cache key: $cacheKey");
       }
     } catch (e) {
       debugPrint("Background refresh failed: $e");
@@ -533,17 +518,13 @@ class FilterNotifier extends ChangeNotifier {
 
   // Quick load method for initial app startup
   Future<void> quickLoad() async {
-    debugPrint("Quick load initiated");
     await applyFilters();
   }
 
   Future<void> loadMoreFilteredProperties() async {
     if (isLoadingMore || nextPageUrl == null) {
-      debugPrint("Skipping load more: isLoadingMore=$isLoadingMore, nextPageUrl=$nextPageUrl");
       return;
     }
-    
-    debugPrint("Loading more filtered properties from URL: $nextPageUrl");
     isLoadingMore = true;
     notifyListeners();
     
@@ -562,18 +543,14 @@ class FilterNotifier extends ChangeNotifier {
         
         // Add more properties to the existing list
         filteredProperties.addAll(paginatedResponse.results);
-        debugPrint("Added ${paginatedResponse.results.length} more properties, total now: ${filteredProperties.length}");
         
         // Update pagination info
         nextPageUrl = paginatedResponse.next;
-        debugPrint("Next page URL updated to: $nextPageUrl");
       } else {
         errorMessage = 'Failed to load more properties: ${response.reasonPhrase}';
-        debugPrint(errorMessage);
       }
     } catch (e) {
       errorMessage = 'An error occurred: $e';
-      debugPrint(errorMessage);
     }
     
     isLoadingMore = false;
@@ -623,7 +600,6 @@ class FilterNotifier extends ChangeNotifier {
     nextPageUrl = nextPage;
     isLoading = false;
     notifyListeners();
-    debugPrint("FilterNotifier: Initialized with ${properties.length} properties from PropertyNotifier");
   }
 
   // Clear all cache data
@@ -638,7 +614,6 @@ class FilterNotifier extends ChangeNotifier {
           await Storage().removeKey(key);
         }
       }
-      debugPrint("Cache cleared successfully");
     } catch (e) {
       debugPrint("Failed to clear cache: $e");
     }
@@ -647,6 +622,5 @@ class FilterNotifier extends ChangeNotifier {
   // Initialize cache on startup
   Future<void> initializeCache() async {
     await _clearExpiredCache();
-    debugPrint("Cache initialized and expired entries cleared");
   }
 }

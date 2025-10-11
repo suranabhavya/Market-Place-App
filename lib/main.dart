@@ -51,7 +51,7 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  await dotenv.load(fileName: 'assets/.env.development');
+  await dotenv.load(fileName: Environment.fileName);
   
   // Initialize notification handlers only (but NOT permission or token)
   await PushNotificationService().initializeHandlersOnly();

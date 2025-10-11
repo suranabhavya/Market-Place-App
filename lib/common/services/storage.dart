@@ -1,22 +1,20 @@
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:async';
 
 class Storage {
   static const String _boxName = 'homiswap_storage';
   static GetStorage? _box;
-  
+
   // Initialize storage with better error handling
   static Future<void> initialize() async {
     try {
       await GetStorage.init(_boxName);
       _box = GetStorage(_boxName);
-      debugPrint('Storage initialized successfully');
-      
       // Test storage immediately after initialization
       await _testStorage();
     } catch (e) {
-      debugPrint('Error initializing storage: $e');
       // Fallback to default initialization
       _box = GetStorage();
     }
@@ -29,31 +27,20 @@ class Storage {
       const testValue = 'test_value';
       
       _box!.write(testKey, testValue);
-      final retrieved = _box!.read(testKey);
       await _box!.remove(testKey);
-      
-      if (retrieved == testValue) {
-        debugPrint('Storage test passed');
-      } else {
-        debugPrint('Storage test failed: expected $testValue, got $retrieved');
-      }
     } catch (e) {
       debugPrint('Storage test error: $e');
     }
   }
   
   static GetStorage get _instance {
-    if (_box == null) {
-      debugPrint('Storage not initialized, using fallback');
-      _box = GetStorage();
-    }
+    _box ??= GetStorage();
     return _box!;
   }
 
   void clear() {
     try {
       _instance.erase();
-      debugPrint('Storage cleared successfully');
     } catch (e) {
       debugPrint('Error clearing storage: $e');
     }
@@ -62,15 +49,6 @@ class Storage {
   void setString(String key, String value) {
     try {
       _instance.write(key, value);
-      debugPrint('Saved $key to storage');
-      
-      // Verify the write on Android
-      if (Platform.isAndroid) {
-        final verify = _instance.read(key);
-        if (verify != value) {
-          debugPrint('WARNING: Storage write verification failed for $key');
-        }
-      }
     } catch (e) {
       debugPrint('Error saving $key to storage: $e');
     }
@@ -79,10 +57,8 @@ class Storage {
   String? getString(String key) {
     try {
       final value = _instance.read(key);
-      debugPrint('Retrieved $key from storage: ${value != null ? 'found' : 'null'}');
       return value;
     } catch (e) {
-      debugPrint('Error reading $key from storage: $e');
       return null;
     }
   }
@@ -90,15 +66,6 @@ class Storage {
   void setBool(String key, bool value) {
     try {
       _instance.write(key, value);
-      debugPrint('Saved bool $key to storage');
-      
-      // Verify the write on Android
-      if (Platform.isAndroid) {
-        final verify = _instance.read(key);
-        if (verify != value) {
-          debugPrint('WARNING: Storage write verification failed for bool $key');
-        }
-      }
     } catch (e) {
       debugPrint('Error saving bool $key to storage: $e');
     }
@@ -107,10 +74,8 @@ class Storage {
   bool? getBool(String key) {
     try {
       final value = _instance.read(key);
-      debugPrint('Retrieved bool $key from storage: ${value != null ? 'found' : 'null'}');
       return value;
     } catch (e) {
-      debugPrint('Error reading bool $key from storage: $e');
       return null;
     }
   }
@@ -118,15 +83,6 @@ class Storage {
   void setInt(String key, int value) {
     try {
       _instance.write(key, value);
-      debugPrint('Saved int $key to storage');
-      
-      // Verify the write on Android
-      if (Platform.isAndroid) {
-        final verify = _instance.read(key);
-        if (verify != value) {
-          debugPrint('WARNING: Storage write verification failed for int $key');
-        }
-      }
     } catch (e) {
       debugPrint('Error saving int $key to storage: $e');
     }
@@ -135,10 +91,8 @@ class Storage {
   int? getInt(String key) {
     try {
       final value = _instance.read(key);
-      debugPrint('Retrieved int $key from storage: ${value != null ? 'found' : 'null'}');
       return value;
     } catch (e) {
-      debugPrint('Error reading int $key from storage: $e');
       return null;
     }
   }
@@ -146,7 +100,6 @@ class Storage {
   Future<void> removeKey(String key) async {
     try {
       await _instance.remove(key);
-      debugPrint('Removed $key from storage');
     } catch (e) {
       debugPrint('Error removing $key from storage: $e');
     }
@@ -158,7 +111,6 @@ class Storage {
       final currentTime = DateTime.now().millisecondsSinceEpoch;
       setString('accessToken', token);
       setInt('tokenTimestamp', currentTime);
-      debugPrint('Token saved with timestamp: $currentTime');
     } catch (e) {
       debugPrint('Error saving token with timestamp: $e');
     }
@@ -169,7 +121,6 @@ class Storage {
     try {
       final tokenTimestamp = getInt('tokenTimestamp');
       if (tokenTimestamp == null) {
-        debugPrint('No token timestamp found, considering expired');
         return true;
       }
       
@@ -177,10 +128,8 @@ class Storage {
       final now = DateTime.now();
       final daysDifference = now.difference(tokenDate).inDays;
       
-      debugPrint('Token age: $daysDifference days');
       return daysDifference >= 30;
     } catch (e) {
-      debugPrint('Error checking token expiration: $e');
       return true; // Consider expired if there's an error
     }
   }
@@ -191,7 +140,6 @@ class Storage {
       await removeKey('accessToken');
       await removeKey('user');
       await removeKey('tokenTimestamp');
-      debugPrint('Auth data cleared successfully');
     } catch (e) {
       debugPrint('Error clearing auth data: $e');
     }
@@ -209,7 +157,6 @@ class Storage {
       
       return retrieved == testValue;
     } catch (e) {
-      debugPrint('Storage test failed: $e');
       return false;
     }
   }
@@ -234,7 +181,6 @@ class Storage {
       
       return info;
     } catch (e) {
-      debugPrint('Error getting storage info: $e');
       return {'error': e.toString()};
     }
   }
@@ -250,8 +196,6 @@ class Storage {
         _instance.write(persistKey, persistValue);
         await Future.delayed(const Duration(milliseconds: 100));
         await _instance.remove(persistKey);
-        
-        debugPrint('Storage persistence forced');
       } catch (e) {
         debugPrint('Error forcing storage persistence: $e');
       }

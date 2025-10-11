@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
-import 'package:marketplace_app/common/utils/debug_utils.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
 import 'package:marketplace_app/const/resource.dart';
@@ -78,17 +77,9 @@ class WelcomeScreen extends StatelessWidget {
                         radius: 20.r,
                         btnWidth: screenWidth * 0.75,
                         onTap: () async {
-                          debugPrint("WelcomeScreen: Let's Get Started clicked");
-                          DebugUtils.logStorageState();
-                          
                           Storage().setBool('firstOpen', true);
-                          debugPrint("WelcomeScreen: firstOpen set to true");
-                          
                           // Force persistence on Android
                           await Storage().forcePersist();
-                          
-                          DebugUtils.logStorageState();
-                          
                           if (context.mounted) {
                             context.go('/home');
                           }

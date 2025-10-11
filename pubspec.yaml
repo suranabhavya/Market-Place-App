@@ -3,7 +3,7 @@ description: "A new Flutter project."
 
 publish_to: 'none'
 
-version: 2.1.0+1
+version: 2.1.1+1
 
 environment:
   sdk: ^3.8.0  # Current dart Version Dart 3.8.0 (used by Flutter 3.32.0)
@@ -91,6 +91,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/.env.development
+    - .env.development
+    - .env.production
     - assets/images/
     - assets/icons/
