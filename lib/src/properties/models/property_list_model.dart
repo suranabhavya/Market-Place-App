@@ -85,7 +85,8 @@ class PropertyListModel {
     required this.isActive,
   });
 
-  factory PropertyListModel.fromJson(Map<String, dynamic> json) => PropertyListModel(
+  factory PropertyListModel.fromJson(Map<String, dynamic> json) {
+    return PropertyListModel(
         id: json["id"],
         title: json["title"],
         rent: json["rent"]?.toDouble() ?? 0.0,
@@ -99,13 +100,12 @@ class PropertyListModel {
         hideAddress: json["hide_address"] ?? false,
         latitude: json["latitude"]?.toDouble(),
         longitude: json["longitude"]?.toDouble(),
-        images: json["images"] != null
-            ? List<String>.from(json["images"].map((x) => x.toString()))
-            : [],
+      images: (json['images'] as List?)?.map((img) => img is String ? img : (img['url'] ?? '') as String).toList(),
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
         isActive: json["is_active"],
       );
+  }
 
   Map<String, dynamic> toJson() => {
         "id": id,

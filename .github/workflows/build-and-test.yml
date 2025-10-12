@@ -3,12 +3,22 @@
 
 name: 🔍 Build & Test (Development)
 
-# When should this workflow run?
+# When should this workflow run? (DISABLED)
+# Workflow temporarily disabled - using manual trigger only
 on:
-  pull_request:
-    branches: [ main, master, develop ]
-  push:
-    branches: [ develop, feature/*, fix/* ]
+  workflow_dispatch:  # Manual trigger only - workflow won't run automatically
+    inputs:
+      reason:
+        description: 'Reason for running this disabled workflow'
+        required: true
+        default: 'Manual testing'
+
+# Original triggers (disabled): Uncomment below part to enable this workflow as well
+# on:
+#   pull_request:
+#     branches: [ main, master, develop ]
+#   push:
+#     branches: [ develop, feature/*, fix/* ]
     
 # Cancel previous runs if a new push happens
 concurrency:

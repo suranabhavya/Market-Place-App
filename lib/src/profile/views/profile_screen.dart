@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/auth_service.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -16,6 +17,7 @@ import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/profile/widgets/tile_widget.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -26,12 +28,14 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     // Load user data when profile screen initializes
     _loadUserData();
+    _loadAppVersion();
   }
   
   Future<void> _loadUserData() async {
@@ -53,6 +57,19 @@ class _ProfilePageState extends State<ProfilePage> {
           });
         }
       }
+    }
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading app version: $e");
     }
   }
 
@@ -98,13 +115,12 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               // First close the dialog
               Navigator.pop(dialogContext);
               
-              // Clear user data
-              Storage().removeKey('accessToken');
-              Storage().removeKey('user');
+              // Logout using AuthService
+              await AuthService().logout();
               
               // Clear wishlist data
               try {
@@ -231,16 +247,32 @@ class _ProfilePageState extends State<ProfilePage> {
                             SizedBox(height: 8.h),
                             InkWell(
                               onTap: () => context.push('/profile/verify-school-email'),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24.sp),
-                                  SizedBox(width: 5.w),
-                                  Text(
-                                    "Verify your account",
-                                    style: appStyle(12.sp, Colors.amber.shade700, FontWeight.w500),
-                                  ),
-                                ],
+                              borderRadius: BorderRadius.circular(8.r),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 20.sp),
+                                    SizedBox(width: 6.w),
+                                    Container(
+                                      padding: EdgeInsets.only(bottom: 2.h),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.amber.shade700,
+                                            width: 1.2,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        "Verify your account",
+                                        style: appStyle(12.sp, Colors.amber.shade700, FontWeight.w600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -284,11 +316,11 @@ class _ProfilePageState extends State<ProfilePage> {
                               onTap: () => showHelpCenterBottomSheet(context),
                             ),
                             
-                            // ProfileTileWidget(
-                            //   title: 'Settings',
-                            //   leading: MaterialIcons.settings,
-                            //   onTap: () => context.push('/settings'),
-                            // ),
+                            ProfileTileWidget(
+                              title: 'Settings',
+                              leading: MaterialIcons.settings,
+                              onTap: () => context.push('/settings'),
+                            ),
                           ],
                         ),
                       ),
@@ -307,6 +339,22 @@ class _ProfilePageState extends State<ProfilePage> {
                           btnWidth: ScreenUtil().screenWidth,
                           onTap: () => _logout(context),
                         ),
+                      ),
+                      
+                      SizedBox(height: 30.h),
+                      
+                      // App Name and Version
+                      Column(
+                        children: [
+                          ReusableText(
+                            text: "Sublyst",
+                            style: appStyle(18, Kolors.kPrimary, FontWeight.bold)
+                          ),
+                          ReusableText(
+                            text: _appVersion.isEmpty ? "Version 1.0.0+10" : "Version $_appVersion",
+                            style: appStyle(12, Kolors.kGray, FontWeight.normal)
+                          ),
+                        ],
                       ),
                       
                       SizedBox(height: 20.h),

@@ -10,6 +10,7 @@ import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
@@ -165,8 +166,13 @@ class _PropertyPageState extends State<PropertyPage> {
     final property = propertyNotifier.selectedProperty;
 
     if (propertyNotifier.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(top: 20.h),
+            child: const ListShimmer(),
+          ),
+        ),
       );
     }
 
@@ -192,13 +198,17 @@ class _PropertyPageState extends State<PropertyPage> {
             leading: const AppBackButton(),
             actions: [
               // Share Button
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: GestureDetector(
-                  onTap: () async {
+              Container(
+                margin: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IconButton(
+                  onPressed: () async {
                     final messenger = ScaffoldMessenger.of(context);
                     try {
-                      await ShareUtils.shareProperty(property);
+                      await ShareUtils.shareProperty(property, context);
                     } catch (e) {
                       debugPrint('Error sharing property: $e');
                       if (mounted) {
@@ -211,39 +221,60 @@ class _PropertyPageState extends State<PropertyPage> {
                       }
                     }
                   },
-                  child: CircleAvatar(
-                    backgroundColor: Kolors.kSecondaryLight,
-                    child: Icon(
-                      MaterialCommunityIcons.share,
-                      color: Kolors.kGray,
-                      size: 30.h,
-                    ),
+                  icon: const Icon(
+                    MaterialCommunityIcons.share,
+                    color: Kolors.kWhite,
                   ),
                 ),
               ),
               // Wishlist Button
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
+              Container(
+                margin: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Consumer<WishlistNotifier>(
-                  builder: (context, wishlistNotifier, child) { 
-                    return GestureDetector(
-                      onTap: () {
-                        if(accessToken == null) {
+                  builder: (context, wishlistNotifier, child) {
+                    final isInWishlist = wishlistNotifier.isWishlisted(
+                      type: 'property',
+                      id: property.id.toString(),
+                    );
+                    
+                    return IconButton(
+                      onPressed: () {
+                        if (accessToken == null) {
                           loginBottomSheet(context);
                         } else {
-                          wishlistNotifier.toggleWishlist(property.id, () {});
+                          wishlistNotifier.toggleWishlist(
+                            property.id.toString(), 
+                            () {
+                              // Refresh the property details and nearby properties if needed
+                              setState(() {});
+                              
+                              // Show error message if there was an error
+                              if (wishlistNotifier.error != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(wishlistNotifier.error!),
+                                    backgroundColor: Kolors.kRed,
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                                wishlistNotifier.clearError(); // Clear error after showing
+                              }
+                            },
+                            type: 'property',
+                          );
                         }
                       },
-                      child: CircleAvatar(
-                        backgroundColor: Kolors.kSecondaryLight,
-                        child: Icon(
-                          AntDesign.heart,
-                          color: wishlistNotifier.wishlist.contains(property.id)? Kolors.kRed : Kolors.kGray,
-                        ),
+                      icon: Icon(
+                        isInWishlist ? Icons.favorite : Icons.favorite_border,
+                        color: isInWishlist ? Kolors.kRed : Kolors.kWhite,
                       ),
                     );
-                  }
-                )
+                  },
+                ),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -269,7 +300,7 @@ class _PropertyPageState extends State<PropertyPage> {
                         ),
                       ),
                       height: 350.h,
-                      imageUrl: property.images![i].url,
+                      imageUrl: property.images![i],
                       fit: BoxFit.cover,
                     );
                   }),
@@ -1223,8 +1254,11 @@ class _PropertyPageState extends State<PropertyPage> {
                                         right: 8.h,
                                         top: 8.h,
                                         child: Consumer<WishlistNotifier>(
-                                          builder: (context, wishlistNotifier, child) {
-                                            final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
+                                            builder: (context, wishlistNotifier, child) {
+                                              final isInWishlist = wishlistNotifier.isWishlisted(
+                                                type: 'marketplace',
+                                                id: item.id.toString(),
+                                              );
                                             
                                             return GestureDetector(
                                               onTap: () {
@@ -1233,10 +1267,22 @@ class _PropertyPageState extends State<PropertyPage> {
                                                   loginBottomSheet(context);
                                                 } else {
                                                   wishlistNotifier.toggleWishlist(
-                                                    item.id,
+                                                    item.id.toString(),
                                                     () {
                                                       // Refetch callback
                                                       setState(() {});
+                                                      
+                                                                                                             // Show error message if there was an error
+                                                       if (wishlistNotifier.error != null) {
+                                                         ScaffoldMessenger.of(context).showSnackBar(
+                                                           SnackBar(
+                                                             content: Text(wishlistNotifier.error!),
+                                                             backgroundColor: Kolors.kRed,
+                                                             duration: const Duration(seconds: 3),
+                                                           ),
+                                                         );
+                                                         wishlistNotifier.clearError(); // Clear error after showing
+                                                       }
                                                     },
                                                     type: 'marketplace',
                                                   );

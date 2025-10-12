@@ -5,8 +5,10 @@ import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
+import 'package:marketplace_app/common/utils/image_utils.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/message/views/message_screen.dart';
@@ -45,42 +47,78 @@ class _ChatPageState extends State<ChatPage> {
 
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
-    if (token == null) return;
+    if (token == null) {
+      debugPrint("No access token found, cannot connect to WebSocket");
+      return;
+    }
 
-    final wsUrl = Environment.iosWsBaseUrl;
+    try {
+      final wsUrl = Environment.wsBaseUrl; // Use platform-aware WebSocket URL
+      final fullUrl = "$wsUrl/ws/user_chats/?token=$token";
+      debugPrint("Connecting to WebSocket URL: $fullUrl");
+      debugPrint("Token length: ${token.length}");
+      debugPrint("Token starts with: ${token.substring(0, 10)}...");
 
-    // Connect to the user chats WebSocket endpoint.
-    channel = WebSocketChannel.connect(
-      Uri.parse("$wsUrl/ws/user_chats/?token=$token"),
-    );
-    channel!.stream.listen((data) {
-      try {
-        final decoded = jsonDecode(data);
-        // If the payload contains the key "chats", update our local chat list.
-        if (decoded.containsKey("chats")) {
-          setState(() {
-            chats = decoded["chats"];
-            isLoading = false;
-          });
-          // Calculate total unread count from all chats.
-          final int totalUnread = (decoded["chats"] as List)
-              .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
-          // Update the global unread count in the notifier.
-          if (mounted) {
-            Provider.of<UnreadCountNotifier>(context, listen: false)
-                .setGlobalUnreadCount(totalUnread);
+      // Connect to the user chats WebSocket endpoint.
+      channel = WebSocketChannel.connect(
+        Uri.parse(fullUrl),
+      );
+      channel!.stream.listen((data) {
+        try {
+          debugPrint("WebSocket data received: $data");
+          final decoded = jsonDecode(data);
+          // If the payload contains the key "chats", update our local chat list.
+          if (decoded.containsKey("chats")) {
+            if (mounted) {
+              setState(() {
+                chats = decoded["chats"];
+                isLoading = false;
+              });
+              debugPrint("Updated chats list with ${chats.length} chats");
+              
+              // Calculate total unread count from all chats.
+              final int totalUnread = (decoded["chats"] as List)
+                  .fold(0, (int prev, chat) => prev + (chat["unread_messages_count"] ?? 0) as int);
+              debugPrint("Total unread messages: $totalUnread");
+              
+              // Update the global unread count in the notifier.
+              if (mounted) {
+                Provider.of<UnreadCountNotifier>(context, listen: false)
+                    .setGlobalUnreadCount(totalUnread);
+              }
+            }
           }
+        } catch (e) {
+          debugPrint("Error decoding WS data: $e");
         }
-      } catch (e) {
-        debugPrint("Error decoding WS data: $e");
-      }
-    });
+      }, onError: (error) {
+        debugPrint("WebSocket error: $error");
+        // Try to reconnect after a delay
+        if (mounted) {
+          Future.delayed(const Duration(seconds: 5), () {
+            if (mounted) {
+              debugPrint("Attempting to reconnect WebSocket...");
+              connectWebSocket();
+            }
+          });
+        }
+      }, onDone: () {
+        debugPrint("WebSocket connection closed");
+      });
+    } catch (e) {
+      debugPrint("Error connecting to WebSocket: $e");
+    }
   }
 
   @override
   void dispose() {
     if (channel != null) {
-      channel!.sink.close();
+      try {
+        debugPrint("Closing WebSocket connection...");
+        channel!.sink.close();
+      } catch (e) {
+        debugPrint("Error closing WebSocket: $e");
+      }
     }
     super.dispose();
   }
@@ -95,6 +133,8 @@ class _ChatPageState extends State<ChatPage> {
       return "";
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +152,7 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: ListShimmer())
           : chats.isEmpty
               ? Center(
                   child: Column(
@@ -159,12 +199,10 @@ class _ChatPageState extends State<ChatPage> {
                   leading: CircleAvatar(
                     radius: 24.w,
                     backgroundColor: Colors.grey,
-                    backgroundImage: (chat["sender_profile_photo"] != null &&
-                            (chat["sender_profile_photo"] as String).isNotEmpty)
-                        ? NetworkImage(chat["sender_profile_photo"])
-                        : null,
+                    backgroundImage: ImageUtils.getImageProvider(chat["sender_profile_photo"]),
                     child: (chat["sender_profile_photo"] == null ||
-                            (chat["sender_profile_photo"] as String).isEmpty)
+                            (chat["sender_profile_photo"] as String).isEmpty ||
+                            ImageUtils.getImageProvider(chat["sender_profile_photo"]) == null)
                         ? Icon(Icons.person, size: 48.w)
                         : null,
                   ),

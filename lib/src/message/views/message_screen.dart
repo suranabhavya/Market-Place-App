@@ -8,10 +8,11 @@ import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/src/auth/views/email_signup_screen.dart';
+
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/utils/image_utils.dart';
 import 'package:marketplace_app/src/properties/views/public_profile_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:provider/provider.dart';
@@ -65,66 +66,112 @@ class _MessagePageState extends State<MessagePage> {
 
   void connectWebSocket() {
     final String? token = Storage().getString('accessToken');
-    if (token == null) return;
-    channel = WebSocketChannel.connect(
-      Uri.parse("${Environment.iosWsBaseUrl}/ws/chat/${widget.chatId}/?token=$token"),
-    );
-    channel.stream.listen((message) {
-      try {
-        final decodedMessage = jsonDecode(message);
-        setState(() {
-          messages.insert(0, decodedMessage);
-        });
-        // Optionally scroll to the bottom after receiving a message.
-        _scrollController.animateTo(
-          0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      } catch (e) {
-        debugPrint("Error decoding WS message: $e");
-      }
-    });
+    if (token == null) {
+      debugPrint("No access token found, cannot connect to WebSocket");
+      return;
+    }
+    
+    try {
+      final wsUrl = Environment.wsBaseUrl; // Use platform-aware WebSocket URL
+      debugPrint("Connecting to message WebSocket: $wsUrl/ws/chat/${widget.chatId}/?token=${token.substring(0, 10)}...");
+      
+      channel = WebSocketChannel.connect(
+        Uri.parse("$wsUrl/ws/chat/${widget.chatId}/?token=$token"),
+      );
+      channel.stream.listen((message) {
+        try {
+          final decodedMessage = jsonDecode(message);
+          if (mounted) {
+            setState(() {
+              messages.insert(0, decodedMessage);
+            });
+            // Optionally scroll to the bottom after receiving a message.
+            _scrollController.animateTo(
+              0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        } catch (e) {
+          debugPrint("Error decoding WS message: $e");
+        }
+      }, onError: (error) {
+        debugPrint("WebSocket error: $error");
+        // Try to reconnect after a delay
+        if (mounted) {
+          Future.delayed(const Duration(seconds: 5), () {
+            if (mounted) {
+              debugPrint("Attempting to reconnect message WebSocket...");
+              connectWebSocket();
+            }
+          });
+        }
+      }, onDone: () {
+        debugPrint("Message WebSocket connection closed");
+      });
+    } catch (e) {
+      debugPrint("Error connecting to WebSocket: $e");
+    }
   }
 
   Future<void> fetchMessages() async {
     final String? token = Storage().getString('accessToken');
     if (token == null) {
-      const EmailSignupPage();
       return;
     }
-    final messenger = ScaffoldMessenger.of(context);
-    final response = await http.get(
-      Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/messages/'),
-      headers: {'Authorization': 'Token $token'},
-    );
-    if (response.statusCode == 200) {
-      setState(() {
-        messages = List.from(jsonDecode(response.body).reversed); // Reverse for correct order
-        isLoading = false;
-      });
-      debugPrint("messages are: $messages");
-    } else {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Failed to load messages"), backgroundColor: Colors.red),
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/messages/'),
+        headers: {'Authorization': 'Token $token'},
       );
+      
+      if (response.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            messages = List.from(jsonDecode(response.body).reversed); // Reverse for correct order
+            isLoading = false;
+          });
+          debugPrint("messages are: $messages");
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to load messages"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching messages: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error loading messages"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   Future<void> markMessagesAsRead() async {
     final String? token = Storage().getString('accessToken');
     if (token == null) return;
-    final unreadNotifier = context.read<UnreadCountNotifier>();
-    final response = await http.post(
-      Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/read/'),
-      headers: {'Authorization': 'Token $token'},
-    );
-    if (response.statusCode == 200) {
-      debugPrint("Messages marked as read");
-      // Refresh the unread count
-      unreadNotifier.refreshUnreadCount();
-    } else {
-      debugPrint("Failed to mark messages as read");
+    
+    try {
+      final unreadNotifier = context.read<UnreadCountNotifier>();
+      final response = await http.post(
+        Uri.parse('${Environment.iosAppBaseUrl}/api/messaging/chats/${widget.chatId}/read/'),
+        headers: {'Authorization': 'Token $token'},
+      );
+      if (response.statusCode == 200) {
+        debugPrint("Messages marked as read");
+        // Refresh the unread count
+        if (mounted) {
+          unreadNotifier.refreshUnreadCount();
+        }
+      } else {
+        debugPrint("Failed to mark messages as read");
+      }
+    } catch (e) {
+      debugPrint("Error marking messages as read: $e");
     }
   }
 
@@ -135,38 +182,87 @@ class _MessagePageState extends State<MessagePage> {
     channel.sink.add(messageJson);
     _messageController.clear();
   }
+
+
   
   @override
   void dispose() {
-    channel.sink.close(ws_status.goingAway);
+    try {
+      debugPrint("Closing message WebSocket connection...");
+      channel.sink.close(ws_status.goingAway);
+    } catch (e) {
+      debugPrint("Error closing WebSocket: $e");
+    }
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
+  void _showDeletedUserDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Kolors.kGray),
+              SizedBox(width: 8.w),
+              Text(
+                "Account Deleted",
+                style: appStyle(16, Kolors.kDark, FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Text(
+            "This user account has been deleted and is no longer available.",
+            style: appStyle(14, Kolors.kGray, FontWeight.normal),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "OK",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         leading: const AppBackButton(),
         title: Row(
           children: [
             GestureDetector(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
-                  ),
-                );
+                if (widget.participants == "Deleted User") {
+                  // Show dialog for deleted user
+                  _showDeletedUserDialog();
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
+                    ),
+                  );
+                }
               },
               child: CircleAvatar(
                 radius: 18.w,
                 backgroundColor: Colors.grey,
-                backgroundImage: widget.otherParticipantProfilePhoto != null && widget.otherParticipantProfilePhoto!.isNotEmpty
-                    ? NetworkImage(widget.otherParticipantProfilePhoto!)
-                    : null,
-                child: widget.otherParticipantProfilePhoto == null || widget.otherParticipantProfilePhoto!.isEmpty
+                backgroundImage: widget.participants == "Deleted User" 
+                    ? null 
+                    : ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto),
+                child: widget.participants == "Deleted User" ||
+                       widget.otherParticipantProfilePhoto == null || 
+                       widget.otherParticipantProfilePhoto!.isEmpty ||
+                       ImageUtils.getImageProvider(widget.otherParticipantProfilePhoto) == null
                     ? Icon(Icons.person, size: 36.w)
                     : null,
               ),
@@ -175,12 +271,17 @@ class _MessagePageState extends State<MessagePage> {
             Expanded(
               child: GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
-                    ),
-                  );
+                  if (widget.participants == "Deleted User") {
+                    // Show dialog for deleted user
+                    _showDeletedUserDialog();
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PublicProfilePage(userId: widget.otherParticipantId!),
+                      ),
+                    );
+                  }
                 },
                 child: ReusableText(
                   text: widget.participants,
@@ -217,6 +318,7 @@ class _MessagePageState extends State<MessagePage> {
                     controller: _scrollController,
                     reverse: true,
                     itemCount: messages.length,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                     itemBuilder: (context, index) {
                       final message = messages[index];
                       final bool isMine = (message['sender'] is int && message['sender'] == currentUserId);
@@ -309,65 +411,81 @@ class _MessagePageState extends State<MessagePage> {
                     },
                   ),
           ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        left: false,
-        right: false,
-        bottom: true,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
-          // padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: 100.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: TextField(
-                    controller: _messageController,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
-                    decoration: InputDecoration(
-                      hintText: "Type a message...",
-                      hintStyle: appStyle(14, Colors.grey, FontWeight.normal),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
+          // Message input area
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: Colors.grey.shade200, width: 1),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: 100.h,
+                        minHeight: 40.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: TextField(
+                        controller: _messageController,
+                        maxLines: null,
+                        minLines: 1,
+                        keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: appStyle(14, Kolors.kPrimary, FontWeight.normal),
+                        onTap: () {
+                          // Scroll to bottom when user taps the text field
+                          Future.delayed(const Duration(milliseconds: 300), () {
+                            if (_scrollController.hasClients) {
+                              _scrollController.animateTo(
+                                0.0,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            }
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Type a message...",
+                          hintStyle: appStyle(14, Colors.grey, FontWeight.normal),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  SizedBox(width: 10.w),
+                  Container(
+                    height: 40.h,
+                    width: 40.h,
+                    decoration: const BoxDecoration(
+                      color: Kolors.kPrimaryLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(Icons.send, color: Colors.white, size: 20.h),
+                      onPressed: sendMessage,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: 10.w),
-              Container(
-                height: 40.h,
-                width: 40.h,
-                margin: EdgeInsets.only(bottom: 2.h),
-                decoration: const BoxDecoration(
-                  color: Kolors.kPrimaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: Icon(Icons.send, color: Colors.white, size: 25.h),
-                  onPressed: sendMessage,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
+import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -102,6 +106,7 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
     final authNotifier = context.watch<AuthNotifier>();
     final bool isLoading = authNotifier.isLoading;
     final bool isGoogleLoading = authNotifier.isGoogleLoading;
+    final bool isAppleLoading = authNotifier.isAppleLoading;
     
     return Scaffold(
       appBar: AppBar(
@@ -191,10 +196,94 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
                   btnColor: Colors.white,
                   svgPath: R.ASSETS_ICONS_GOOGLE_SVG,
                 ),
+            // Only show Apple Sign-In on iOS
+            if (Platform.isIOS) ...[
+              SizedBox(height: 15.h),
+              
+              // Apple Sign-In button or loading indicator
+              isAppleLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      backgroundColor: Kolors.kPrimary,
+                      valueColor: AlwaysStoppedAnimation<Color>(Kolors.kWhite),
+                    ),
+                  )
+                : CustomButton(
+                    onTap: () => _handleAppleSignIn(context),
+                    text: "Continue with Apple",
+                    textSize: 16,
+                    btnWidth: ScreenUtil().screenWidth,
+                    btnHeight: 50.h,
+                    radius: 25,
+                    borderColor: Kolors.kGray,
+                    btnColor: Colors.white,
+                    svgPath: R.ASSETS_ICONS_APPLE_SVG,
+                  ),
+            ],
+            SizedBox(height: 20.h),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: appStyle(12.0, Kolors.kGray, FontWeight.w400),
+                children: [
+                  const TextSpan(text: 'By clicking sign in or sign up you agree to our '),
+                  TextSpan(
+                    text: 'Terms of Service',
+                    style: appStyle(12.0, Kolors.kGray, FontWeight.w600).copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openUrl('${Environment.baseUrl}/legal/terms/'),
+                  ),
+                  const TextSpan(text: ' and '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: appStyle(12.0, Kolors.kGray, FontWeight.w600).copyWith(
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openUrl('${Environment.baseUrl}/legal/privacy/'),
+                  ),
+                  const TextSpan(text: '.'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+  
+  // Handle Apple Sign-In
+  Future<void> _handleAppleSignIn(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      FocusScope.of(context).unfocus();
+      final authNotifier = context.read<AuthNotifier>();
+      final router = GoRouter.of(context);
+
+      final success = await authNotifier.signInWithApple(context);
+
+      if (success && mounted) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          router.go('/');
+          await Future.delayed(const Duration(milliseconds: 100));
+          if (mounted) {
+            router.go('/home');
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text("Apple Sign-In failed. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
   
   // Handle Google Sign-In
@@ -227,5 +316,10 @@ class _EmailSignupPageState extends State<EmailSignupPage> {
         );
       }
     }
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }

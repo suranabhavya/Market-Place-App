@@ -1,9 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as path;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_detail_model.dart';
 import 'package:http/http.dart' as http;
@@ -56,7 +55,7 @@ class PropertyNotifier extends ChangeNotifier {
       if (accessToken == null) throw Exception("User not authenticated");
 
       final response = await http.get(
-        Uri.parse("${Environment.iosAppBaseUrl}/api/properties/user/"),
+        Uri.parse("${Environment.baseUrl}/api/properties/user/"),
         headers: {
           "Authorization": "Token $accessToken",
           "Content-Type": "application/json"
@@ -81,21 +80,24 @@ class PropertyNotifier extends ChangeNotifier {
     
     isLoading = true;
     nextPageUrl = null; // Reset pagination when fetching from the beginning
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
     
     try {
-      String url = '${Environment.iosAppBaseUrl}/api/properties/';
+      String url = '${Environment.baseUrl}/api/properties/?page_size=10';
       if (lat != null && lng != null) {
-        url += "?lat=$lat&lng=$lng";
+        url += "&lat=$lat&lng=$lng";
       }
       
       debugPrint("Fetching properties from URL: $url");
       
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         Uri.parse(url),
         headers: {
           "Content-Type": "application/json",
         },
+        timeout: AppHttpClient.splashTimeout,
       );
 
       if (response.statusCode == 200) {
@@ -113,9 +115,7 @@ class PropertyNotifier extends ChangeNotifier {
         debugPrint("Total count: $totalPropertiesCount");
         debugPrint("Next page URL: $nextPageUrl");
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          notifyListeners();
-        });
+        // Defer notifying listeners until after this frame in the finally block
       } else {
         debugPrint("Error fetching properties: ${response.body}");
       }
@@ -124,7 +124,9 @@ class PropertyNotifier extends ChangeNotifier {
     }
     
     isLoading = false;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   // Load more properties for infinite scrolling
@@ -139,7 +141,7 @@ class PropertyNotifier extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final response = await http.get(
+      final response = await AppHttpClient.get(
         Uri.parse(nextPageUrl!),
         headers: {
           "Content-Type": "application/json",
@@ -176,7 +178,7 @@ class PropertyNotifier extends ChangeNotifier {
     });
 
     try {
-      var url = Uri.parse('${Environment.iosAppBaseUrl}/api/properties/$propertyId/');
+      var url = Uri.parse('${Environment.baseUrl}/api/properties/$propertyId/');
       final response = await http.get(
         url,
         headers: {"Content-Type": "application/json"},
@@ -215,129 +217,27 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onSuccess,
     required VoidCallback onError,
   }) async {
-    String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/';
+    String apiUrl = '${Environment.baseUrl}/api/properties/';
 
     try {
-      var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
-      request.headers['Authorization'] = 'Token $token';
-
-      // Handle new images if present
-      List<String>? imagePaths = propertyData['images'] as List<String>?;
-      if (imagePaths != null && imagePaths.isNotEmpty) {
-        for (var imagePath in imagePaths) {
-          File imageFile = File(imagePath);
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'images',
-              imageFile.path,
-              filename: path.basename(imageFile.path),
-            ),
-          );
-        }
-      }
-      
-      // Handle existing image IDs that should be kept (for updates)
-      if (propertyData['existing_image_ids'] != null && (propertyData['existing_image_ids'] as List).isNotEmpty) {
-        request.fields['existing_image_ids'] = jsonEncode(propertyData['existing_image_ids']);
-      }
-      
-      // Handle image IDs that should be removed (for updates)
-      if (propertyData['removed_image_ids'] != null && (propertyData['removed_image_ids'] as List).isNotEmpty) {
-        request.fields['removed_image_ids'] = jsonEncode(propertyData['removed_image_ids']);
-      }
-
-      // Add basic fields
-      request.fields['title'] = propertyData['title'] ?? '';
-      if (propertyData['description'] != null) {
-        request.fields['description'] = propertyData['description'];
-      }
-      request.fields['address'] = propertyData['address'] ?? '';
-      
-      if (propertyData['unit'] != null && propertyData['unit'].toString().isNotEmpty) {
-        request.fields['unit'] = propertyData['unit'].toString();
-      }
-      
-      if (propertyData['latitude'] != null) {
-        request.fields['latitude'] = propertyData['latitude'].toString();
-      }
-      
-      if (propertyData['longitude'] != null) {
-        request.fields['longitude'] = propertyData['longitude'].toString();
-      }
-      
-      // Add address components
-      if (propertyData['city'] != null && propertyData['city'].toString().isNotEmpty) {
-        request.fields['city'] = propertyData['city'].toString();
-      }
-      
-      if (propertyData['state'] != null && propertyData['state'].toString().isNotEmpty) {
-        request.fields['state'] = propertyData['state'].toString();
-      }
-      
-      if (propertyData['pincode'] != null && propertyData['pincode'].toString().isNotEmpty) {
-        request.fields['pincode'] = propertyData['pincode'].toString();
-      }
-      
-      if (propertyData['country'] != null && propertyData['country'].toString().isNotEmpty) {
-        request.fields['country'] = propertyData['country'].toString();
-      }
-      
-      request.fields['hide_address'] = propertyData['hide_address'].toString();
-      request.fields['property_type'] = propertyData['property_type'] ?? '';
-      request.fields['listing_type'] = propertyData['listing_type'] ?? '';
-      
-      if (propertyData['rent'] != null) {
-        request.fields['rent'] = propertyData['rent'].toString();
-      }
-      
-      request.fields['rent_frequency'] = propertyData['rent_frequency'] ?? '';
-      request.fields['furnished'] = propertyData['furnished'].toString();
-      
-      if (propertyData['square_footage'] != null) {
-        request.fields['square_footage'] = propertyData['square_footage'].toString();
-      }
-      
-      if (propertyData['bedrooms'] != null) {
-        request.fields['bedrooms'] = propertyData['bedrooms'].toString();
-      }
-      
-      if (propertyData['bathrooms'] != null) {
-        request.fields['bathrooms'] = propertyData['bathrooms'].toString();
-      }
-
-      // Handle sublease details
-      if (propertyData['sublease_details'] != null) {
-        request.fields['sublease_details'] = jsonEncode(propertyData['sublease_details']);
-      }
-
-      // Handle amenities
-      if (propertyData['amenities'] != null && (propertyData['amenities'] as List).isNotEmpty) {
-        request.fields['amenities'] = jsonEncode(propertyData['amenities']);
-      }
-
-      // Handle lifestyle
-      if (propertyData['lifestyle'] != null && (propertyData['lifestyle'] as Map).isNotEmpty) {
-        request.fields['lifestyle'] = jsonEncode(propertyData['lifestyle']);
-      }
-
-      // Handle preference
-      if (propertyData['preference'] != null && (propertyData['preference'] as Map).isNotEmpty) {
-        request.fields['preference'] = jsonEncode(propertyData['preference']);
-      }
-
-      var response = await request.send();
-      var responseData = await http.Response.fromStream(response);
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(propertyData),
+      );
 
       if (response.statusCode == 201) {
-        final data = jsonDecode(responseData.body);
+        final data = jsonDecode(response.body);
         PropertyListModel newProperty = PropertyListModel.fromJson(data);
         _properties.insert(0, newProperty);
         totalPropertiesCount += 1;
-        
         notifyListeners();
         onSuccess();
       } else {
-        debugPrint("Error creating property: ${responseData.body}");
+        debugPrint("Error creating property: ${response.body}");
         onError(); // Callback on error
       }
     } catch (e) {
@@ -354,133 +254,29 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onSuccess,
     required VoidCallback onError,
   }) async {
-    String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/$propertyId/';
+    String apiUrl = '${Environment.baseUrl}/api/properties/$propertyId/';
 
     try {
-      var request = http.MultipartRequest("PUT", Uri.parse(apiUrl));
-      request.headers['Authorization'] = 'Token $token';
-
-      // Handle new images if present
-      List<String>? imagePaths = propertyData['images'] as List<String>?;
-      if (imagePaths != null && imagePaths.isNotEmpty) {
-        for (var imagePath in imagePaths) {
-          File imageFile = File(imagePath);
-          request.files.add(
-            await http.MultipartFile.fromPath(
-              'images',
-              imageFile.path,
-              filename: path.basename(imageFile.path),
-            ),
-          );
-        }
-      }
-      
-      // Handle existing image IDs that should be kept (for updates)
-      if (propertyData['existing_image_ids'] != null && (propertyData['existing_image_ids'] as List).isNotEmpty) {
-        request.fields['existing_image_ids'] = jsonEncode(propertyData['existing_image_ids']);
-      }
-      
-      // Handle image IDs that should be removed (for updates)
-      if (propertyData['deleted_images'] != null && (propertyData['deleted_images'] as List).isNotEmpty) {
-        request.fields['deleted_images'] = jsonEncode(propertyData['deleted_images']);
-      }
-
-      // Add basic fields
-      request.fields['title'] = propertyData['title'] ?? '';
-      if (propertyData['description'] != null) {
-        request.fields['description'] = propertyData['description'];
-      }
-      request.fields['address'] = propertyData['address'] ?? '';
-      
-      if (propertyData['unit'] != null && propertyData['unit'].toString().isNotEmpty) {
-        request.fields['unit'] = propertyData['unit'].toString();
-      }
-      
-      if (propertyData['latitude'] != null) {
-        request.fields['latitude'] = propertyData['latitude'].toString();
-      }
-      
-      if (propertyData['longitude'] != null) {
-        request.fields['longitude'] = propertyData['longitude'].toString();
-      }
-      
-      // Add address components
-      if (propertyData['city'] != null && propertyData['city'].toString().isNotEmpty) {
-        request.fields['city'] = propertyData['city'].toString();
-      }
-      
-      if (propertyData['state'] != null && propertyData['state'].toString().isNotEmpty) {
-        request.fields['state'] = propertyData['state'].toString();
-      }
-      
-      if (propertyData['pincode'] != null && propertyData['pincode'].toString().isNotEmpty) {
-        request.fields['pincode'] = propertyData['pincode'].toString();
-      }
-      
-      if (propertyData['country'] != null && propertyData['country'].toString().isNotEmpty) {
-        request.fields['country'] = propertyData['country'].toString();
-      }
-      
-      request.fields['hide_address'] = propertyData['hide_address'].toString();
-      request.fields['property_type'] = propertyData['property_type'] ?? '';
-      request.fields['listing_type'] = propertyData['listing_type'] ?? '';
-      
-      if (propertyData['rent'] != null) {
-        request.fields['rent'] = propertyData['rent'].toString();
-      }
-      
-      request.fields['rent_frequency'] = propertyData['rent_frequency'] ?? '';
-      request.fields['furnished'] = propertyData['furnished'].toString();
-      
-      if (propertyData['square_footage'] != null) {
-        request.fields['square_footage'] = propertyData['square_footage'].toString();
-      }
-      
-      if (propertyData['bedrooms'] != null) {
-        request.fields['bedrooms'] = propertyData['bedrooms'].toString();
-      }
-      
-      if (propertyData['bathrooms'] != null) {
-        request.fields['bathrooms'] = propertyData['bathrooms'].toString();
-      }
-
-      // Handle sublease details
-      if (propertyData['sublease_details'] != null) {
-        request.fields['sublease_details'] = jsonEncode(propertyData['sublease_details']);
-      }
-
-      // Handle amenities
-      if (propertyData['amenities'] != null && (propertyData['amenities'] as List).isNotEmpty) {
-        request.fields['amenities'] = jsonEncode(propertyData['amenities']);
-      }
-
-      // Handle lifestyle
-      if (propertyData['lifestyle'] != null && (propertyData['lifestyle'] as Map).isNotEmpty) {
-        request.fields['lifestyle'] = jsonEncode(propertyData['lifestyle']);
-      }
-
-      // Handle preference
-      if (propertyData['preference'] != null && (propertyData['preference'] as Map).isNotEmpty) {
-        request.fields['preference'] = jsonEncode(propertyData['preference']);
-      }
-
-      var response = await request.send();
-      var responseData = await http.Response.fromStream(response);
+      final response = await http.put(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(propertyData),
+      );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(responseData.body);
+        final data = jsonDecode(response.body);
         PropertyListModel updatedProperty = PropertyListModel.fromJson(data);
-        
-        // Update the property in the list
         int index = _properties.indexWhere((p) => p.id == propertyId);
         if (index != -1) {
           _properties[index] = updatedProperty;
         }
-        
         notifyListeners();
         onSuccess();
       } else {
-        debugPrint("Error updating property: ${responseData.body}");
+        debugPrint("Error updating property: ${response.body}");
         onError();
       }
     } catch (e) {
@@ -495,7 +291,7 @@ class PropertyNotifier extends ChangeNotifier {
     required VoidCallback onSuccess,
     required VoidCallback onError,
   }) async {
-    String apiUrl = '${Environment.iosAppBaseUrl}/api/properties/$propertyId/';
+    String apiUrl = '${Environment.baseUrl}/api/properties/$propertyId/';
 
     try {
       final response = await http.delete(
@@ -542,8 +338,8 @@ class PropertyNotifier extends ChangeNotifier {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse('${Environment.iosAppBaseUrl}/api/properties/?latitude=$latitude&longitude=$longitude&max_distance=2'),
+      final response = await AppHttpClient.get(
+        Uri.parse('${Environment.baseUrl}/api/properties/?latitude=$latitude&longitude=$longitude&max_distance=2'),
       );
 
       if (response.statusCode == 200) {

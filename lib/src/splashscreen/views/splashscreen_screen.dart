@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/data_preload_service.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/const/resource.dart';
-import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
+import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
+import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
 import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -22,13 +24,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 	@override
 	void initState() {
 		super.initState();
-		
+
 		// Initialize animations for smooth logo appearance
 		_animationController = AnimationController(
-			duration: const Duration(milliseconds: 2000),
+			duration: const Duration(milliseconds: 1500),
 			vsync: this,
 		);
-		
+
 		_fadeAnimation = Tween<double>(
 			begin: 0.0,
 			end: 1.0,
@@ -36,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 			parent: _animationController,
 			curve: const Interval(0.0, 0.6, curve: Curves.easeInOut),
 		));
-		
+
 		_scaleAnimation = Tween<double>(
 			begin: 0.8,
 			end: 1.0,
@@ -44,11 +46,31 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 			parent: _animationController,
 			curve: const Interval(0.2, 0.8, curve: Curves.elasticOut),
 		));
-		
+
 		// Start animation
 		_animationController.forward();
-		
+
+		// Start navigation timer (2s splash)
 		_navigator();
+
+		// Start background preload in parallel (non-blocking)
+		_startBackgroundPreload();
+	}
+
+	/// Start background data preload during splash animation
+	/// This runs in parallel with the 2s splash timer and does not block navigation
+	void _startBackgroundPreload() {
+		try {
+			final filterNotifier = context.read<FilterNotifier>();
+			final marketplaceNotifier = context.read<MarketplaceNotifier>();
+
+			// Start preloading properties and marketplace (non-blocking for navigation)
+			// This will continue in background even if navigation happens at 2s
+			DataPreloadService().preloadAll(filterNotifier, marketplaceNotifier);
+		} catch (e) {
+			debugPrint('Failed to start background preload: $e');
+			// Don't crash app if preload fails - screens will load data normally
+		}
 	}
 
 	@override
@@ -58,37 +80,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 	}
 
 	_navigator() async {
-		// Preload properties data during splash screen
-		// Use addPostFrameCallback to avoid calling setState during build
-		WidgetsBinding.instance.addPostFrameCallback((_) {
-			try {
-				debugPrint("SplashScreen: Starting properties preload...");
-				final propertyNotifier = context.read<PropertyNotifier>();
-				// Start the API call without waiting for it to complete
-				// This allows the splash screen to show for 3 seconds while data loads in background
-				propertyNotifier.fetchProperties().catchError((error) {
-					debugPrint("SplashScreen: Error preloading properties: $error");
-				});
-			} catch (e) {
-				debugPrint("SplashScreen: Exception during properties preload: $e");
-			}
-		});
-
-		// Wait for the splash screen duration
-		await Future.delayed(const Duration(milliseconds: 3000));
+		// Wait only for minimum splash screen duration
+		await Future.delayed(const Duration(milliseconds: 2000));
 		
 		// Check if widget is still mounted before using context
 		if (!mounted) return;
 
-    GoRouter.of(context).go('/onboarding');
+		final firstOpen = Storage().getBool('firstOpen');
 		
-		// if (Storage().getBool('firstOpen') == null) {
-		// 	// Go to the onboarding screen
-		// 	GoRouter.of(context).go('/onboarding');
-		// } else {
-		// 	// Go to the Home Page
-		// 	GoRouter.of(context).go('/home');
-		// }
+		if (firstOpen == null) {
+			GoRouter.of(context).go('/onboarding');
+		} else {
+			GoRouter.of(context).go('/home');
+		}
 	}
 
   @override
@@ -109,11 +113,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 									child: Column(
 										mainAxisAlignment: MainAxisAlignment.center,
 										children: [
-											// SVG Logo with responsive sizing
-											SvgPicture.asset(
-												R.ASSETS_ICONS_COMPANY_LOGO_SVG,
-												width: ScreenUtil().screenWidth * 0.25, // 25% of screen width (reduced from 30%)
-												height: ScreenUtil().screenWidth * 0.29, // Maintain aspect ratio (798/694 ≈ 1.15)
+											// PNG Logo with responsive sizing
+											Image.asset(
+												R.ASSETS_ICONS_COMPANY_LOGO_PNG,
+												width: ScreenUtil().screenWidth * 0.35,
+												height: ScreenUtil().screenWidth * 0.35,
 												fit: BoxFit.contain,
 											),
 										],

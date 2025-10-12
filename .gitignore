@@ -56,7 +56,9 @@ app.*.map.json
 android/key.properties
 key.properties.backup
 
-# Security - Firebase config backups
+# Security - Firebase config files (CRITICAL - NEVER COMMIT THESE)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
 google-services.json.backup
 GoogleService-Info.plist.backup
 

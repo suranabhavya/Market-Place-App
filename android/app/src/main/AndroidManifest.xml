@@ -17,6 +17,11 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
             
+        <!-- Custom notification icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+            
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -4,27 +4,26 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get_storage/get_storage.dart';
+
 import 'package:marketplace_app/common/services/push_notification_service.dart';
+import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/app_routes.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/utils/kstrings.dart';
 import 'package:marketplace_app/src/auth/controllers/auth_notifier.dart';
 import 'package:marketplace_app/src/auth/controllers/password_notifier.dart';
-import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/controllers/home_tab_notifier.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
-import 'package:marketplace_app/src/onboarding/controllers/onboarding_notifier.dart';
 import 'package:marketplace_app/src/profile/controllers/profile_notifier.dart';
 import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/search/controllers/search_notifier.dart';
 import 'package:marketplace_app/src/splashscreen/views/splashscreen_screen.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
+
 
 // Define background message handler
 @pragma('vm:entry-point')
@@ -36,16 +35,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // TODO: Set this to true when you have a paid Apple Developer account and APNS setup
-  const bool enableIOSPushNotifications = false;
-
-  // Set the background message handler only if iOS push notifications are enabled
-  // or if we're not on iOS
-  if (!Platform.isIOS || enableIOSPushNotifications) {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  } else {
-    debugPrint('Skipping Firebase background message handler setup on iOS - APNS not configured');
-  }
+  // Set the background message handler (APNS is now configured)
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   if (kIsWeb) {
     await Firebase.initializeApp(
@@ -60,18 +51,15 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  // Load the correct environment BEFORE initializing push notifications
   await dotenv.load(fileName: Environment.fileName);
+  
+  // Initialize notification handlers only (but NOT permission or token)
+  await PushNotificationService().initializeHandlersOnly();
 
-  // Initialize notification handlers and token logic (but NOT permission)
-  await PushNotificationService().initializeHandlersAndToken();
-
-  await GetStorage.init();
+  await Storage.initialize();
 
   runApp(MultiProvider(
     providers: [
-      ChangeNotifierProvider(create: (_) => OnboardingNotifier()),
-      ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
       ChangeNotifierProvider(create: (_) => PasswordNotifier()),
       ChangeNotifierProvider(create: (_) => HomeTabNotifier()),
       ChangeNotifierProvider(create: (_) => PropertyNotifier()),

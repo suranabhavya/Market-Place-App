@@ -8,16 +8,15 @@ class AmenityEmojiMap {
     "Yoga Studio": "🧘",
     "Spa": "🧖",
     "Sauna": "🧖‍♂️",
-    "Hot Tub": "🛀",
+    "Tub": "🛀",
     "Fitness Center": "💪",
     "Sports Court": "⚽",
     
     // Transportation & Parking
-    "Parking": "🅿️",
     "Garage": "🏠",
     "Bike Storage": "🚲",
     "EV Charging": "🔌",
-    "Free Parking": "🚗",
+    "Parking": "🚗",
     
     // Comfort & Convenience
     "Air Conditioning": "❄️",

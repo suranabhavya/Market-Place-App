@@ -21,32 +21,52 @@ class UnreadCountNotifier with ChangeNotifier {
     // Only attempt to connect if we have a valid token
     if (_token != null && _token!.isNotEmpty && _token != 'null') {
       try {
-        final wsUrl = "${Environment.iosWsBaseUrl}/ws/unread/?token=$_token";
+        final wsUrl = "${Environment.wsBaseUrl}/ws/unread/?token=$_token";
         _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
         _channel!.stream.listen(
           (data) {
-            final decoded = jsonDecode(data);
-            if (decoded.containsKey("global_unread_count")) {
-              _globalUnreadCount = decoded["global_unread_count"];
-              notifyListeners();
+            try {
+              final decoded = jsonDecode(data);
+              if (decoded.containsKey("global_unread_count")) {
+                _globalUnreadCount = decoded["global_unread_count"];
+                notifyListeners();
+              }
+            } catch (e) {
+              debugPrint('Error decoding unread count data: $e');
             }
           },
           onError: (error) {
-            debugPrint('WebSocket error: $error');
+            debugPrint('Unread count WebSocket error: $error');
             _isConnected = false;
+            // Auto-reconnect after a delay
+            Future.delayed(const Duration(seconds: 5), () {
+              if (_token != null && _token!.isNotEmpty && _token != 'null') {
+                _initializeConnection();
+              }
+            });
           },
           onDone: () {
-            debugPrint('WebSocket connection closed');
             _isConnected = false;
+            // Auto-reconnect after a delay if we still have a token
+            Future.delayed(const Duration(seconds: 3), () {
+              if (_token != null && _token!.isNotEmpty && _token != 'null') {
+                _initializeConnection();
+              }
+            });
           },
         );
         _isConnected = true;
       } catch (e) {
-        debugPrint('Failed to connect to WebSocket: $e');
         _isConnected = false;
+        // Retry after a delay
+        Future.delayed(const Duration(seconds: 5), () {
+          if (_token != null && _token!.isNotEmpty && _token != 'null') {
+            _initializeConnection();
+          }
+        });
       }
     } else {
-      debugPrint('No valid access token found, skipping WebSocket connection');
+      debugPrint('No valid access token found, skipping unread count WebSocket connection');
     }
   }
 
@@ -74,7 +94,16 @@ class UnreadCountNotifier with ChangeNotifier {
 
   void refreshUnreadCount() {
     if (_channel != null && _isConnected) {
-      _channel!.sink.add(jsonEncode({"refresh": true}));
+      try {
+        _channel!.sink.add(jsonEncode({"refresh": true}));
+      } catch (e) {
+        // Try to reconnect if there's an error
+        _isConnected = false;
+        reconnectIfNeeded();
+      }
+    } else {
+      debugPrint('WebSocket not connected, attempting to reconnect for refresh');
+      reconnectIfNeeded();
     }
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
+import 'package:marketplace_app/common/utils/image_compression_util.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
 import 'package:marketplace_app/common/widgets/custom_button.dart';
@@ -18,12 +20,11 @@ import 'package:marketplace_app/common/widgets/custom_text_field.dart';
 import 'package:marketplace_app/common/widgets/email_textfield.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
 import 'package:marketplace_app/common/widgets/searchable_multi_select_dropdown.dart';
-import 'package:marketplace_app/src/properties/controllers/property_notifier.dart';
 import 'package:marketplace_app/src/properties/models/autocomplete_prediction.dart';
-import 'package:marketplace_app/src/properties/models/place_autocomplete_response.dart';
 import 'package:marketplace_app/src/properties/widgets/location_list_tile.dart';
 import 'package:marketplace_app/src/marketplace/widgets/marketplace_image_picker.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_detail_model.dart';
+import 'package:marketplace_app/src/marketplace/services/marketplace_service_v2.dart';
 
 import '../../../common/widgets/custom_checkbox.dart';
 import '../../../common/widgets/custom_date_picker.dart';
@@ -51,7 +52,6 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   bool _isLoading = false;
 
   // Controllers for input fields
-  final ImagePicker _picker = ImagePicker();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
@@ -80,6 +80,9 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   final List<String> _deletedImages = [];
   List<AutocompletePrediction>? placePredictions = [];
 
+  // Debounce timer for address autocomplete
+  Timer? _debounceTimer;
+
   // Form fields
   String itemType = 'furniture';
   String itemSubtype = 'table';
@@ -97,7 +100,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   Map<String, List<String>> itemSubtypes = {
     'furniture': ['sofa', 'cot', 'mattress', 'table', 'chair', 'wardrobe', 'dresser', 'bookshelf', 'desk', 'other'],
     'electronics': ['tv', 'computer', 'accessories', 'printer', 'monitor', 'speaker', 'gaming_console', 'camera', 'phone', 'other'],
-    'appliance': ['refrigerator', 'washing_machine', 'dryer', 'microwave', 'oven', 'toaster', 'coffee_maker', 'blender', 'fan', 'heater' 'other'],
+    'appliance': ['refrigerator', 'washing_machine', 'dryer', 'microwave', 'oven', 'toaster', 'coffee_maker', 'blender', 'fan', 'heater', 'other'],
     'kitchen': ['cookware', 'utensils', 'dishes', 'cutlery', 'other'],
     'decor': ['lighting', 'rug', 'curtain', 'mattress', 'art', 'plants', 'other'],
     'other': ['other'],
@@ -112,13 +115,16 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
   };
 
   Future<void> _fetchNearbySchools(double lat, double lng) async {
+    debugPrint("🏫 Fetching nearby schools for coordinates: lat=$lat, lng=$lng");
     String url = "${Environment.iosAppBaseUrl}/api/school/nearby/?lat=$lat&lng=$lng";
+    debugPrint("🌐 Nearby schools API URL: $url");
 
     try {
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        
         setState(() {
           // Clear previous selections
           selectedSchoolIds = [];
@@ -126,22 +132,47 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
           // Update selected schools and map
           for (var school in data) {
-            String id = school['id'] as String;
+            String id = school['id'].toString();
+            String name = school['name'] as String;
+            debugPrint("   Adding school: $name (ID: $id)");
             selectedSchoolIds.add(id);
             _selectedSchoolsMap[id] = {
               'id': id,
-              'name': school['name'] as String
+              'name': name
             };
+
+            // Also add to schoolOptions if not already present
+            bool existsInOptions = schoolOptions.any((option) => option['id'] == id);
+            if (!existsInOptions) {
+              schoolOptions.add({
+                'id': id,
+                'name': name
+              });
+              debugPrint("   Added school to options: $name");
+            }
           }
 
-          // Fetch full school details to ensure we have them in schoolOptions
-          _fetchSchools();
+          debugPrint("🎯 Selected school IDs: $selectedSchoolIds");
+          debugPrint("🗺️ Selected schools map: $_selectedSchoolsMap");
+          debugPrint("📚 Total schools in options: ${schoolOptions.length}");
         });
+
+        // Fetch full school details to ensure we have them in schoolOptions
+        // This needs to be called after setState to ensure the UI updates
+        await _fetchSchools();
+        
+        // Force UI update to show selected schools
+        if (mounted) {
+          setState(() {
+            // This setState forces the dropdown to refresh and show selected schools
+          });
+        }
       } else {
+        debugPrint("❌ Failed to load nearby schools: HTTP ${response.statusCode}");
         throw Exception("Failed to load nearby schools");
       }
     } catch (e) {
-      debugPrint("Error fetching nearby schools: $e");
+      debugPrint("💥 Error fetching nearby schools: $e");
     }
   }
 
@@ -399,6 +430,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
@@ -412,103 +444,297 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
     super.dispose();
   }
 
-  Future<void> placeAutocomplete(String query) async {
-    Uri uri = Uri.https(
-      "maps.googleapis.com",
-      "maps/api/place/autocomplete/json",
-      {
-        "input": query,
-        "key": Environment.googleApiKey,
-      }
-    );
-    String? response = await PropertyNotifier().fetchLocation(uri);
+  // Debounced version of place autocomplete
+  void _debouncedPlaceAutocomplete(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      placeAutocomplete(query);
+    });
+  }
 
-    if(response != null) {
-      PlaceAutocompleteResponse result = PlaceAutocompleteResponse.parseAutocompleteResult(response);
-      if(result.predictions != null) {
+  Future<void> placeAutocomplete(String query) async {
+    // Clear suggestions for empty query
+    if (query.isEmpty) {
+      setState(() {
+        placePredictions = [];
+      });
+      return;
+    }
+
+    debugPrint("🔍 Starting place autocomplete for query: '$query'");
+    debugPrint("🔑 Using Google API Key: ${Environment.googleApiKey}");
+    
+    try {
+      // Use new Places API (New) endpoint
+      Uri uri = Uri.https("places.googleapis.com", "/v1/places:autocomplete");
+      
+      // Create request body for new API
+      Map<String, dynamic> requestBody = {
+        "input": query,
+        "regionCode": "US", // Restrict to US addresses
+        "languageCode": "en",
+      };
+      
+      debugPrint("🌐 Making POST request to: $uri");
+      debugPrint("📤 Request body: ${jsonEncode(requestBody)}");
+      
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': Environment.googleApiKey,
+          'X-Goog-FieldMask': 'suggestions.placePrediction.placeId,suggestions.placePrediction.text',
+        },
+        body: jsonEncode(requestBody),
+      );
+      
+      debugPrint("📡 Response status code: ${response.statusCode}");
+      debugPrint("📄 Response body length: ${response.body.length}");
+      debugPrint("📡 Raw API response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['suggestions'] != null) {
+          List<AutocompletePrediction> predictions = [];
+          
+          for (var suggestion in data['suggestions']) {
+            if (suggestion['placePrediction'] != null) {
+              var placePrediction = suggestion['placePrediction'];
+              predictions.add(AutocompletePrediction(
+                description: placePrediction['text']?['text'] ?? '',
+                placeId: placePrediction['placeId'] ?? '',
+              ));
+            }
+          }
+          for (int i = 0; i < predictions.length; i++) {
+            debugPrint("   $i: ${predictions[i].description}");
+          }
+          
+          setState(() {
+            placePredictions = predictions;
+          });
+        } else {
+          debugPrint("⚠️ No suggestions found in response");
+          setState(() {
+            placePredictions = [];
+          });
+        }
+      } else {
+        debugPrint("❌ HTTP error ${response.statusCode}: ${response.body}");
         setState(() {
-          placePredictions = result.predictions;
+          placePredictions = [];
         });
       }
+    } catch (e) {
+      debugPrint("💥 Exception occurred: $e");
+      setState(() {
+        placePredictions = [];
+      });
     }
   }
 
   Future<void> fetchPlaceDetails(String placeId) async {
-    Uri uri = Uri.https(
-      "maps.googleapis.com",
-      "maps/api/place/details/json",
-      {
-        "place_id": placeId,
-        "key": Environment.googleApiKey,
+    debugPrint("🔍 Fetching place details for placeId: $placeId");
+    
+    try {
+      // Use new Places API (New) endpoint for place details
+      Uri uri = Uri.https("places.googleapis.com", "/v1/places/$placeId");
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': Environment.googleApiKey,
+          'X-Goog-FieldMask': 'location,addressComponents,formattedAddress',
+        },
+      );
+      
+      debugPrint("📡 Place details response status: ${response.statusCode}");
+      debugPrint("📡 Place details response: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data['location'] != null) {
+          // Extract coordinates
+          double lat = data['location']['latitude']?.toDouble() ?? 0.0;
+          double lng = data['location']['longitude']?.toDouble() ?? 0.0;
+          
+          debugPrint("📍 Extracted coordinates: lat=$lat, lng=$lng");
+
+          // Extract address components
+          String? pincode;
+          String? city;
+          String? state;
+          String? country;
+
+          if (data['addressComponents'] != null) {
+            List<dynamic> addressComponents = data['addressComponents'];
+            
+            for (var component in addressComponents) {
+              List types = component['types'] ?? [];
+
+              if (types.contains('postal_code')) {
+                pincode = component['longText'];
+              }
+              if (types.contains('locality')) {
+                city = component['longText'];
+              }
+              if (types.contains('administrative_area_level_1')) {
+                state = component['longText'];
+              }
+              if (types.contains('country')) {
+                country = component['longText'];
+              }
+            }
+          }
+
+          debugPrint("🏠 Extracted address components: city=$city, state=$state, pincode=$pincode, country=$country");
+
+          setState(() {
+            _latitudeController.text = lat.toString();
+            _longitudeController.text = lng.toString();
+            _pincode = pincode;
+            _city = city;
+            _state = state;
+            _country = country;
+          });
+
+          // **Fetch Nearby Schools After Address Selection**
+          await _fetchNearbySchools(lat, lng);
+        } else {
+          debugPrint("No location data found in response");
+        }
+      } else {
+        debugPrint("HTTP error ${response.statusCode}: ${response.body}");
+      }
+    } catch (e) {
+      debugPrint("Exception fetching place details: $e");
+    }
+  }
+
+  // Show validation error popup
+  void _showValidationError(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            title,
+            style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
+          ),
+          content: Text(
+            message,
+            style: appStyle(14, Kolors.kGray, FontWeight.normal),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                "OK",
+                style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
+              ),
+            ),
+          ],
+        );
       },
     );
+  }
 
-    String? response = await PropertyNotifier().fetchLocation(uri);
-
-    if (response != null) {
-      final data = jsonDecode(response);
-
-      if (data['status'] == 'OK') {
-        final location = data['result']['geometry']['location'];
-        double lat = location['lat'];
-        double lng = location['lng'];
-
-        // Extract address components
-        String? pincode;
-        String? city;
-        String? state;
-        String? country;
-
-        List<dynamic> addressComponents = data['result']['address_components'];
-        
-        for (var component in addressComponents) {
-          List types = component['types'];
-
-          if (types.contains('postal_code')) {
-            pincode = component['long_name'];
-          }
-          if (types.contains('locality')) {
-            city = component['long_name'];
-          }
-          if (types.contains('administrative_area_level_1')) {
-            state = component['long_name'];
-          }
-          if (types.contains('country')) {
-            country = component['long_name'];
-          }
-        }
-
-        setState(() {
-          _latitudeController.text = lat.toString();
-          _longitudeController.text = lng.toString();
-          _pincode = pincode;
-          _city = city;
-          _state = state;
-          _country = country;
-        });
-
-        // Fetch nearby schools after getting location
-        _fetchNearbySchools(lat, lng);
+  // Validate numeric fields
+  bool _validateNumericFields() {
+    // Validate price
+    if (_priceController.text.isNotEmpty) {
+      final price = double.tryParse(_priceController.text);
+      if (price == null || price < 0) {
+        _showValidationError("Invalid Price", "Price must be a positive number or 0 for free items.");
+        return false;
+      }
+      if (price > 100000) {
+        _showValidationError("Price Too High", "Price cannot exceed \$100,000. Please enter a reasonable amount.");
+        return false;
       }
     }
+
+    // Validate original price
+    if (_originalPriceController.text.isNotEmpty) {
+      final originalPrice = double.tryParse(_originalPriceController.text);
+      if (originalPrice == null || originalPrice < 0) {
+        _showValidationError("Invalid Original Price", "Original price must be a positive number or 0.");
+        return false;
+      }
+      if (originalPrice > 100000) {
+        _showValidationError("Original Price Too High", "Original price cannot exceed \$100,000. Please enter a reasonable amount.");
+        return false;
+      }
+
+      // Check if original price is greater than current price
+      if (_priceController.text.isNotEmpty) {
+        final currentPrice = double.tryParse(_priceController.text);
+        if (currentPrice != null && originalPrice < currentPrice) {
+          _showValidationError("Invalid Original Price", "Original price should be greater than or equal to the current selling price.");
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  // Validate images
+  bool _validateImages() {
+    // For new items, require at least one image
+    if (!widget.isEditing) {
+      if (_images.isEmpty) {
+        _showValidationError("No Images Added", "Please add at least one image of your item. Images help buyers better understand what you're selling.");
+        return false;
+      }
+    } else {
+      // For editing, check if we have either existing images or new images
+      if (_images.isEmpty && _existingImages.isEmpty) {
+        _showValidationError("No Images Available", "Please add at least one image of your item. Images help buyers better understand what you're selling.");
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     
-    // For new items, require at least one image
-    if (!widget.isEditing && _images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please add at least one image")),
-      );
-      return;
-    }
+    // Validate images first
+    if (!_validateImages()) return;
+    
+    // Validate numeric fields
+    if (!_validateNumericFields()) return;
 
     setState(() => _isLoading = true);
 
     try {
       String? token = Storage().getString('accessToken');
       if (token == null) throw Exception("User not authenticated");
+
+      // Extract userId from stored user profile
+      String? userJson = Storage().getString('user');
+      String? userId;
+      if (userJson != null) {
+        try {
+          final userMap = jsonDecode(userJson);
+          userId = userMap['id']?.toString();
+        } catch (e) {
+          debugPrint('Error decoding user JSON: $e');
+        }
+      }
+      if (userId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User ID not found. Please re-login.")),
+          );
+        }
+        setState(() { _isLoading = false; });
+        return;
+      }
 
       Map<String, dynamic> marketplaceData = {
         'title': _titleController.text,
@@ -530,8 +756,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         'hide_address': hideAddress,
         'availability_date': _availabilityDateController.text,
         'original_receipt_available': originalReceiptAvailable,
-        'images': _images.map((file) => file.path).toList(),
-        if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds,
+        if (selectedSchoolIds.isNotEmpty) 'school_ids': selectedSchoolIds.join(','),
       };
 
       // Only include original_price if it's not empty, otherwise send null
@@ -546,56 +771,54 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
       }
 
       if (widget.isEditing && widget.itemId != null) {
-        // For editing, add images and deleted images to the marketplace data
-        if (_images.isNotEmpty) {
-          marketplaceData['images'] = _images.map((file) => file.path).toList();
-        }
         if (_deletedImages.isNotEmpty) {
           marketplaceData['deleted_images'] = _deletedImages;
         }
         
-        // Update existing item
-        await context.read<MarketplaceNotifier>().updateMarketplaceItem(
-          token: token,
+        await MarketplaceServiceV2.updateMarketplaceItem(
           itemId: widget.itemId!,
           marketplaceData: marketplaceData,
-          onSuccess: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Item updated successfully!")),
-              );
-              context.pop();
-            }
+          images: _images,
+          userId: userId,
+          onProgress: (progress) {
+            debugPrint('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
           },
-          onError: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to update item. Please try again.")),
-              );
-            }
-          },
-        );
+        ).then((result) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Item updated successfully!")),
+            );
+            context.pop();
+          }
+        }).catchError((error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to update item: $error")),
+            );
+          }
+        });
       } else {
-        // Create new item
-        await context.read<MarketplaceNotifier>().createMarketplaceItem(
-          token: token,
+        await MarketplaceServiceV2.createMarketplaceItem(
           marketplaceData: marketplaceData,
-          onSuccess: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Item created successfully!")),
-              );
-              context.pop();
-            }
+          images: _images,
+          userId: userId,
+          onProgress: (progress) {
+            debugPrint('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
           },
-          onError: () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Failed to create item. Please try again.")),
-              );
-            }
-          },
-        );
+        ).then((result) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Item created successfully!")),
+            );
+            context.pop();
+          }
+        }).catchError((error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to create item: $error")),
+            );
+          }
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -604,9 +827,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
@@ -637,31 +858,30 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                 onPickImage: (source) async {
                   try {
                     if (source == ImageSource.gallery) {
-                      final List<XFile> pickedImages = await _picker.pickMultiImage(
-                        maxWidth: 800,
-                        maxHeight: 800,
-                        imageQuality: 50,
+                      final List<File> compressedImages = await ImageCompressionUtil.pickAndCompressFromGallery(
+                        multiple: true,
+                        maxImages: 10, // Limit to 10 images
+                        forUpload: true, // Optimize for cloud upload (smaller file sizes)
                       );
                       
-                      setState(() {
-                        _images.addAll(pickedImages.map((xFile) => File(xFile.path)));
-                      });
-                                        } else {
-                      final XFile? pickedImage = await _picker.pickImage(
-                        source: source,
-                        maxWidth: 800,
-                        maxHeight: 800,
-                        imageQuality: 50,
-                      );
-                      
-                      if (pickedImage != null) {
+                      if (compressedImages.isNotEmpty && mounted) {
                         setState(() {
-                          _images.add(File(pickedImage.path));
+                          _images.addAll(compressedImages);
+                        });
+                      }
+                    } else {
+                      final File? compressedImage = await ImageCompressionUtil.pickAndCompressFromCamera(
+                        forUpload: true, // Optimize for cloud upload
+                      );
+                      
+                      if (compressedImage != null && mounted) {
+                        setState(() {
+                          _images.add(compressedImage);
                         });
                       }
                     }
                   } catch (e) {
-                    debugPrint("Error picking images: $e");
+                    debugPrint("Error picking and compressing images: $e");
                   }
                 },
                 onRemoveImage: (index) {
@@ -733,6 +953,10 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                         if (value == null || value.isEmpty) {
                           return "Price is required";
                         }
+                        final price = double.tryParse(value);
+                        if (price == null) {
+                          return "Please enter a valid number";
+                        }
                         return null;
                       },
                     ),
@@ -750,15 +974,15 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                         size: 20,
                         color: Kolors.kGray
                       ),
-                      // validator: (value) {
-                      //   if (value != null && value.isNotEmpty) {
-                      //     final price = double.tryParse(value);
-                      //     if (price == null) {
-                      //       return "Please enter a valid price";
-                      //     }
-                      //   }
-                      //   return null;
-                      // },
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final price = double.tryParse(value);
+                          if (price == null) {
+                            return "Please enter a valid number";
+                          }
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ],
@@ -902,7 +1126,7 @@ class _CreateMarketplacePageState extends State<CreateMarketplacePage> {
                         color: Kolors.kGray
                       ),
                       onChanged: (value) {
-                        placeAutocomplete(value);
+                        _debouncedPlaceAutocomplete(value);
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {

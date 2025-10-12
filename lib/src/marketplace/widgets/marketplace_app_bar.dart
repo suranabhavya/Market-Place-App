@@ -107,17 +107,26 @@ class MarketplaceAppBar extends StatelessWidget {
                               
                               if (marketplaceNotifier.searchKey.isNotEmpty)
                                 GestureDetector(
-                                  onTap: () {
-                                    // Clear search and apply filters
+                                  onTap: () async {
+                                    debugPrint('MarketplaceAppBar - Clear button tapped');
+                                    debugPrint('  - Before clear - searchKey: "${marketplaceNotifier.searchKey}"');
+                                    
+                                    // Clear search and reset location (same as properties)
                                     marketplaceNotifier.clearSearch();
-                                    marketplaceNotifier.applyFilters();
+                                    marketplaceNotifier.resetLocation();
+                                    
+                                    debugPrint('  - After clear - searchKey: "${marketplaceNotifier.searchKey}"');
+                                    
+                                    // Use refreshMarketplaceItems for proper async handling
+                                    await marketplaceNotifier.refreshMarketplaceItems();
+                                    
+                                    debugPrint('  - After refresh - items count: ${marketplaceNotifier.marketplaceItems.length}');
                                     
                                     // If we have a callback, call it with the refreshed items
                                     if (onFilterApplied != null) {
-                                      // Use a post frame callback to ensure the API call completes
-                                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                                        onFilterApplied!(marketplaceNotifier.marketplaceItems);
-                                      });
+                                      // Pass the items from the notifier after clearing search
+                                      onFilterApplied!(marketplaceNotifier.marketplaceItems);
+                                      debugPrint('  - Callback executed with ${marketplaceNotifier.marketplaceItems.length} items');
                                     }
                                   },
                                   child: const Icon(

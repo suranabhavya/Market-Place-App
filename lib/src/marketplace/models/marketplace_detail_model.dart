@@ -203,7 +203,7 @@ class MarketplaceDetailImage {
 
   factory MarketplaceDetailImage.fromJson(Map<String, dynamic> json) => MarketplaceDetailImage(
     id: json["id"],
-    image: json["image"],
+    image: json["image_url"] ?? json["image"],
     uploadedAt: DateTime.parse(json["uploaded_at"]),
   );
 

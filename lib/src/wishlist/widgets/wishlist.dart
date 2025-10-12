@@ -36,7 +36,7 @@ class WishlistWidget extends HookWidget {
             builder: (context, wishlistNotifier, child) {
               // Ensure that only items in the local wishlist are displayed
               final filteredItems = wishlistItems
-                  .where((item) => wishlistNotifier.wishlist.contains(item.id))
+                  .where((item) => wishlistNotifier.wishlist.contains('${item.itemType}:${item.id}'))
                   .toList();
 
               if (filteredItems.isEmpty) {
@@ -69,6 +69,33 @@ class WishlistWidget extends HookWidget {
                       final property = item.item as PropertyListModel;
                       return StaggeredTileWidget(
                         property: property,
+                        onTap: () {
+                          final accessToken = Storage().getString('accessToken');
+                          if (accessToken == null) {
+                            loginBottomSheet(context);
+                          } else {
+                            final wishlistNotifier = context.read<WishlistNotifier>();
+                            wishlistNotifier.toggleWishlist(
+                              property.id.toString(),
+                              () {
+                                refetch();
+                                
+                                // Show error message if there was an error
+                                if (wishlistNotifier.error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(wishlistNotifier.error!),
+                                      backgroundColor: Kolors.kRed,
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                                                         wishlistNotifier.clearError(); // Clear error after showing
+                                }
+                              },
+                              type: 'property',
+                            );
+                          }
+                        },
                       );
                     }),
                   ],
@@ -178,7 +205,7 @@ class WishlistWidget extends HookWidget {
                                 uploadedAt: DateTime.now(), // Default timestamp
                               )).toList(),
                             );
-                            await ShareUtils.shareMarketplaceItemFromList(marketplaceItem);
+                            await ShareUtils.shareMarketplaceItemFromList(marketplaceItem, context);
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -192,7 +219,7 @@ class WishlistWidget extends HookWidget {
                         },
                         child: CircleAvatar(
                           radius: 15.r,
-                          backgroundColor: Kolors.kSecondaryLight,
+                          backgroundColor: Kolors.kWhite,
                           child: Icon(
                             Icons.share,
                             color: Kolors.kGray,
@@ -204,27 +231,45 @@ class WishlistWidget extends HookWidget {
                       // Wishlist button
                       Consumer<WishlistNotifier>(
                         builder: (context, wishlistNotifier, child) {
+                          final isInWishlist = wishlistNotifier.isWishlisted(
+                            type: 'marketplace',
+                            id: id.toString(),
+                          );
                           return GestureDetector(
                             onTap: () {
                               final accessToken = Storage().getString('accessToken');
                               if (accessToken == null) {
                                 loginBottomSheet(context);
                               } else {
-                                wishlistNotifier.toggleWishlist(
-                                  id,
-                                  refetch,
+                                 wishlistNotifier.toggleWishlist(
+                                  id.toString(),
+                                  () {
+                                    refetch();
+                                    
+                                    // Show error message if there was an error
+                                    if (wishlistNotifier.error != null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(wishlistNotifier.error!),
+                                          backgroundColor: Kolors.kRed,
+                                          duration: const Duration(seconds: 3),
+                                        ),
+                                      );
+                                      wishlistNotifier.clearError(); // Clear error after showing
+                                    }
+                                  },
                                   type: 'marketplace',
                                 );
                               }
                             },
-                            child: CircleAvatar(
+                              child: CircleAvatar(
                               radius: 15.r,
-                              backgroundColor: Kolors.kSecondaryLight,
-                              child: Icon(
-                                Icons.favorite,
-                                color: Kolors.kRed,
-                                size: 15.r,
-                              ),
+                                backgroundColor: Kolors.kWhite,
+                                child: Icon(
+                                  isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                  color: isInWishlist ? Kolors.kRed : Kolors.kGray,
+                                  size: 15.r,
+                                ),
                             ),
                           );
                         },

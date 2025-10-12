@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
 import 'package:marketplace_app/common/widgets/back_button.dart';
@@ -22,6 +23,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
   final FocusNode _focusNode = FocusNode();
   Timer? _debounce;
   List<String> _recentSearches = [];
+  bool _isLocationLoading = false;
   final List<String> _suggestions = [
     'Furniture',
     'Electronics',
@@ -63,6 +65,7 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
     });
   }
 
+
   @override
   void dispose() {
     // Don't try to update the notifier in dispose as it causes errors
@@ -87,8 +90,9 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
         _marketplaceNotifier!.fetchAutocomplete(_searchController.text);
       } else {
         _marketplaceNotifier!.clearAutocompleteResults();
-        // Clear the search key if the search field is empty
+        // Clear the search key and reset location if the search field is empty
         _marketplaceNotifier!.clearSearch();
+        _marketplaceNotifier!.resetLocation();
       }
     });
   }
@@ -118,6 +122,84 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
     });
     
     // This would typically save to shared preferences or other storage
+  }
+
+  // Get nearby marketplace items using device location
+  Future<void> _getNearbyItems() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() {
+      _isLocationLoading = true;
+    });
+    
+    try {
+      // Check and request location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.denied || 
+          permission == LocationPermission.deniedForever) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text("Location permission is required to find nearby items"),
+            backgroundColor: Kolors.kRed,
+          ),
+        );
+        setState(() {
+          _isLocationLoading = false;
+        });
+        return;
+      }
+      
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high
+      );
+      
+      // Clear search text and set "Near Me" as the search key
+      _searchController.text = "Items Near Me";
+      
+      // Save to recent searches
+      _saveSearch("Items Near Me");
+      
+      // Clear autocomplete results first
+      _marketplaceNotifier!.clearAutocompleteResults();
+      
+      // Use the new method to set search key with location and apply filters
+      await _marketplaceNotifier!.setSearchKeyWithLocationAndApplyFilters(
+        "Items Near Me", 
+        position.latitude, 
+        position.longitude
+      );
+      
+      // Get the filtered items from the notifier after API call
+      final filteredItems = _marketplaceNotifier!.marketplaceItems;
+      
+      // Navigate back to marketplace screen with both filtered results and search term
+      if (mounted) {
+        // Pop back with a map containing both the search term and filtered items
+        navigator.pop({
+          'searchTerm': "Items Near Me",
+          'filteredItems': filteredItems,
+        });
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text("Failed to get location: $e"),
+          backgroundColor: Kolors.kRed,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLocationLoading = false;
+        });
+      }
+    }
   }
   
   // Perform the search when user selects a suggestion or presses search
@@ -168,8 +250,9 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
             // Clear the search controller text
             _searchController.clear();
             
-            // Clear the search key and reset marketplace items to show all
+            // Clear the search key and reset location (same as properties)
             _marketplaceNotifier!.clearSearch();
+            _marketplaceNotifier!.resetLocation();
             final navigator = Navigator.of(context);
             _marketplaceNotifier!.refreshMarketplaceItems().then((_) {
               if (mounted) {
@@ -195,17 +278,27 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                 return Stack(
                   alignment: Alignment.centerRight,
                   children: [
-                    EmailTextField(
-                      controller: _searchController,
-                      focusNode: _focusNode,
-                      radius: 30,
-                      hintText: "Search furniture, electronics, books...",
-                      textInputAction: TextInputAction.search,
-                      onChanged: (value) {
-                        // Update the search key in the notifier in real-time
-                        _marketplaceNotifier!.setSearchKey(value);
-                        // The autocomplete API call is handled by the debounce timer
-                      },
+                    Consumer<MarketplaceNotifier>(
+                      builder: (context, notifier, child) {
+                        // Sync search controller with notifier state whenever notifier changes
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _searchController.text != notifier.searchKey) {
+                            debugPrint('MarketplaceSearchScreen - Consumer detected searchKey change: "${notifier.searchKey}"');
+                            _searchController.text = notifier.searchKey;
+                          }
+                        });
+                        
+                        return EmailTextField(
+                          controller: _searchController,
+                          focusNode: _focusNode,
+                          radius: 30,
+                          hintText: "Search furniture, electronics, books...",
+                          textInputAction: TextInputAction.search,
+                          onChanged: (value) {
+                            // Update the search key in the notifier in real-time
+                            _marketplaceNotifier!.setSearchKey(value);
+                            // The autocomplete API call is handled by the debounce timer
+                          },
                       onSubmitted: (value) {
                         if(value.isNotEmpty) {
                           _performSearch(value);
@@ -232,8 +325,9 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                                 // Clear autocomplete results
                                 _marketplaceNotifier!.clearAutocompleteResults();
                                 
-                                // Clear the search key and reset marketplace items
+                                // Clear the search key and reset location (same as properties)
                                 _marketplaceNotifier!.clearSearch();
+                                _marketplaceNotifier!.resetLocation();
                                 final navigator = Navigator.of(context);
                                 _marketplaceNotifier!.refreshMarketplaceItems().then((_) {
                                   if (mounted) {
@@ -251,6 +345,8 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
                               ),
                             )
                           : null,
+                        );
+                      },
                     ),
                     if (marketplaceNotifier.isAutocompleteLoading)
                       Positioned(
@@ -295,6 +391,50 @@ class _MarketplaceSearchPageState extends State<MarketplaceSearchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // "Near Me" option
+                InkWell(
+                  onTap: _isLocationLoading ? null : _getNearbyItems,
+                  child: Container(
+                    margin: EdgeInsets.symmetric(vertical: 8.h),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: Kolors.kOffWhite,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Kolors.kGray.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        _isLocationLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Kolors.kPrimary,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.location_on,
+                                color: Kolors.kPrimary,
+                                size: 24,
+                              ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(
+                            "Find items near me",
+                            style: appStyle(14, Kolors.kPrimary, FontWeight.w500),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Kolors.kPrimary,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
                 // Recent searches section
                 if (_recentSearches.isNotEmpty) ...[
                   Padding(

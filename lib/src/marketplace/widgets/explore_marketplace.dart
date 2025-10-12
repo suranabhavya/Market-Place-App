@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:go_router/go_router.dart';
-import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
-import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
 import 'package:marketplace_app/common/widgets/reusable_text.dart';
-import 'package:marketplace_app/common/utils/share_utils.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
 import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
+import 'package:marketplace_app/src/marketplace/widgets/marketplace_staggered_tile.dart';
 import 'package:provider/provider.dart';
 
 class ExploreMarketplace extends StatefulWidget {
   final List<MarketplaceListModel> marketplaceItems;
-  final Function? onWishlistUpdated;
-  final Function? onRefresh;
+  final void Function()? onWishlistUpdated;
+  final Future<void> Function()? onRefresh;
 
   const ExploreMarketplace({
     super.key,
@@ -30,6 +26,7 @@ class ExploreMarketplace extends StatefulWidget {
 
 class _ExploreMarketplaceState extends State<ExploreMarketplace> {
   final ScrollController _scrollController = ScrollController();
+  bool _requestedLoadMore = false;
   
   @override
   void initState() {
@@ -45,10 +42,22 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
     super.dispose();
   }
   
-  // Handle scroll events for potential infinite loading in the future
+  // Handle scroll events for infinite loading
   void _scrollListener() {
-    // This can be implemented later if pagination is added to marketplace
-    // Currently marketplace doesn't have pagination like properties
+    if (!_scrollController.hasClients) return;
+    final notifier = context.read<MarketplaceNotifier>();
+    if (notifier.isLoadingMore || notifier.nextPageUrl == null) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 500) {
+      if (_requestedLoadMore) return; // simple debounce per frame
+      _requestedLoadMore = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          notifier.loadMoreMarketplaceItems();
+          _requestedLoadMore = false;
+        }
+      });
+    }
   }
 
   Future<void> _handleRefresh() async {
@@ -62,23 +71,7 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
     }
   }
 
-  String _getCityStatePostcode(MarketplaceListModel item) {
-    List<String> locationParts = [];
-    
-    if (item.city != null && item.city!.isNotEmpty) {
-      locationParts.add(item.city!);
-    }
-    
-    if (item.state != null && item.state!.isNotEmpty) {
-      locationParts.add(item.state!);
-    }
-    
-    if (item.pincode != null && item.pincode!.isNotEmpty) {
-      locationParts.add(item.pincode!);
-    }
-    
-    return locationParts.isNotEmpty ? locationParts.join(', ') : 'Location not available';
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,187 +122,29 @@ class _ExploreMarketplaceState extends State<ExploreMarketplace> {
             ),
           ),
           
-          // Grid of marketplace items
-          SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.8,
-              crossAxisSpacing: 10.w,
-              mainAxisSpacing: 10.h,
-            ),
+          // List of marketplace items (using staggered layout like properties)
+          SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
+                final notifier = context.watch<MarketplaceNotifier>();
+                final isLoadingMore = notifier.isLoadingMore;
+                if (isLoadingMore && index == widget.marketplaceItems.length) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
+                      ),
+                    ),
+                  );
+                }
                 final item = widget.marketplaceItems[index];
-                final String? imageUrl = item.images.isNotEmpty ? item.images.first.image : null;
-
-                return GestureDetector(
-                  onTap: () => context.push('/marketplace/${item.id}'),
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Image
-                            Expanded(
-                              child: Container(
-                                width: double.infinity,
-                                color: Colors.grey[200],
-                                child: imageUrl != null && imageUrl.isNotEmpty
-                                    ? ClipRRect(
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                                        child: Image.network(
-                                          imageUrl,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Center(
-                                              child: Icon(
-                                                Icons.image_not_supported,
-                                                color: Kolors.kGray,
-                                                size: 32,
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      )
-                                    : const Center(
-                                        child: Icon(
-                                          Icons.image_not_supported,
-                                          color: Kolors.kGray,
-                                          size: 32,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            
-                            // Item details
-                            Padding(
-                              padding: EdgeInsets.all(8.w),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.title,
-                                    style: appStyle(14, Kolors.kPrimary, FontWeight.w600),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '\$${item.price}',
-                                        style: appStyle(16, Kolors.kPrimary, FontWeight.bold),
-                                      ),
-                                      SizedBox(width: 4.w),
-                                      if (item.originalPrice != null && item.originalPrice! > item.price)
-                                        Text(
-                                          '\$${item.originalPrice}',
-                                          style: appStyle(12, Kolors.kGray, FontWeight.w400).copyWith(
-                                            decoration: TextDecoration.lineThrough,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    item.hideAddress
-                                        ? _getCityStatePostcode(item)
-                                        : item.address,
-                                    style: appStyle(12, Kolors.kGray, FontWeight.w400),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        // Action buttons
-                        Positioned(
-                          right: 8.h,
-                          top: 8.h,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Share button
-                              GestureDetector(
-                                onTap: () async {
-                                  try {
-                                    await ShareUtils.shareMarketplaceItemFromList(item);
-                                  } catch (e) {
-                                    debugPrint('Error sharing marketplace item: $e');
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Failed to share item. Please try again.'),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                child: CircleAvatar(
-                                  radius: 15.r,
-                                  backgroundColor: Kolors.kSecondaryLight,
-                                  child: Icon(
-                                    Icons.share,
-                                    color: Kolors.kGray,
-                                    size: 15.r,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              // Wishlist button
-                              Consumer<WishlistNotifier>(
-                                builder: (context, wishlistNotifier, child) {
-                                  final isInWishlist = wishlistNotifier.wishlist.contains(item.id);
-                                  
-                                  return GestureDetector(
-                                    onTap: () {
-                                      final accessToken = Storage().getString('accessToken');
-                                      if (accessToken == null) {
-                                        loginBottomSheet(context);
-                                      } else {
-                                        wishlistNotifier.toggleWishlist(
-                                          item.id,
-                                          () {
-                                            // Refetch callback
-                                            if (widget.onWishlistUpdated != null) {
-                                              widget.onWishlistUpdated!();
-                                            }
-                                          },
-                                          type: 'marketplace', // Specify that this is a marketplace item
-                                        );
-                                      }
-                                    },
-                                    child: CircleAvatar(
-                                      radius: 15.r,
-                                      backgroundColor: Kolors.kSecondaryLight,
-                                      child: Icon(
-                                        isInWishlist ? Icons.favorite : Icons.favorite_border,
-                                        color: isInWishlist ? Kolors.kRed : Kolors.kGray,
-                                        size: 15.r,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                return MarketplaceStaggeredTile(
+                  item: item,
+                  onWishlistUpdated: widget.onWishlistUpdated,
                 );
               },
-              childCount: widget.marketplaceItems.length,
+              childCount: widget.marketplaceItems.length + (context.watch<MarketplaceNotifier>().isLoadingMore ? 1 : 0),
             ),
           ),
           

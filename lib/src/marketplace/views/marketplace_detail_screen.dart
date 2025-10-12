@@ -174,17 +174,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
           SliverAppBar(
             expandedHeight: 300.h,
             pinned: true,
-            leading: Container(
-              margin: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: AppBackButton(
-                onTap: () => context.pop(),
-                color: Kolors.kWhite,
-              ),
-            ),
+            leading: const AppBackButton(),
             actions: [
               // Share Button
               Container(
@@ -198,7 +188,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                     if (_item != null) {
                       final messenger = ScaffoldMessenger.of(context);
                       try {
-                        await ShareUtils.shareMarketplaceItem(_item!);
+                        await ShareUtils.shareMarketplaceItem(_item!, context);
                       } catch (e) {
                         debugPrint('Error sharing marketplace item: $e');
                         if (mounted) {
@@ -227,8 +217,10 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                 ),
                 child: Consumer<WishlistNotifier>(
                   builder: (context, wishlistNotifier, child) {
-                    final isInWishlist = wishlistNotifier.wishlist
-                        .contains(_item!.id);
+                    final isInWishlist = wishlistNotifier.isWishlisted(
+                      type: 'marketplace',
+                      id: _item!.id.toString(),
+                    );
                     
                     return IconButton(
                       onPressed: () {
@@ -236,7 +228,7 @@ class _MarketplaceDetailScreenState extends State<MarketplaceDetailScreen> {
                           loginBottomSheet(context);
                         } else {
                           wishlistNotifier.toggleWishlist(
-                            _item!.id, 
+                            _item!.id.toString(), 
                             () {}, // Empty refetch function since we're not on a list screen
                             type: 'marketplace'
                           );

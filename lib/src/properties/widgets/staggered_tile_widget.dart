@@ -13,6 +13,7 @@ import 'package:marketplace_app/src/properties/controllers/property_notifier.dar
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
 import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 
 class StaggeredTileWidget extends StatefulWidget {
@@ -131,7 +132,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
 
   void _handleShare() async {
     try {
-      await ShareUtils.sharePropertyFromList(widget.property);
+      await ShareUtils.sharePropertyFromList(widget.property, context);
     } catch (e) {
       debugPrint('Error sharing property: $e');
       if (mounted) {
@@ -173,9 +174,8 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
             // Property Image
             Stack(
               children: [
-                SizedBox(
-                  height: 200.h,
-                  width: double.infinity,
+                AspectRatio(
+                  aspectRatio: 16 / 9,
                   child: (widget.property.images != null && widget.property.images!.isNotEmpty)
                     ? PageView.builder(
                         controller: _pageController,
@@ -186,33 +186,29 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           });
                         },
                         itemBuilder: (context, index) {
-                          return Image.network(
-                            widget.property.images![index],
+                          final imageUrl = widget.property.images![index];
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    color: Kolors.kGray,
-                                    size: 40,
-                                  ),
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Kolors.kPrimary,
+                                  strokeWidth: 2,
                                 ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                color: Colors.grey[200],
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    color: Kolors.kPrimary,
-                                    strokeWidth: 2,
-                                  ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: Kolors.kGray,
+                                  size: 40,
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           );
                         },
                       )
@@ -273,7 +269,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                         onTap: () => _handleShare(),
                         child: CircleAvatar(
                           radius: 15.r,
-                          backgroundColor: Kolors.kSecondaryLight,
+                          backgroundColor: Kolors.kWhite,
                           child: Icon(
                             Icons.share,
                             color: Kolors.kGray,
@@ -292,7 +288,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                                 loginBottomSheet(context);
                               } else {
                                 wishlistNotifier.toggleWishlist(
-                                  widget.property.id,
+                                  widget.property.id.toString(),
                                   () => setState(() {}), // Simple refresh callback
                                   type: 'property', // Specify this is a property
                                 );
@@ -300,10 +296,13 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                             },
                             child: CircleAvatar(
                               radius: 15.r,
-                              backgroundColor: Kolors.kSecondaryLight,
+                              backgroundColor: Kolors.kWhite,
                               child: Icon(
                                 AntDesign.heart,
-                                color: wishlistNotifier.wishlist.contains(widget.property.id)? Kolors.kRed : Kolors.kGray,
+                                color: wishlistNotifier.isWishlisted(
+                                  type: 'property',
+                                  id: widget.property.id.toString(),
+                                ) ? Kolors.kRed : Kolors.kGray,
                                 size: 15.r,
                               ),
                             ),
@@ -326,7 +325,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           onTap: widget.onEdit,
                           child: CircleAvatar(
                             radius: 15.r,
-                            backgroundColor: Kolors.kSecondaryLight,
+                            backgroundColor: Kolors.kWhite,
                             child: Icon(
                               Icons.edit,
                               color: Kolors.kPrimary,
@@ -340,7 +339,7 @@ class _StaggeredTileWidgetState extends State<StaggeredTileWidget> {
                           onTap: _showDeleteConfirmationDialog,
                           child: CircleAvatar(
                             radius: 15.r,
-                            backgroundColor: Kolors.kSecondaryLight,
+                            backgroundColor: Kolors.kWhite,
                             child: Icon(
                               Icons.delete,
                               color: Colors.red,

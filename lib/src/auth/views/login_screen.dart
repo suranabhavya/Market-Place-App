@@ -144,13 +144,13 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 // Header section
                 Text(
-                  "HomiSwap",
+                  "Sublyst",
                   textAlign: TextAlign.center,
                   style: appStyle(24, Kolors.kPrimary, FontWeight.bold)
                 ),
                 SizedBox(height: 10.h),
                 Text(
-                  "Hey Homie! Welcome back. You've been missed!",
+                  "Hey! Welcome back. You've been missed!",
                   textAlign: TextAlign.center,
                   style: appStyle(13, Kolors.kGray, FontWeight.normal),
                 ),

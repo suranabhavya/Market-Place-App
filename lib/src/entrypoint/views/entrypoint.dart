@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
+import 'package:marketplace_app/common/services/auth_service.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/app_style.dart';
@@ -8,11 +9,10 @@ import 'package:marketplace_app/src/chat/views/chat_screen.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/bottom_tab_notifier.dart';
 import 'package:marketplace_app/src/entrypoint/controllers/unread_count_notifier.dart';
 import 'package:marketplace_app/src/home/views/home_screen.dart';
-import 'package:marketplace_app/src/marketplace/controllers/marketplace_notifier.dart';
-import 'package:marketplace_app/src/profile/views/profile_screen.dart';
-import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:marketplace_app/src/marketplace/views/marketplace_screen.dart';
+import 'package:marketplace_app/src/profile/views/profile_screen.dart';
+import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
+import 'package:marketplace_app/src/wishlist/views/wishlist_screen.dart';
 import 'package:provider/provider.dart';
 
 class AppEntryPoint extends StatefulWidget {
@@ -31,25 +31,28 @@ class _AppEntryPointState extends State<AppEntryPoint> {
     const ProfilePage(),
   ];
   
-  String? _lastToken;
-  
   @override
   void initState() {
     super.initState();
-    _lastToken = Storage().getString('accessToken');
     
-    // Initialize wishlist state on startup
+    // Only start token validation - no blocking API calls
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final currentToken = Storage().getString('accessToken');
-      final wishlistNotifier = context.read<WishlistNotifier>();
       
       if (currentToken != null) {
-        // User is logged in - load their wishlist
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-      } else {
-        // No user logged in - clear wishlist
-        wishlistNotifier.clearWishlist();
+        // Start periodic token validation for existing logged-in users
+        AuthService().startPeriodicValidation();
+        
+        // Load wishlist for logged-in users
+        try {
+          final wishlistNotifier = context.read<WishlistNotifier>();
+          wishlistNotifier.loadWishlistFromStorage(); // Fast local load
+          Future.delayed(const Duration(milliseconds: 500), () {
+            wishlistNotifier.fetchWishlist(); // Fresh API call
+          });
+        } catch (e) {
+          debugPrint('WishlistNotifier not available: $e');
+        }
       }
     });
   }
@@ -57,54 +60,22 @@ class _AppEntryPointState extends State<AppEntryPoint> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Check for token changes when dependencies change (like after login)
-    _checkTokenChange();
-  }
-  
-  void _checkTokenChange() {
-    final currentToken = Storage().getString('accessToken');
-    if (currentToken != _lastToken) {
-      _lastToken = currentToken;
-      
-      // Handle wishlist state based on token change
-      try {
-        final wishlistNotifier = context.read<WishlistNotifier>();
-        if (currentToken == null) {
-          // User logged out - clear wishlist
-          wishlistNotifier.clearWishlist();
-        } else {
-          // User logged in or switched - load their wishlist
-          wishlistNotifier.loadWishlistFromStorage();
-          wishlistNotifier.fetchWishlist();
-        }
-      } catch (e) {
-        debugPrint('WishlistNotifier not available: $e');
-      }
-      
-      // Token changed, reconnect WebSocket if needed
+    // Reconnect WebSocket when dependencies change (like theme changes)
+    // Use addPostFrameCallback to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         final unreadNotifier = context.read<UnreadCountNotifier>();
         unreadNotifier.reconnectIfNeeded();
       } catch (e) {
         debugPrint('UnreadCountNotifier not available: $e');
       }
-    }
+    });
   }
   
   @override
   Widget build(BuildContext context) {
-    // Check for token changes on each build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkTokenChange();
-    });
-
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => TabIndexNotifier()),
-        ChangeNotifierProvider(create: (_) => MarketplaceNotifier()),
-        ChangeNotifierProvider(create: (_) => WishlistNotifier()),
-        ChangeNotifierProvider(create: (_) => UnreadCountNotifier()),
-      ],
+    return ChangeNotifierProvider(
+      create: (_) => TabIndexNotifier(),
       child: Consumer<TabIndexNotifier>(
         builder: (context, tabIndexNotifier, child) {
           return Scaffold(

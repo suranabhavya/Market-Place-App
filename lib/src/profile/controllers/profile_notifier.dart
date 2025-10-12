@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/src/auth/models/auth_model.dart';
-import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
+import 'package:marketplace_app/common/services/google_cloud_storage_service.dart';
 
 class ProfileNotifier with ChangeNotifier {
   // Loading states
@@ -61,9 +61,15 @@ class ProfileNotifier with ChangeNotifier {
     loadUserFromStorage();
   }
 
+  // Clear user data (for logout or account deletion)
+  void clearUserData() {
+    _user = null;
+    notifyListeners();
+  }
+
   // Update user profile details (name, email, password, mobile)
   Future<bool> updateUserDetails(Map<String, dynamic> updateData) async {
-    final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
+    final String url = '${Environment.baseUrl}/accounts/user/update/';
     final String? token = Storage().getString('accessToken');
 
     if (token == null) return false;
@@ -112,79 +118,76 @@ class ProfileNotifier with ChangeNotifier {
 
   // Update profile photo
   Future<bool> updateProfilePhoto() async {
-    final String url = '${Environment.iosAppBaseUrl}/accounts/user/update/';
+    final String url = '${Environment.baseUrl}/accounts/user/update/';
     final String? token = Storage().getString('accessToken');
     
     if (token == null) return false;
 
     try {
       setUpdating(true);
-      
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 800,  // Add compression
-        maxHeight: 800, // Add compression
-        imageQuality: 50, // Add compression
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
       );
-      
       if (image == null) {
         setUpdating(false);
         return false;
       }
-      
+      // Use native downsampled file directly (fast)
       File imageFile = File(image.path);
-      String fileName = path.basename(imageFile.path);
-      
-      var request = http.MultipartRequest('PUT', Uri.parse(url)); // Changed to PUT
-      request.headers.addAll({'Authorization': 'Token $token'});
-      
-      request.files.add(
-        await http.MultipartFile.fromPath('profile_photo', imageFile.path, filename: fileName),
+      String? userJson = Storage().getString('user');
+      String userId = '';
+      if (userJson != null) {
+        final userData = jsonDecode(userJson);
+        userId = userData['id'].toString();
+      }
+      // Upload to GCS
+      List<String> urls = await GoogleCloudStorageService.uploadImages(
+        imageFiles: [imageFile],
+        folder: 'profiles',
+        userId: userId,
       );
-      
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-      
+      if (urls.isEmpty) {
+        setUpdating(false);
+        return false;
+      }
+      String profilePhotoUrl = urls.first;
+      // Send URL to backend
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Token $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'profile_photo': profilePhotoUrl}),
+      );
       setUpdating(false);
       
       if (response.statusCode == 200) {
-        // Update the entire user data from response
-        final responseData = jsonDecode(response.body);
-        
-        // Get existing user data and merge with response
+        // Update the user in storage
         final userJson = Storage().getString('user');
         if (userJson != null) {
-          Map<String, dynamic> existingUserData = jsonDecode(userJson);
-          
-          // Merge the response data with existing user data
-          responseData.forEach((key, value) {
-            existingUserData[key] = value;
-          });
-          
-          // Store the merged user data
-          Storage().setString('user', jsonEncode(existingUserData));
-          
-          // Update the current user object and notify listeners
-          _user = User.fromJson(existingUserData);
-          notifyListeners();
+          Map<String, dynamic> userData = jsonDecode(userJson);
+          userData['profile_photo'] = profilePhotoUrl;
+          Storage().setString('user', jsonEncode(userData));
+          loadUserFromStorage();
         }
-        
         return true;
       }
       
-      debugPrint("Failed to update profile photo: ${response.body}");
       return false;
     } catch (e) {
       setUpdating(false);
-      debugPrint("Error updating profile photo: $e");
       return false;
     }
   }
 
   // Send OTP to verify school email
   Future<bool> sendSchoolEmailOtp(String email) async {
-    final String url = '${Environment.iosAppBaseUrl}/accounts/generate-school-email-otp/';
+    final String url = '${Environment.baseUrl}/accounts/generate-school-email-otp/';
     final String? token = Storage().getString('accessToken');
 
     if (token == null) return false;
@@ -227,7 +230,7 @@ class ProfileNotifier with ChangeNotifier {
 
   // Verify school email with OTP
   Future<bool> verifySchoolEmailOtp(String email, String otp) async {
-    final String url = '${Environment.iosAppBaseUrl}/accounts/verify-school-email-otp/';
+    final String url = '${Environment.baseUrl}/accounts/verify-school-email-otp/';
     final String? token = Storage().getString('accessToken');
 
     if (token == null) return false;

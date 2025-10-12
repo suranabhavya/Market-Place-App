@@ -27,6 +27,7 @@ class _SelectDateSectionState extends State<SelectDateSection> {
         builder: (context) => SelectDurationPage(
           initialFromDate: filterNotifier.availableFrom,
           initialToDate: filterNotifier.availableTo,
+          initialFlexibility: filterNotifier.dateFlexibility,
         ),
       ),
     );
@@ -34,6 +35,11 @@ class _SelectDateSectionState extends State<SelectDateSection> {
     if (result != null && mounted) {
       filterNotifier.setMoveInDate(result["fromDate"]);
       filterNotifier.setMoveOutDate(result["toDate"]);
+      filterNotifier.setDateFlexibility(
+        result["flexibility"] ?? "Exact dates",
+        result["actualFromDate"],
+        result["actualToDate"],
+      );
       await filterNotifier.applyFilters();
     }
   }

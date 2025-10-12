@@ -28,33 +28,11 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
   void initState() {
     super.initState();
     
-    if (widget.filteredProperties == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final propertyNotifier = context.read<PropertyNotifier>();
-        // Only fetch properties if they haven't been loaded yet (e.g., from splash screen)
-        if (propertyNotifier.properties.isEmpty && !propertyNotifier.isLoading) {
-          debugPrint("ExploreProperties: Properties not preloaded, fetching now...");
-          propertyNotifier.fetchProperties();
-        } else if (propertyNotifier.properties.isNotEmpty) {
-          debugPrint("ExploreProperties: Properties already loaded (${propertyNotifier.properties.length} items)");
-        }
-      });
-    }
+    // Properties are already loaded via FilterNotifier in HomeScreen
+    // No need to fetch them again here
     
-    // Initialize wishlist state when component loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final accessToken = Storage().getString('accessToken');
-      final wishlistNotifier = context.read<WishlistNotifier>();
-      
-      if (accessToken != null) {
-        // User is logged in - load their wishlist to ensure proper state
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-      } else {
-        // No user logged in - clear wishlist
-        wishlistNotifier.clearWishlist();
-      }
-    });
+    // Wishlist is already loaded in HomeScreen and EntryPoint
+    // No need to load it again here
     
     // Add scroll listener for infinite scrolling
     _scrollController.addListener(_scrollListener);
@@ -159,7 +137,7 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                if (index == properties.length) {
+              if (isLoadingMore && index == properties.length) {
                   // Show loading indicator at the bottom
                   return Center(
                     child: Padding(
@@ -171,22 +149,24 @@ class _ExplorePropertiesState extends State<ExploreProperties> {
                   );
                 }
                 
-                final property = properties[index];
+              final property = properties[index];
                 return StaggeredTileWidget(
                   onTap: () {
                     if (accessToken == null) {
                       loginBottomSheet(context);
                     } else {
                       context.read<WishlistNotifier>().toggleWishlist(
-                        property.id,
-                        () {}
+                        property.id.toString(),
+                        () {},
+                        type: 'property',
                       );
                     }
                   },
                   property: property,
                 );
               },
-              childCount: properties.length + (isLoadingMore ? 1 : 0),
+            childCount: properties.length + (isLoadingMore ? 1 : 0),
+            addAutomaticKeepAlives: false,
             ),
           ),
           

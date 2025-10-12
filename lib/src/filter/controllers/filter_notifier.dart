@@ -1,7 +1,50 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:marketplace_app/common/services/http_client.dart';
+import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/storage_lock.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
+
+// Cache data structure for storing filtered properties
+class CachedPropertyData {
+  final List<PropertyListModel> properties;
+  final int totalCount;
+  final String? nextPageUrl;
+  final DateTime timestamp;
+  final String cacheKey;
+
+  CachedPropertyData({
+    required this.properties,
+    required this.totalCount,
+    required this.nextPageUrl,
+    required this.timestamp,
+    required this.cacheKey,
+  });
+
+  // Cache never expires - we always keep it and refresh in background
+
+  Map<String, dynamic> toJson() => {
+    'properties': properties.map((p) => p.toJson()).toList(),
+    'totalCount': totalCount,
+    'nextPageUrl': nextPageUrl,
+    'timestamp': timestamp.millisecondsSinceEpoch,
+    'cacheKey': cacheKey,
+  };
+
+  factory CachedPropertyData.fromJson(Map<String, dynamic> json) {
+    return CachedPropertyData(
+      properties: (json['properties'] as List)
+          .map((p) => PropertyListModel.fromJson(p))
+          .toList(),
+      totalCount: json['totalCount'],
+      nextPageUrl: json['nextPageUrl'],
+      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp']),
+      cacheKey: json['cacheKey'],
+    );
+  }
+}
 
 class FilterNotifier extends ChangeNotifier {
   RangeValues priceRange = const RangeValues(0, 50000);
@@ -12,6 +55,11 @@ class FilterNotifier extends ChangeNotifier {
   DateTime? availableTo;
   String _searchKey = '';
   String get searchKey => _searchKey;
+  
+  // Flexibility properties
+  String dateFlexibility = "Exact dates";
+  DateTime? actualFromDate;
+  DateTime? actualToDate;
 
   // New state variables for property type and flatmate preferences
   List<String> selectedPropertyTypes = [];
@@ -27,25 +75,82 @@ class FilterNotifier extends ChangeNotifier {
   String? nextPageUrl;
   int totalPropertiesCount = 0;
   String? errorMessage;
+  
+  // Caching mechanism
+  final Map<String, CachedPropertyData> _cache = {};
+  String? _lastCacheKey;
+  bool _isRefreshing = false;
 
-  // Location for proximity search
+  // Cache data structure
+  static const String _cacheKey = 'filtered_properties_cache';
+  // Cache never expires - we keep it indefinitely and always refresh in background
+
+  // Location for proximity search with caching
   double? _latitude;
   double? _longitude;
+  DateTime? _locationTimestamp;
+  static const Duration _locationCacheExpiry = Duration(minutes: 30);
   
   double? get latitude => _latitude;
   double? get longitude => _longitude;
+  DateTime? get locationTimestamp => _locationTimestamp;
   
-  // Set location for proximity search
+  // Set location for proximity search with caching
   void setLocation(double lat, double lng) {
     _latitude = lat;
     _longitude = lng;
+    _locationTimestamp = DateTime.now();
+    
+    // Cache location data
+    _cacheLocationData(lat, lng);
     notifyListeners();
+  }
+  
+  // Cache location data for faster subsequent loads
+  void _cacheLocationData(double lat, double lng) {
+    try {
+      final locationData = {
+        'latitude': lat,
+        'longitude': lng,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      final locationJson = jsonEncode(locationData);
+      Storage().setString('cached_location', locationJson);
+    } catch (e) {
+      debugPrint("Failed to cache location: $e");
+    }
+  }
+  
+  // Load cached location data
+  void _loadCachedLocation() {
+    try {
+      final locationJson = Storage().getString('cached_location');
+      if (locationJson != null) {
+        final locationData = jsonDecode(locationJson);
+        final timestamp = DateTime.fromMillisecondsSinceEpoch(locationData['timestamp']);
+        
+        // Only use cached location if it's not expired
+        if (DateTime.now().difference(timestamp) < _locationCacheExpiry) {
+          _latitude = locationData['latitude']?.toDouble();
+          _longitude = locationData['longitude']?.toDouble();
+          _locationTimestamp = timestamp;
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to load cached location: $e");
+    }
+  }
+  
+  // Initialize cached location on startup
+  void initializeLocation() {
+    _loadCachedLocation();
   }
   
   // Reset location data
   void resetLocation() {
     _latitude = null;
     _longitude = null;
+    _locationTimestamp = null;
     notifyListeners();
   }
 
@@ -76,6 +181,13 @@ class FilterNotifier extends ChangeNotifier {
 
   void setMoveOutDate(DateTime? date) {
     availableTo = date;
+    notifyListeners();
+  }
+  
+  void setDateFlexibility(String flexibility, DateTime? actualFrom, DateTime? actualTo) {
+    dateFlexibility = flexibility;
+    actualFromDate = actualFrom;
+    actualToDate = actualTo;
     notifyListeners();
   }
 
@@ -115,131 +227,328 @@ class FilterNotifier extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Update _buildFilterUrl to include new filters
+  // Optimized URL building with parameter validation
   String _buildFilterUrl() {
-    String url = "${Environment.iosAppBaseUrl}/api/properties/?";
+    final baseUrl = "${Environment.baseUrl}/api/properties/?page_size=10";
+    final queryParams = <String, String>{};
 
     // Add search parameter if available
     if (_searchKey.isNotEmpty && _searchKey != "Properties Near Me") {
-      url += "search=$_searchKey&";
+      queryParams['search'] = _searchKey;
     }
 
     // Add location parameters if available
     if (_latitude != null && _longitude != null) {
-      url += "latitude=$_latitude&longitude=$_longitude&";
+      queryParams['latitude'] = _latitude.toString();
+      queryParams['longitude'] = _longitude.toString();
     }
 
     // Add property types
     if (selectedPropertyTypes.isNotEmpty) {
-      url += "property_type=${selectedPropertyTypes.join(',')}&";
+      queryParams['property_type'] = selectedPropertyTypes.join(',');
     }
 
     // Add flatmate preferences
     if (smokingPreference.isNotEmpty) {
-      url += "smoking=$smokingPreference&";
+      queryParams['smoking'] = smokingPreference;
     }
     if (partyingPreference.isNotEmpty) {
-      url += "partying=$partyingPreference&";
+      queryParams['partying'] = partyingPreference;
     }
     if (dietaryPreference.isNotEmpty) {
-      url += "dietary=$dietaryPreference&";
+      queryParams['dietary'] = dietaryPreference;
     }
     if (nationalityPreference.isNotEmpty) {
-      url += "nationality=$nationalityPreference&";
+      queryParams['nationality'] = nationalityPreference;
     }
 
     // Add amenities
-    List<String> selectedAmenities = amenities.entries
+    final selectedAmenities = amenities.entries
         .where((e) => e.value)
         .map((e) => e.key)
         .toList();
     if (selectedAmenities.isNotEmpty) {
-      url += "amenities=${selectedAmenities.join(',')}&";
+      queryParams['amenities'] = selectedAmenities.join(',');
     }
 
     // Add price range
     if (priceRange.start > 0) {
-      url += "min_rent=${priceRange.start.toInt()}&";
+      queryParams['min_rent'] = priceRange.start.toInt().toString();
     }
     if (priceRange.end < 50000) {
-      url += "max_rent=${priceRange.end.toInt()}&";
+      queryParams['max_rent'] = priceRange.end.toInt().toString();
     }
 
     // Add other filters
     if (selectedBedrooms.isNotEmpty) {
-      url += "bedrooms=${selectedBedrooms.join(',')}&";
+      queryParams['bedrooms'] = selectedBedrooms.join(',');
     }
     if (selectedBathrooms.isNotEmpty) {
-      url += "bathrooms=${selectedBathrooms.join(',')}&";
+      queryParams['bathrooms'] = selectedBathrooms.join(',');
     }
     if (selectedSchools.isNotEmpty) {
-      url += "schools=${selectedSchools.join(',')}&";
+      queryParams['schools'] = selectedSchools.join(',');
     }
-    if (availableFrom != null) {
-      url += "available_from=${availableFrom!.toIso8601String().split('T')[0]}&";
+
+    // Use actual dates for API filtering if flexibility is applied, otherwise use selected dates
+    final filterFromDate = actualFromDate ?? availableFrom;
+    final filterToDate = actualToDate ?? availableTo;
+    
+    if (filterFromDate != null) {
+      queryParams['available_from'] = filterFromDate.toIso8601String().split('T')[0];
     }
-    if (availableTo != null) {
-      url += "available_to=${availableTo!.toIso8601String().split('T')[0]}&";
+    if (filterToDate != null) {
+      queryParams['available_to'] = filterToDate.toIso8601String().split('T')[0];
     }
     
-    return url;
+    // Build final URL efficiently
+    if (queryParams.isEmpty) {
+      return baseUrl;
+    }
+    
+    final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+    return uri.toString();
   }
 
-  Future<void> applyFilters() async {
-    if (isLoading) return;
+  // Generate cache key based on current filter state
+  String _generateCacheKey() {
+    final buffer = StringBuffer();
+    buffer.write('search:$_searchKey|');
+    buffer.write('lat:$_latitude|lng:$_longitude|');
+    buffer.write('price:${priceRange.start}-${priceRange.end}|');
+    buffer.write('bedrooms:${selectedBedrooms.join(',')}|');
+    buffer.write('bathrooms:${selectedBathrooms.join(',')}|');
+    buffer.write('schools:${selectedSchools.join(',')}|');
+    buffer.write('types:${selectedPropertyTypes.join(',')}|');
+    buffer.write('smoking:$smokingPreference|');
+    buffer.write('partying:$partyingPreference|');
+    buffer.write('dietary:$dietaryPreference|');
+    buffer.write('nationality:$nationalityPreference|');
     
-    isLoading = true;
-    errorMessage = null;
-    filteredProperties = [];
-    nextPageUrl = null;
+    final selectedAmenities = amenities.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+    buffer.write('amenities:${selectedAmenities.join(',')}|');
     
-    notifyListeners();
+    final filterFromDate = actualFromDate ?? availableFrom;
+    final filterToDate = actualToDate ?? availableTo;
+    if (filterFromDate != null) {
+      buffer.write('from:${filterFromDate.toIso8601String().split('T')[0]}|');
+    }
+    if (filterToDate != null) {
+      buffer.write('to:${filterToDate.toIso8601String().split('T')[0]}|');
+    }
+    
+    return buffer.toString();
+  }
 
+  // Cache management methods
+  Future<void> _saveToCache(CachedPropertyData data) async {
+    await StorageLock.acquire();
     try {
-      String url = _buildFilterUrl();      
-      debugPrint("Applying filters with URL: $url");
+      final cacheJson = jsonEncode(data.toJson());
+      Storage().setString('${_cacheKey}_${data.cacheKey}', cacheJson);
+      _cache[data.cacheKey] = data;
+    } catch (e) {
+      debugPrint("Failed to save cache: $e");
+    } finally {
+      StorageLock.release();
+    }
+  }
 
-      final response = await http.get(Uri.parse(url));
+  Future<CachedPropertyData?> _loadFromCache(String cacheKey) async {
+    try {
+      // Check memory cache first (no expiry check - cache is indefinite)
+      if (_cache.containsKey(cacheKey)) {
+        debugPrint("Loaded from memory cache: $cacheKey");
+        return _cache[cacheKey];
+      }
 
-      if (response.statusCode == 200) {
-        // Parse the paginated response
-        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
-        
-        // Update properties and pagination info
-        filteredProperties = paginatedResponse.results;
-        totalPropertiesCount = paginatedResponse.count;
-        nextPageUrl = paginatedResponse.next;
-        
-        debugPrint("Fetched ${paginatedResponse.results.length} filtered properties");
-        debugPrint("Total filtered count: $totalPropertiesCount");
-        debugPrint("Next page URL for filtered results: $nextPageUrl");
-        
-        notifyListeners();
-      } else {
-        errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
-        debugPrint(errorMessage);
+      // Check disk cache (no expiry check - cache is indefinite)
+      await StorageLock.acquire();
+      try {
+        final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
+        if (cacheJson != null) {
+          final data = CachedPropertyData.fromJson(jsonDecode(cacheJson));
+          _cache[cacheKey] = data;
+          debugPrint("Loaded from disk cache: $cacheKey");
+          return data;
+        }
+      } finally {
+        StorageLock.release();
       }
     } catch (e) {
-      errorMessage = 'An error occurred: $e';
-      debugPrint(errorMessage);
+      debugPrint("Failed to load cache: $e");
     }
+    return null;
+  }
 
-    isLoading = false;
-    notifyListeners();
+  Future<void> _clearExpiredCache() async {
+    // Cache never expires - this method is kept for compatibility but does nothing
+    debugPrint("Cache clear skipped - cache is indefinite");
+  }
+
+  // Track if we're currently in applyFilters to prevent concurrent calls
+  bool _isApplyingFilters = false;
+
+  // Optimized applyFilters with caching and background refresh
+  Future<void> applyFilters({bool forceRefresh = false}) async {
+    // Prevent concurrent calls to avoid GetStorage file conflicts
+    if (_isApplyingFilters && !forceRefresh) {
+      debugPrint("applyFilters already in progress, skipping duplicate call");
+      return;
+    }
+    if (isLoading && !forceRefresh) return;
+
+    _isApplyingFilters = true;
+
+    try {
+      final cacheKey = _generateCacheKey();
+
+      // Try to load from cache first (unless force refresh)
+      if (!forceRefresh) {
+        final cachedData = await _loadFromCache(cacheKey);
+        if (cachedData != null) {
+        // Show cached data IMMEDIATELY without setting loading state
+        filteredProperties = List.from(cachedData.properties);
+        totalPropertiesCount = cachedData.totalCount;
+        nextPageUrl = cachedData.nextPageUrl;
+        errorMessage = null;
+        _lastCacheKey = cacheKey;
+
+        // Notify listeners first so UI updates instantly with cached data
+        notifyListeners();
+
+        debugPrint("Showing cached properties, starting background refresh...");
+
+          // ALWAYS refresh in background (no age check - indefinite cache strategy)
+          _refreshInBackground(cacheKey);
+
+          return;
+        }
+      }
+
+      // No cache available or force refresh - fetch from API
+      isLoading = true;
+      errorMessage = null;
+
+      // Only clear properties if we don't have cached data to show
+      if (filteredProperties.isEmpty || forceRefresh) {
+        filteredProperties = [];
+        nextPageUrl = null;
+      }
+
+      notifyListeners();
+
+      try {
+        final url = _buildFilterUrl();
+
+        final response = await AppHttpClient.getFast(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          // Parse the paginated response
+          final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+
+          // Update properties and pagination info
+          filteredProperties = paginatedResponse.results;
+          totalPropertiesCount = paginatedResponse.count;
+          nextPageUrl = paginatedResponse.next;
+
+          // Save to cache
+          final cacheData = CachedPropertyData(
+            properties: List.from(paginatedResponse.results),
+            totalCount: paginatedResponse.count,
+            nextPageUrl: paginatedResponse.next,
+            timestamp: DateTime.now(),
+            cacheKey: cacheKey,
+          );
+          await _saveToCache(cacheData);
+          _lastCacheKey = cacheKey;
+
+          notifyListeners();
+        } else {
+          errorMessage = 'Failed to fetch properties: ${response.reasonPhrase}';
+        }
+      } catch (e) {
+        errorMessage = 'An error occurred: $e';
+      }
+
+      isLoading = false;
+      notifyListeners();
+    } finally {
+      _isApplyingFilters = false;
+    }
+  }
+
+  // Background refresh without blocking UI
+  Future<void> _refreshInBackground(String cacheKey) async {
+    if (_isRefreshing) return;
+    
+    _isRefreshing = true;
+    
+    try {
+      final url = _buildFilterUrl();
+      final response = await AppHttpClient.getFast(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final PaginatedPropertiesResponse paginatedResponse = paginatedPropertiesFromJson(response.body);
+        
+        // Update cache with fresh data
+        final cacheData = CachedPropertyData(
+          properties: List.from(paginatedResponse.results),
+          totalCount: paginatedResponse.count,
+          nextPageUrl: paginatedResponse.next,
+          timestamp: DateTime.now(),
+          cacheKey: cacheKey,
+        );
+        await _saveToCache(cacheData);
+        
+        // Update current data if this is still the active filter
+        if (_lastCacheKey == cacheKey) {
+          filteredProperties = List.from(paginatedResponse.results);
+          totalPropertiesCount = paginatedResponse.count;
+          nextPageUrl = paginatedResponse.next;
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint("Background refresh failed: $e");
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  // Quick load method for initial app startup
+  Future<void> quickLoad() async {
+    await applyFilters();
   }
 
   Future<void> loadMoreFilteredProperties() async {
     if (isLoadingMore || nextPageUrl == null) {
-      debugPrint("Skipping load more: isLoadingMore=$isLoadingMore, nextPageUrl=$nextPageUrl");
       return;
     }
-    
-    debugPrint("Loading more filtered properties from URL: $nextPageUrl");
     isLoadingMore = true;
     notifyListeners();
     
     try {
-      final response = await http.get(Uri.parse(nextPageUrl!));
+      final response = await AppHttpClient.get(
+        Uri.parse(nextPageUrl!),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: AppHttpClient.splashTimeout,
+      );
 
       if (response.statusCode == 200) {
         // Parse the paginated response
@@ -247,18 +556,14 @@ class FilterNotifier extends ChangeNotifier {
         
         // Add more properties to the existing list
         filteredProperties.addAll(paginatedResponse.results);
-        debugPrint("Added ${paginatedResponse.results.length} more properties, total now: ${filteredProperties.length}");
         
         // Update pagination info
         nextPageUrl = paginatedResponse.next;
-        debugPrint("Next page URL updated to: $nextPageUrl");
       } else {
         errorMessage = 'Failed to load more properties: ${response.reasonPhrase}';
-        debugPrint(errorMessage);
       }
     } catch (e) {
       errorMessage = 'An error occurred: $e';
-      debugPrint(errorMessage);
     }
     
     isLoadingMore = false;
@@ -273,6 +578,9 @@ class FilterNotifier extends ChangeNotifier {
     selectedSchools = [];
     availableFrom = null;
     availableTo = null;
+    dateFlexibility = "Exact dates";
+    actualFromDate = null;
+    actualToDate = null;
     selectedPropertyTypes = [];
     smokingPreference = '';
     partyingPreference = '';
@@ -296,5 +604,36 @@ class FilterNotifier extends ChangeNotifier {
     filteredProperties = [];
     nextPageUrl = null;
     totalPropertiesCount = 0;
+  }
+
+  // Method to initialize filtered properties from property notifier (used when no filters are applied)
+  void initializeFromProperties(List<PropertyListModel> properties, int totalCount, String? nextPage) {
+    filteredProperties = List.from(properties);
+    totalPropertiesCount = totalCount;
+    nextPageUrl = nextPage;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  // Clear all cache data
+  Future<void> clearCache() async {
+    try {
+      _cache.clear();
+      // Clear all cache keys from storage
+      final storageInfo = Storage().getStorageInfo();
+      final keys = storageInfo['keys'] as List<String>? ?? [];
+      for (final key in keys) {
+        if (key.startsWith(_cacheKey)) {
+          await Storage().removeKey(key);
+        }
+      }
+    } catch (e) {
+      debugPrint("Failed to clear cache: $e");
+    }
+  }
+
+  // Initialize cache on startup
+  Future<void> initializeCache() async {
+    await _clearExpiredCache();
   }
 }

@@ -22,8 +22,6 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -31,26 +29,35 @@
 			<string>com.surana.homiswap</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.236498773398-9tufspi66fjo67fgp906cmg1ft1vpige</string>
+				<string>com.googleusercontent.apps.767184260939-olie3brq500nkeu0etjlh35j23vagrm7</string>
 			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to take photos.</string>
+	<string>This app uses your camera to take photos of properties and marketplace items for your listings.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need access to your location even when the app is not in use.</string>
+	<string>This app uses your location to show nearby properties and marketplace items, and to provide location-based notifications for relevant listings in your area.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need access to your location to provide better services.</string>
+	<string>This app uses your location to show nearby properties and marketplace items, and to help you find relevant listings in your area.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to show nearby properties and marketplace items, and to provide location-based services for property listings.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to upload images.</string>
+	<string>This app accesses your photo library to select and upload images for property and marketplace item listings.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>This app does not access Apple Music.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app does not access your contacts.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app does not access your microphone.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
-		<string>fetch</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

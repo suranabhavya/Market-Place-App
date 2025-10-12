@@ -33,7 +33,7 @@ class R {
 
   static const String ASSETS_ICONS_APPLE_SVG = 'assets/icons/apple.svg';
 
-  static const String ASSETS_ICONS_COMPANY_LOGO_SVG = 'assets/icons/sublyst.svg';
+  static const String ASSETS_ICONS_COMPANY_LOGO_PNG = 'assets/images/sublyst_splashscreen.png';
 
   static const String ASSETS_ICONS_FACEBOOK_SVG = 'assets/icons/facebook.svg';
 

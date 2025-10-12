@@ -34,6 +34,7 @@ class PublicProfilePage extends StatefulWidget {
 class _PublicProfilePageState extends State<PublicProfilePage> {
   Map<String, dynamic>? userProfile;
   bool isLoading = true;
+  bool isMessageLoading = false;
   
   @override
   void initState() {
@@ -115,20 +116,50 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   void _handleMessageTap(BuildContext context) async {
-    final chatId = await checkExistingChat(widget.userId);
-    if (!mounted) return;
+    if (isMessageLoading) return; // Prevent double tap
     
-    if (chatId != null) {
-      // Navigate to the existing chat
-      if (mounted) {
-        // ignore: use_build_context_synchronously
-        _navigateToExistingChat(context, chatId);
+    setState(() {
+      isMessageLoading = true;
+    });
+
+    try {
+      debugPrint('PublicProfile: Checking existing chat for userId: ${widget.userId}');
+      
+      final chatId = await checkExistingChat(widget.userId);
+      if (!mounted) return;
+      
+      debugPrint('PublicProfile: Existing chat check result - chatId: $chatId');
+      
+      if (chatId != null) {
+        // Navigate to the existing chat
+        debugPrint('PublicProfile: Navigating to existing chat with ID: $chatId');
+        if (mounted) {
+          // ignore: use_build_context_synchronously
+          _navigateToExistingChat(context, chatId);
+        }
+      } else {
+        // Show message modal for new chat
+        debugPrint('PublicProfile: No existing chat found, showing message modal');
+        if (mounted) {
+          // ignore: use_build_context_synchronously
+          _showNewChatModal(context);
+        }
       }
-    } else {
-      // Show message modal for new chat
+    } catch (e) {
+      debugPrint('PublicProfile: Error handling message tap: $e');
       if (mounted) {
-        // ignore: use_build_context_synchronously
-        _showNewChatModal(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isMessageLoading = false;
+        });
       }
     }
   }
@@ -147,6 +178,58 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     if (userProfile == null) {
       return const Scaffold(
         body: Center(child: Text("Failed to load profile")),
+      );
+    }
+
+    // Check if user is deleted
+    final bool isDeletedUser = userProfile!["is_deleted"] == true;
+    
+    if (isDeletedUser) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: const AppBackButton(),
+          title: ReusableText(
+            text: "Profile",
+            style: appStyle(16, Kolors.kPrimary, FontWeight.bold)
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.account_circle_outlined,
+                  size: 100.sp,
+                  color: Kolors.kGray,
+                ),
+                SizedBox(height: 24.h),
+                Text(
+                  "Account Deleted",
+                  style: appStyle(24, Kolors.kDark, FontWeight.bold),
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  "This user account has been deleted and is no longer available.",
+                  textAlign: TextAlign.center,
+                  style: appStyle(16, Kolors.kGray, FontWeight.normal),
+                ),
+                SizedBox(height: 32.h),
+                CustomButton(
+                  text: "Go Back",
+                  textSize: 16,
+                  btnColor: Kolors.kPrimary,
+                  btnHeight: 45.h,
+                  radius: 12,
+                  btnWidth: 200.w,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -238,11 +321,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             if (accessToken == null) {
                               loginBottomSheet(context);
                             } else {
-                              wishlistNotifier.toggleWishlist(
-                                property["id"],
-                                () {
-                                  setState(() {});
-                                },
+                               wishlistNotifier.toggleWishlist(
+                                property["id"].toString(),
+                                () { setState(() {}); },
+                                type: 'property',
                               );
                             }
                           },
@@ -274,9 +356,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       itemCount: userProfile!["move_out_sale_items"].length,
                       itemBuilder: (context, index) {
                         final item = userProfile!["move_out_sale_items"][index];
+                        debugPrint('Marketplace item $index: ${item["title"]}');
+                        debugPrint('Marketplace item images: ${item["images"]}');
                         final String? imageUrl = item["images"] != null && item["images"].isNotEmpty 
-                            ? item["images"][0]["image"] 
+                            ? item["images"][0]["url"] 
                             : null;
+                        debugPrint('Extracted imageUrl: $imageUrl');
 
                         return GestureDetector(
                           onTap: () => context.push('/marketplace/${item["id"]}'),
@@ -376,7 +461,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                                   top: 8.h,
                                   child: Consumer<WishlistNotifier>(
                                     builder: (context, wishlistNotifier, child) {
-                                      final isInWishlist = wishlistNotifier.wishlist.contains(item["id"]);
+                                      final isInWishlist = wishlistNotifier.wishlist.contains('marketplace:${item["id"]}');
                                       
                                       return GestureDetector(
                                         onTap: () {
@@ -384,10 +469,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                                             loginBottomSheet(context);
                                           } else {
                                             wishlistNotifier.toggleWishlist(
-                                              item["id"],
-                                              () {
-                                                setState(() {});
-                                              },
+                                              item["id"].toString(),
+                                              () { setState(() {}); },
                                               type: 'marketplace',
                                             );
                                           }
@@ -453,6 +536,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   btnHeight: 48.h,
                   textSize: 16,
                   radius: 24,
+                  isLoading: isMessageLoading,
+                  btnColor: Kolors.kPrimary,
+                  borderColor: Colors.white,
                 ),
               ),
             )

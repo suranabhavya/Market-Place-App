@@ -1,14 +1,15 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:marketplace_app/common/services/storage.dart';
 import 'package:marketplace_app/common/utils/kcolors.dart';
 import 'package:marketplace_app/common/widgets/login_bottom_sheet.dart';
+import 'package:marketplace_app/common/widgets/shimmers/list_shimmer.dart';
 import 'package:marketplace_app/src/filter/controllers/filter_notifier.dart';
 import 'package:marketplace_app/src/home/widgets/custom_app_bar.dart';
 import 'package:marketplace_app/src/home/widgets/select_date_section.dart';
 import 'package:marketplace_app/src/properties/widgets/explore_properties.dart';
-import 'package:marketplace_app/src/wishlist/controllers/wishlist_notifier.dart';
 import 'package:provider/provider.dart';
 import 'package:marketplace_app/common/services/push_notification_service.dart';
 
@@ -24,26 +25,80 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     PushNotificationService().requestPermissionIfNeeded();
-    
-    // Initialize both filters and wishlist when the page loads
+
+    // Properties should already be preloaded from splash (with cache-first + background refresh)
+    // But we call it here as safety fallback if splash preload somehow didn't complete
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Apply filters
       final filterNotifier = context.read<FilterNotifier>();
-      final wishlistNotifier = context.read<WishlistNotifier>(); // capture before async
+
+      // applyFilters handles everything: cache load + background refresh
+      // If preload already happened, this is basically a no-op (shows cached data immediately)
       await filterNotifier.applyFilters();
-      
-      // Initialize wishlist state
-      final accessToken = Storage().getString('accessToken');
-      
-      if (accessToken != null) {
-        // User is logged in - load their wishlist to ensure proper state
-        wishlistNotifier.loadWishlistFromStorage();
-        wishlistNotifier.fetchWishlist();
-      } else {
-        // No user logged in - clear wishlist
-        wishlistNotifier.clearWishlist();
-      }
+
+      debugPrint('HomePage: Properties ready (from preload or cache)');
     });
+  }
+
+  /// Build the main content area with improved loading state handling
+  Widget _buildHomeContent(BuildContext context, FilterNotifier filterNotifier) {
+    // Check if we're loading or have data
+    bool isLoading = filterNotifier.isLoading;
+    
+    if (isLoading) {
+      return const ListShimmer();
+    } else if (filterNotifier.filteredProperties.isNotEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: ExploreProperties(filteredProperties: filterNotifier.filteredProperties),
+      );
+    } else {
+      // Show empty state or retry option
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.home_outlined,
+                size: 64.w,
+                color: Colors.grey[400],
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'No properties available',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'Properties are loading in the background.\nTap to refresh if needed.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey[500],
+                ),
+              ),
+              SizedBox(height: 20.h),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final filterNotifier = context.read<FilterNotifier>();
+                  await filterNotifier.applyFilters(forceRefresh: true);
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Refresh'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -67,38 +122,97 @@ class _HomePageState extends State<HomePage> {
             
             // Expandable content section
             Expanded(
-              child: filterNotifier.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Kolors.kPrimary),
-                      ),
-                    )
-                  : Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      child: ExploreProperties(filteredProperties: filterNotifier.filteredProperties),
-                    ),
+              child: _buildHomeContent(context, filterNotifier),
             ),
           ],
         ),
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: 48.w),
-        child: FloatingActionButton(
-          onPressed: () {
-            if (accessToken == null) {
-              loginBottomSheet(context);
-            } else {
-              final filterNotifier = context.read<FilterNotifier>();
-              context.push("/property/create").then((_) async {
-                if (mounted) {
-                  await filterNotifier.applyFilters();
-                }
-              });
-            }
-          },
-          backgroundColor: Kolors.kPrimary,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, size: 32, color: Kolors.kWhite),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Kolors.kPrimary.withOpacity(0.8),
+                    Kolors.kPrimaryLight.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(25.r),
+                border: Border.all(
+                  color: Kolors.kPrimaryLight.withOpacity(0.8),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Kolors.kPrimary.withOpacity(0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Kolors.kPrimaryLight.withOpacity(0.1),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(25.r),
+                  onTap: () {
+                    if (accessToken == null) {
+                      loginBottomSheet(context);
+                    } else {
+                      final filterNotifier = context.read<FilterNotifier>();
+                      context.push("/property/create").then((_) async {
+                        if (mounted) {
+                          await filterNotifier.applyFilters(forceRefresh: true);
+                        }
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 12.h,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add,
+                          color: Kolors.kWhite,
+                          size: 24.sp,
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'List your Place',
+                          style: TextStyle(
+                            color: Kolors.kWhite,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            shadows: [
+                              Shadow(
+                                color: Kolors.kDark.withOpacity(0.5),
+                                offset: const Offset(0, 1),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

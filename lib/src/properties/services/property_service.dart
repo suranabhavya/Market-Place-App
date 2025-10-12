@@ -14,8 +14,11 @@ class PropertyService {
     }
 
     final response = await http.get(
-      Uri.parse('${Environment.iosAppBaseUrl}/api/properties/$propertyId/'),
-      headers: {'Authorization': 'Token $accessToken'},
+      Uri.parse('${Environment.baseUrl}/api/properties/$propertyId/'),
+      headers: {
+        'Authorization': 'Token $accessToken',
+        'Content-Type': 'application/json',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -34,7 +37,7 @@ class PropertyService {
 
     var request = http.MultipartRequest(
       "PUT",
-      Uri.parse('${Environment.iosAppBaseUrl}/api/properties/$propertyId/'),
+      Uri.parse('${Environment.baseUrl}/api/properties/$propertyId/'),
     );
     request.headers['Authorization'] = 'Token $accessToken';
 
@@ -93,14 +96,14 @@ class PropertyService {
 
     var request = http.MultipartRequest(
       "POST",
-      Uri.parse('${Environment.iosAppBaseUrl}/api/properties/'),
+      Uri.parse('${Environment.baseUrl}/api/properties/'),
     );
     request.headers['Authorization'] = 'Token $accessToken';
 
     // Handle images
     if (property.images != null && property.images!.isNotEmpty) {
       for (var imagePath in property.images!) {
-        File imageFile = File(imagePath.url);
+        File imageFile = File(imagePath);
         request.files.add(
           await http.MultipartFile.fromPath(
             'images',

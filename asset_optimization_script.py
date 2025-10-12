@@ -39,7 +39,6 @@ def optimize_images():
                 temp_size = Path(temp_file).stat().st_size
                 if temp_size < before_size:
                     os.replace(temp_file, str(img_file))
-                    print(f"  ✅ Reduced by {(before_size - temp_size) / 1024:.1f} KB")
                 else:
                     os.remove(temp_file)
                     print(f"  ➡️  Already optimized")
@@ -113,15 +112,11 @@ def find_unused_assets():
             unused_assets.append(asset_file)
     
     if unused_assets:
-        print("⚠️  Potentially unused assets:")
         total_unused_size = 0
         for asset in unused_assets:
             size = asset.stat().st_size
             total_unused_size += size
-            print(f"  📁 {asset.relative_to(Path('.'))} ({size / 1024:.1f} KB)")
-        print(f"💾 Total potentially unused: {total_unused_size / 1024:.1f} KB")
     else:
-        print("✅ All assets appear to be in use")
 
 def remove_ds_store_files():
     """Remove .DS_Store files"""
