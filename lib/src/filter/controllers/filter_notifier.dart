@@ -1,9 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/storage_lock.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/properties/models/property_list_model.dart';
-import 'dart:convert';
 
 // Cache data structure for storing filtered properties
 class CachedPropertyData {
@@ -343,12 +345,15 @@ class FilterNotifier extends ChangeNotifier {
 
   // Cache management methods
   Future<void> _saveToCache(CachedPropertyData data) async {
+    await StorageLock.acquire();
     try {
       final cacheJson = jsonEncode(data.toJson());
       Storage().setString('${_cacheKey}_${data.cacheKey}', cacheJson);
       _cache[data.cacheKey] = data;
     } catch (e) {
       debugPrint("Failed to save cache: $e");
+    } finally {
+      StorageLock.release();
     }
   }
 
@@ -361,12 +366,17 @@ class FilterNotifier extends ChangeNotifier {
       }
 
       // Check disk cache (no expiry check - cache is indefinite)
-      final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
-      if (cacheJson != null) {
-        final data = CachedPropertyData.fromJson(jsonDecode(cacheJson));
-        _cache[cacheKey] = data;
-        debugPrint("Loaded from disk cache: $cacheKey");
-        return data;
+      await StorageLock.acquire();
+      try {
+        final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
+        if (cacheJson != null) {
+          final data = CachedPropertyData.fromJson(jsonDecode(cacheJson));
+          _cache[cacheKey] = data;
+          debugPrint("Loaded from disk cache: $cacheKey");
+          return data;
+        }
+      } finally {
+        StorageLock.release();
       }
     } catch (e) {
       debugPrint("Failed to load cache: $e");

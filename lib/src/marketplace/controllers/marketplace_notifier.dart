@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:marketplace_app/common/services/storage.dart';
+import 'package:marketplace_app/common/services/storage_lock.dart';
 import 'package:marketplace_app/common/services/http_client.dart';
 import 'package:marketplace_app/common/utils/environment.dart';
 import 'package:marketplace_app/src/marketplace/models/marketplace_list_model.dart';
@@ -310,6 +312,7 @@ class MarketplaceNotifier extends ChangeNotifier {
 
   // Save cache to storage
   Future<void> _saveToCache(CachedMarketplaceData data) async {
+    await StorageLock.acquire();
     try {
       final cacheJson = jsonEncode(data.toJson());
       Storage().setString('${_cacheKey}_${data.cacheKey}', cacheJson);
@@ -317,6 +320,8 @@ class MarketplaceNotifier extends ChangeNotifier {
       debugPrint("Saved marketplace cache: ${data.cacheKey}");
     } catch (e) {
       debugPrint("Failed to save marketplace cache: $e");
+    } finally {
+      StorageLock.release();
     }
   }
 
@@ -328,14 +333,17 @@ class MarketplaceNotifier extends ChangeNotifier {
         debugPrint("Loaded marketplace from memory cache: $cacheKey");
         return _cache[cacheKey];
       }
-
-      // Check disk cache (no expiry check - cache is indefinite)
-      final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
-      if (cacheJson != null) {
-        final data = CachedMarketplaceData.fromJson(jsonDecode(cacheJson));
-        _cache[cacheKey] = data;
-        debugPrint("Loaded marketplace from disk cache: $cacheKey");
-        return data;
+      await StorageLock.acquire();
+      try {
+        final cacheJson = Storage().getString('${_cacheKey}_$cacheKey');
+        if (cacheJson != null) {
+          final data = CachedMarketplaceData.fromJson(jsonDecode(cacheJson));
+          _cache[cacheKey] = data;
+          debugPrint("Loaded marketplace from disk cache: $cacheKey");
+          return data;
+        }
+      } finally {
+        StorageLock.release();
       }
     } catch (e) {
       debugPrint("Failed to load marketplace cache: $e");
