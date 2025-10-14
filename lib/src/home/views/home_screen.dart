@@ -31,6 +31,12 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final filterNotifier = context.read<FilterNotifier>();
 
+      // Restore filter state first (search key, location) if not already restored
+      // This ensures we have the correct search context from previous session
+      if (filterNotifier.searchKey.isEmpty) {
+        await filterNotifier.restoreFilterState();
+      }
+
       // applyFilters handles everything: cache load + background refresh
       // If preload already happened, this is basically a no-op (shows cached data immediately)
       await filterNotifier.applyFilters();

@@ -59,11 +59,14 @@ class DataPreloadService {
     _propertiesCompleter = Completer<void>();
 
     try {
-      // Initialize cache and location first
+      // CRITICAL: Restore filter state FIRST (search key, location from previous session)
+      await filterNotifier.restoreFilterState();
+
+      // Initialize cache and location
       await filterNotifier.initializeCache();
       filterNotifier.initializeLocation();
 
-      // Load properties using optimized quick load
+      // Load properties using optimized quick load (will use restored search key/location)
       await filterNotifier.quickLoad();
 
       _isPropertiesLoaded = true;

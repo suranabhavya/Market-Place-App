@@ -30,16 +30,17 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void initState() {
     super.initState();
-    
-    // Initialize the search controller with any existing search query
+
+    // Initialize the search controller with any existing search query from FilterNotifier
+    // This will show the persisted search key (e.g., "Boston University") in the search bar
     final filterNotifier = context.read<FilterNotifier>();
     if (filterNotifier.searchKey.isNotEmpty) {
       _searchController.text = filterNotifier.searchKey;
     }
-    
+
     // Add listener to search controller
     _searchController.addListener(_onSearchChanged);
-    
+
     // Set focus to the search field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();

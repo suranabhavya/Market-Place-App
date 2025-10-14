@@ -83,6 +83,7 @@ class FilterNotifier extends ChangeNotifier {
 
   // Cache data structure
   static const String _cacheKey = 'filtered_properties_cache';
+  static const String _filterStateKey = 'filter_state'; // Store active filters
   // Cache never expires - we keep it indefinitely and always refresh in background
 
   // Location for proximity search with caching
@@ -151,7 +152,52 @@ class FilterNotifier extends ChangeNotifier {
     _latitude = null;
     _longitude = null;
     _locationTimestamp = null;
+    _saveFilterState(); // Save state when location is reset
     notifyListeners();
+  }
+
+  // Save current filter state to storage (search key, location, etc.)
+  Future<void> _saveFilterState() async {
+    await StorageLock.acquire();
+    try {
+      final state = {
+        'searchKey': searchKey,
+        'latitude': _latitude,
+        'longitude': _longitude,
+        'locationTimestamp': _locationTimestamp?.millisecondsSinceEpoch,
+      };
+      final stateJson = jsonEncode(state);
+      Storage().setString(_filterStateKey, stateJson);
+      debugPrint('Saved filter state: searchKey="$searchKey", lat=$_latitude, lng=$_longitude');
+    } catch (e) {
+      debugPrint('Failed to save filter state: $e');
+    } finally {
+      StorageLock.release();
+    }
+  }
+
+  // Restore filter state from storage
+  Future<void> restoreFilterState() async {
+    await StorageLock.acquire();
+    try {
+      final stateJson = Storage().getString(_filterStateKey);
+      if (stateJson != null) {
+        final state = jsonDecode(stateJson);
+        _searchKey = state['searchKey'] ?? '';
+        _latitude = state['latitude'];
+        _longitude = state['longitude'];
+        final timestamp = state['locationTimestamp'];
+        if (timestamp != null) {
+          _locationTimestamp = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        }
+        debugPrint('Restored filter state: searchKey="$_searchKey", lat=$_latitude, lng=$_longitude');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Failed to restore filter state: $e');
+    } finally {
+      StorageLock.release();
+    }
   }
 
   void setPriceRange(RangeValues values) {
@@ -193,6 +239,7 @@ class FilterNotifier extends ChangeNotifier {
 
   void setSearchKey(String key) {
     _searchKey = key;
+    _saveFilterState(); // Save state when search key changes
     notifyListeners();
   }
 
